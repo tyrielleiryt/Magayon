@@ -1,106 +1,156 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Helvetica Neue'}
-    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Helvetica Neue'; min-height: 15.0px}
-    span.s1 {font: 12.0px Helvetica}
+
+  <meta charset="UTF-8">
+
+  <title>Magayon – Cashier Login</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+  <script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+
+    const firebaseConfig = {
+
+      apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
+
+
+
+  authDomain: "magayon.firebaseapp.com",
+
+
+
+  projectId: "magayon",
+
+
+
+  storageBucket: "magayon.firebasestorage.app",
+
+
+
+  messagingSenderId: "829239121774",
+
+
+
+  appId: "1:829239121774:web:1fc5d0eed9a2abebcad37f"
+
+
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+
+    const auth = getAuth(app);
+
+
+    window.login = function () {
+
+      const email = document.getElementById("email").value;
+
+      const password = document.getElementById("password").value;
+
+
+      signInWithEmailAndPassword(auth, email, password)
+
+        .then(() => {
+
+          alert("Login successful!");
+
+          window.location.href = "order.html";
+
+        })
+
+        .catch(err => alert(err.message));
+
+    };
+
+  </script>
+
+
+  <style>
+
+    body {
+
+      font-family: Arial, sans-serif;
+
+      background: #f4f4f4;
+
+      display: flex;
+
+      height: 100vh;
+
+      justify-content: center;
+
+      align-items: center;
+
+    }
+
+    .login-box {
+
+      background: white;
+
+      padding: 20px;
+
+      width: 280px;
+
+      border-radius: 8px;
+
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    }
+
+    input, button {
+
+      width: 100%;
+
+      padding: 10px;
+
+      margin-top: 10px;
+
+    }
+
+    button {
+
+      background: #2c7be5;
+
+      color: white;
+
+      border: none;
+
+      cursor: pointer;
+
+    }
+
   </style>
+
 </head>
+
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Magayon – Cashier Login&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;script type="module"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";</p>
-<p class="p1"><span class="Apple-converted-space">    </span>import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>const firebaseConfig = {</p>
-<p class="p3"><span class="s1"><span class="Apple-converted-space">      </span></span>apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",</p>
-<p class="p4"><br></p>
-<p class="p4"><br></p>
-<p class="p3">  authDomain: "magayon.firebaseapp.com",</p>
-<p class="p4"><br></p>
-<p class="p4"><br></p>
-<p class="p3">  projectId: "magayon",</p>
-<p class="p4"><br></p>
-<p class="p4"><br></p>
-<p class="p3">  storageBucket: "magayon.firebasestorage.app",</p>
-<p class="p4"><br></p>
-<p class="p4"><br></p>
-<p class="p3">  messagingSenderId: "829239121774",</p>
-<p class="p4"><br></p>
-<p class="p4"><br></p>
-<p class="p3">  appId: "1:829239121774:web:1fc5d0eed9a2abebcad37f"</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>const app = initializeApp(firebaseConfig);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const auth = getAuth(app);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>window.login = function () {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const email = document.getElementById("email").value;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const password = document.getElementById("password").value;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>signInWithEmailAndPassword(auth, email, password)</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.then(() =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>alert("Login successful!");</p>
-<p class="p1"><span class="Apple-converted-space">          </span>window.location.href = "order.html";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>})</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.catch(err =&gt; alert(err.message));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>body {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-family: Arial, sans-serif;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: #f4f4f4;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.login-box {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: white;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 20px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>width: 280px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>box-shadow: 0 0 10px rgba(0,0,0,0.1);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>input, button {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>width: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>margin-top: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>button {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: #2c7be5;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>color: white;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: none;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>cursor: pointer;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="login-box"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;Cashier Login&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;input id="email" type="email" placeholder="Email" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;input id="password" type="password" placeholder="Password" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;button onclick="login()"&gt;Login&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+
+  <div class="login-box">
+
+    <h2>Cashier Login</h2>
+
+    <input id="email" type="email" placeholder="Email" />
+
+    <input id="password" type="password" placeholder="Password" />
+
+    <button onclick="login()">Login</button>
+
+  </div>
+
+
 </body>
+
 </html>
