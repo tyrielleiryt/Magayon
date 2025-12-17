@@ -89,7 +89,7 @@ body {
 /* ===== SIGN IN BUTTON ===== */
 .login-card button {
   width: 100%;
-  padding: 10px;                /* reduced height */
+  padding: 10px;
   background: #8BC34A;
   color: white;
   font-size: 15px;
@@ -108,7 +108,21 @@ body {
   transform: scale(0.98);
 }
 
-/* ===== FOOTER TEXT ===== */
+button.loading {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+/* ===== ERROR MESSAGE ===== */
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+  margin-top: 12px;
+  text-align: left;
+  display: none;
+}
+
+/* ===== FOOTER ===== */
 .version {
   margin-top: 24px;
   font-size: 12px;
@@ -116,7 +130,7 @@ body {
   text-align: center;
 }
 
-/* ===== MOBILE RESPONSIVENESS ===== */
+/* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .page {
     flex-direction: column;
@@ -130,61 +144,4 @@ body {
   .image-section {
     display: none;
   }
-}
-
-/* ===== ERROR MESSAGE ===== */
-.error-message {
-  color: #d32f2f;
-  font-size: 13px;
-  margin-top: 12px;
-  text-align: left;
-  display: none;
-}
-
-/* ===== LOADING STATE ===== */
-button.loading {
-  background: #bdbdbd;
-  cursor: not-allowed;
-}
-
-
-/* ===== ORDER PAGE ===== */
-/* ===== ORDER PAGE ===== */
-/* ===== ORDER PAGE ===== */
-/* ===== ORDER PAGE ===== */
-/* ===== ORDER PAGE ===== */
-/* ===== ORDER PAGE ===== */
-.order-page {
-  padding: 20px;
-  max-width: 400px;
-  margin: auto;
-}
-
-.menu-item {
-  display: flex;
-  justify-content: space-between;
-  background: white;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-}
-
-.menu-item button {
-  width: auto;
-  padding: 6px 12px;
-}
-
-.order-total {
-  font-size: 20px;
-  margin: 20px 0;
-}
-
-.submit-order {
-  width: 100%;
-  padding: 12px;
-  background: #8BC34A;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
 }
