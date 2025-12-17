@@ -3,9 +3,12 @@ import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/fir
 
 // 🔥 USE YOUR REAL FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
+  authDomain: "magayon.firebaseapp.com",
+  projectId: "magayon",
+  storageBucket: "magayon.firebasestorage.app",
+  messagingSenderId: "829239121774",
+  appId: "1:829239121774:web:1fc5d0eed9a2abebcad37f"
 };
 
 const app = initializeApp(firebaseConfig);
