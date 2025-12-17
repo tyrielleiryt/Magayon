@@ -41,16 +41,14 @@ body {
 /* ===== LOGO & SYSTEM NAME ===== */
 .logo {
   width: 120px;
-  height: auto;
-  margin-bottom: 10px;
   display: block;
+  margin-bottom: 10px;
 }
 
 .system-name {
   font-size: 14px;
   color: #666;
   margin-bottom: 24px;
-  letter-spacing: 0.5px;
 }
 
 /* ===== TEXT ===== */
@@ -83,7 +81,30 @@ body {
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 14px;
-  margin-bottom: 8px;
+}
+
+/* ===== PASSWORD TOGGLE ===== */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  color: #999;
+  user-select: none;
+}
+
+.password-toggle:hover {
+  color: #333;
 }
 
 /* ===== SIGN IN BUTTON ===== */
@@ -96,7 +117,7 @@ body {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 16px;
+  margin-top: 18px;
   transition: background 0.2s ease, transform 0.1s ease;
 }
 

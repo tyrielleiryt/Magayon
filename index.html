@@ -20,7 +20,7 @@
 
         <!-- Welcome Text -->
         <h2>Welcome back!</h2>
-        <p class="subtitle">Sign in with your email and password</p>
+        <p class="subtitle">Sign in with your email address and password</p>
 
         <!-- Email -->
         <label class="input-label" for="email">Email Address</label>
@@ -33,16 +33,19 @@
 
         <!-- Password -->
         <label class="input-label" for="password">Password</label>
-
         <div class="password-wrapper">
-        <input 
-          type="password"
-          id="password" 
-          placeholder="Enter your password"
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
           >
-          <button type="button" id="togglePassword" class="toggle-password">
-          👁
-          </button>
+          <span
+            id="togglePassword"
+            class="password-toggle"
+            title="Show / Hide password"
+          >
+            👁
+          </span>
         </div>
 
         <!-- Sign In Button -->

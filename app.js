@@ -1,4 +1,4 @@
-// Firebase CDN imports (REQUIRED for GitHub Pages)
+// Firebase CDN imports (required for GitHub Pages)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -20,25 +20,24 @@ const auth = getAuth(app);
 const loginBtn = document.getElementById("loginBtn");
 const btnText = document.getElementById("btnText");
 const errorMsg = document.getElementById("errorMsg");
+const passwordInput = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
 
-// Login handler
+// ===== LOGIN =====
 loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
+  const password = passwordInput.value;
 
-  // Reset error
   errorMsg.style.display = "none";
-  errorMsg.innerText = "";
 
   if (!email || !password) {
     showError("Please enter both email and password.");
     return;
   }
 
-  // Loading state
   loginBtn.classList.add("loading");
   loginBtn.disabled = true;
-  btnText.innerText = "Signing in…";
+  btnText.textContent = "Signing in…";
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -58,23 +57,19 @@ loginBtn.addEventListener("click", async () => {
   } finally {
     loginBtn.classList.remove("loading");
     loginBtn.disabled = false;
-    btnText.innerText = "Sign In";
+    btnText.textContent = "Sign In";
   }
 });
 
-// Error helper
+// ===== SHOW / HIDE PASSWORD =====
+togglePassword.addEventListener("click", () => {
+  const isHidden = passwordInput.type === "password";
+  passwordInput.type = isHidden ? "text" : "password";
+  togglePassword.textContent = isHidden ? "🙈" : "👁";
+});
+
+// ===== ERROR HELPER =====
 function showError(message) {
-  errorMsg.innerText = message;
+  errorMsg.textContent = message;
   errorMsg.style.display = "block";
 }
-
-// ===== SHOW / HIDE PASSWORD =====
-const passwordInput = document.getElementById("password");
-const togglePasswordBtn = document.getElementById("togglePassword");
-
-togglePasswordBtn.addEventListener("click", () => {
-  const isHidden = passwordInput.type === "password";
-
-  passwordInput.type = isHidden ? "text" : "password";
-  togglePasswordBtn.textContent = isHidden ? "🙈" : "👁";
-});
