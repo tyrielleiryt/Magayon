@@ -69,6 +69,28 @@ input {
   font-size: 14px;
 }
 
+/* ===== REMOVE BROWSER PASSWORD REVEAL ===== */
+
+/* Chrome / Edge / Safari */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Microsoft Edge */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* General fallback */
+input[type="password"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
 /* PASSWORD TOGGLE (SVG INSIDE INPUT) */
 .password-wrapper {
   position: relative;
