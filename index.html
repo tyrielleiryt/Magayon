@@ -4,70 +4,45 @@
   <meta charset="UTF-8" />
   <title>Magayon SIS | Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="page">
 
-    <!-- LEFT: Login -->
     <div class="login-section">
       <div class="login-card">
 
-        <!-- Logo & System Name -->
         <img src="images/logo.png" alt="Magayon Logo" class="logo">
         <p class="system-name">Sales and Inventory System</p>
 
-        <!-- Welcome Text -->
         <h2>Welcome back!</h2>
         <p class="subtitle">Sign in with your email address and password</p>
 
         <!-- Email -->
-        <label class="input-label" for="email">Email Address</label>
-        <input
-          type="email"
-          id="email"
-          placeholder="Enter your email"
-          autofocus
-        >
+        <label class="input-label">Email Address</label>
+        <input type="email" id="email" placeholder="Enter your email">
 
         <!-- Password -->
-        <label class="input-label" for="password">Password</label>
+        <label class="input-label">Password</label>
         <div class="password-wrapper">
-          <input
-            type="password"
-            id="password"
-            placeholder="Enter your password"
-          >
-          <span
-            id="togglePassword"
-            class="password-toggle"
-            title="Show / Hide password"
-          >
-            👁
-          </span>
+          <input type="password" id="password" placeholder="Enter your password">
+          <span id="togglePassword" class="password-toggle">👁</span>
         </div>
 
-        <!-- Sign In Button -->
+        <!-- ONE AND ONLY BUTTON -->
         <button id="loginBtn">
           <span id="btnText">Sign In</span>
         </button>
 
-        <!-- Error Message -->
         <p id="errorMsg" class="error-message"></p>
-
-        <!-- Version -->
         <p class="version">Magayon SIS v1.0</p>
 
       </div>
     </div>
 
-    <!-- RIGHT: Food Image -->
     <div class="image-section"></div>
-
   </div>
 
-  <!-- App Logic -->
   <script type="module" src="app.js"></script>
 </body>
 </html>

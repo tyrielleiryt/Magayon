@@ -1,7 +1,4 @@
-/* ===== GLOBAL ===== */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -9,7 +6,6 @@ body {
   background: #3a3a3a;
 }
 
-/* ===== PAGE LAYOUT ===== */
 .page {
   display: flex;
   height: 100vh;
@@ -17,7 +13,6 @@ body {
 
 .login-section {
   width: 40%;
-  background: #3a3a3a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,12 +20,9 @@ body {
 
 .image-section {
   width: 60%;
-  background-image: url("images/food.jpg");
-  background-size: cover;
-  background-position: center;
+  background: url("images/food.jpg") center / cover no-repeat;
 }
 
-/* ===== LOGIN CARD ===== */
 .login-card {
   background: white;
   padding: 40px 32px;
@@ -38,12 +30,7 @@ body {
   width: 360px;
 }
 
-/* ===== LOGO & SYSTEM NAME ===== */
-.logo {
-  width: 120px;
-  display: block;
-  margin-bottom: 10px;
-}
+.logo { width: 120px; margin-bottom: 10px; }
 
 .system-name {
   font-size: 14px;
@@ -51,45 +38,36 @@ body {
   margin-bottom: 24px;
 }
 
-/* ===== TEXT ===== */
-.login-card h2 {
-  text-align: left;
-  margin-bottom: 6px;
-}
+h2 { margin-bottom: 6px; }
 
 .subtitle {
-  text-align: left;
   font-size: 14px;
   color: #666;
   margin-bottom: 24px;
 }
 
-/* ===== INPUT LABELS ===== */
 .input-label {
-  display: block;
-  text-align: left;
   font-size: 12px;
   color: #888;
-  margin-bottom: 4px;
   margin-top: 14px;
+  margin-bottom: 4px;
+  display: block;
 }
 
-/* ===== INPUT FIELDS ===== */
-.login-card input {
+input {
   width: 100%;
   padding: 14px;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 14px;
 }
 
-/* ===== PASSWORD TOGGLE ===== */
+/* PASSWORD TOGGLE — NOT A BUTTON */
 .password-wrapper {
   position: relative;
 }
 
 .password-wrapper input {
-  padding-right: 44px;
+  padding-right: 40px;
 }
 
 .password-toggle {
@@ -98,71 +76,35 @@ body {
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  font-size: 16px;
   color: #999;
-  user-select: none;
 }
 
 .password-toggle:hover {
   color: #333;
 }
 
-/* ===== SIGN IN BUTTON ===== */
-.login-card button {
+/* ONLY SIGN IN BUTTON */
+#loginBtn {
   width: 100%;
+  margin-top: 18px;
   padding: 10px;
   background: #8BC34A;
   color: white;
-  font-size: 15px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 18px;
-  transition: background 0.2s ease, transform 0.1s ease;
 }
 
-.login-card button:hover {
-  background: #7CB342;
-}
-
-.login-card button:active {
-  transform: scale(0.98);
-}
-
-button.loading {
-  background: #bdbdbd;
-  cursor: not-allowed;
-}
-
-/* ===== ERROR MESSAGE ===== */
 .error-message {
   color: #d32f2f;
   font-size: 13px;
   margin-top: 12px;
-  text-align: left;
   display: none;
 }
 
-/* ===== FOOTER ===== */
 .version {
-  margin-top: 24px;
+  text-align: center;
   font-size: 12px;
   color: gray;
-  text-align: center;
-}
-
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-  .page {
-    flex-direction: column;
-  }
-
-  .login-section {
-    width: 100%;
-    height: 100vh;
-  }
-
-  .image-section {
-    display: none;
-  }
+  margin-top: 24px;
 }
