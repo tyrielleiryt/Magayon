@@ -13,10 +13,31 @@ body {
 
 .login-card {
   background: white;
-  padding: 40px;
+  padding: 40px 32px;
   border-radius: 20px;
   width: 360px;
   text-align: center;
+}
+
+/*Left-align Welcome Back! Subtitle*/
+.login-card h2 {
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: left;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/*added for the login padding*/
+.login-card input {
+  width: 100%;
+  box-sizing: border-box; /* IMPORTANT */
+  padding: 14px;
+  margin: 10px 0;
 }
 
 .logo {
@@ -82,4 +103,13 @@ button {
   .image-section {
     display: none;
   }
+}
+
+/*Added for the System Name*/
+.system-name {
+  font-size: 14px;
+  color: #666;
+  margin-top: -8px;
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
 }
