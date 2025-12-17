@@ -2,71 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Magayon – Order</title>
+  <title>Magayon SIS | Order</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
-    .item {
-      background: white;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      display: flex;
-      justify-content: space-between;
-    }
-    button {
-      padding: 6px 12px;
-    }
-    .total {
-      font-size: 20px;
-      margin-top: 20px;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="order-page">
+
   <h2>New Order</h2>
 
-  <div class="item">
-    <span>Burger</span>
+  <div class="menu-item">
+    <span>Pancit</span>
+    <button onclick="addItem(120)">Add</button>
+  </div>
+
+  <div class="menu-item">
+    <span>Lumpia</span>
     <button onclick="addItem(80)">Add</button>
   </div>
 
-  <div class="item">
-    <span>Fries</span>
-    <button onclick="addItem(50)">Add</button>
+  <div class="menu-item">
+    <span>Soft Drink</span>
+    <button onclick="addItem(40)">Add</button>
   </div>
 
-  <div class="item">
-    <span>Drink</span>
-    <button onclick="addItem(30)">Add</button>
-  </div>
-
-  <div class="total">
+  <div class="order-total">
     Total: ₱<span id="total">0</span>
   </div>
 
-  <button onclick="submitOrder()">Submit Order</button>
+  <button class="submit-order" onclick="submitOrder()">Submit Order</button>
 
-  <script>
-    let total = 0;
+</div>
 
-    function addItem(price) {
-      total += price;
-      document.getElementById("total").innerText = total;
-    }
+<script>
+  let total = 0;
 
-    function submitOrder() {
-      alert("Order submitted! Total: ₱" + total);
-      total = 0;
-      document.getElementById("total").innerText = total;
-    }
-  </script>
+  function addItem(price) {
+    total += price;
+    document.getElementById("total").innerText = total;
+  }
+
+  function submitOrder() {
+    alert("Order submitted! Total: ₱" + total);
+    total = 0;
+    document.getElementById("total").innerText = total;
+  }
+</script>
 
 </body>
 </html>

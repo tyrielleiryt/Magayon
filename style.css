@@ -1,74 +1,15 @@
+/* ===== GLOBAL ===== */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #3a3a3a;
 }
 
-.login-container {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.login-card {
-  background: white;
-  padding: 40px 32px;
-  border-radius: 20px;
-  width: 360px;
-  text-align: center;
-}
-
-/*Left-align Welcome Back! Subtitle*/
-.login-card h2 {
-  text-align: left;
-  margin-bottom: 6px;
-}
-
-.subtitle {
-  text-align: left;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 20px;
-}
-
-/*added for the login padding*/
-.login-card input {
-  width: 100%;
-  box-sizing: border-box; /* IMPORTANT */
-  padding: 14px;
-  margin: 10px 0;
-}
-
-.logo {
-  width: 120px;
-  height: auto;
-  margin-bottom: 20px;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  background: #7cb342;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-}
-
-.version {
-  margin-top: 20px;
-  font-size: 12px;
-  color: gray;
-}
-
-/*STEP 3 - Add layout CSS*/
+/* ===== PAGE LAYOUT ===== */
 .page {
   display: flex;
   height: 100vh;
@@ -89,7 +30,93 @@ button {
   background-position: center;
 }
 
-/*STEP 4 - MOBILE RESPONSIVENESS*/
+/* ===== LOGIN CARD ===== */
+.login-card {
+  background: white;
+  padding: 40px 32px;
+  border-radius: 20px;
+  width: 360px;
+}
+
+/* ===== LOGO & SYSTEM NAME ===== */
+.logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.system-name {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+  letter-spacing: 0.5px;
+}
+
+/* ===== TEXT ===== */
+.login-card h2 {
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: left;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+/* ===== INPUT LABELS ===== */
+.input-label {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  margin-top: 14px;
+}
+
+/* ===== INPUT FIELDS ===== */
+.login-card input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* ===== SIGN IN BUTTON ===== */
+.login-card button {
+  width: 100%;
+  padding: 10px;                /* reduced height */
+  background: #8BC34A;
+  color: white;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.login-card button:hover {
+  background: #7CB342;
+}
+
+.login-card button:active {
+  transform: scale(0.98);
+}
+
+/* ===== FOOTER TEXT ===== */
+.version {
+  margin-top: 24px;
+  font-size: 12px;
+  color: gray;
+  text-align: center;
+}
+
+/* ===== MOBILE RESPONSIVENESS ===== */
 @media (max-width: 768px) {
   .page {
     flex-direction: column;
@@ -105,11 +132,59 @@ button {
   }
 }
 
-/*Added for the System Name*/
-.system-name {
-  font-size: 14px;
-  color: #666;
-  margin-top: -8px;
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
+/* ===== ERROR MESSAGE ===== */
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+  margin-top: 12px;
+  text-align: left;
+  display: none;
+}
+
+/* ===== LOADING STATE ===== */
+button.loading {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+
+/* ===== ORDER PAGE ===== */
+/* ===== ORDER PAGE ===== */
+/* ===== ORDER PAGE ===== */
+/* ===== ORDER PAGE ===== */
+/* ===== ORDER PAGE ===== */
+/* ===== ORDER PAGE ===== */
+.order-page {
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  background: white;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.menu-item button {
+  width: auto;
+  padding: 6px 12px;
+}
+
+.order-total {
+  font-size: 20px;
+  margin: 20px 0;
+}
+
+.submit-order {
+  width: 100%;
+  padding: 12px;
+  background: #8BC34A;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
 }
