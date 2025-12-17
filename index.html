@@ -1,156 +1,32 @@
-
-
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
-  <meta charset="UTF-8">
-
-  <title>Magayon – Cashier Login</title>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-
-  <script type="module">
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-
-    const firebaseConfig = {
-
-      apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
-
-
-
-  authDomain: "magayon.firebaseapp.com",
-
-
-
-  projectId: "magayon",
-
-
-
-  storageBucket: "magayon.firebasestorage.app",
-
-
-
-  messagingSenderId: "829239121774",
-
-
-
-  appId: "1:829239121774:web:1fc5d0eed9a2abebcad37f"
-
-
-    };
-
-
-    const app = initializeApp(firebaseConfig);
-
-    const auth = getAuth(app);
-
-
-    window.login = function () {
-
-      const email = document.getElementById("email").value;
-
-      const password = document.getElementById("password").value;
-
-
-      signInWithEmailAndPassword(auth, email, password)
-
-        .then(() => {
-
-          alert("Login successful!");
-
-          window.location.href = "order.html";
-
-        })
-
-        .catch(err => alert(err.message));
-
-    };
-
-  </script>
-
-
-  <style>
-
-    body {
-
-      font-family: Arial, sans-serif;
-
-      background: #f4f4f4;
-
-      display: flex;
-
-      height: 100vh;
-
-      justify-content: center;
-
-      align-items: center;
-
-    }
-
-    .login-box {
-
-      background: white;
-
-      padding: 20px;
-
-      width: 280px;
-
-      border-radius: 8px;
-
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-
-    }
-
-    input, button {
-
-      width: 100%;
-
-      padding: 10px;
-
-      margin-top: 10px;
-
-    }
-
-    button {
-
-      background: #2c7be5;
-
-      color: white;
-
-      border: none;
-
-      cursor: pointer;
-
-    }
-
-  </style>
-
+  <meta charset="UTF-8" />
+  <title>Magayon SIS | Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
+  <div class="login-container">
+    <div class="login-card">
 
-  <div class="login-box">
+      <img src="logo.png" alt="Magayon Logo" class="logo">
 
-    <h2>Cashier Login</h2>
+      <h2>Welcome back!</h2>
+      <p class="subtitle">Sign in with your email and password</p>
 
-    <input id="email" type="email" placeholder="Email" />
+      <input type="email" id="email" placeholder="Email Address" autofocus>
+      <input type="password" id="password" placeholder="Password">
 
-    <input id="password" type="password" placeholder="Password" />
+      <button id="loginBtn">Sign In</button>
 
-    <button onclick="login()">Login</button>
+      <p class="version">Magayon SIS v1.0</p>
 
+    </div>
   </div>
 
-
+  <script src="app.js"></script>
 </body>
-
 </html>
