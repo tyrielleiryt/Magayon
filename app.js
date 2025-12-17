@@ -1,7 +1,8 @@
+// Firebase CDN imports (REQUIRED for GitHub Pages)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔥 USE YOUR REAL FIREBASE CONFIG
+// 🔥 Magayon Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
   authDomain: "magayon.firebaseapp.com",
@@ -11,14 +12,16 @@ const firebaseConfig = {
   appId: "1:829239121774:web:1fc5d0eed9a2abebcad37f"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Elements
+// UI elements
 const loginBtn = document.getElementById("loginBtn");
 const btnText = document.getElementById("btnText");
 const errorMsg = document.getElementById("errorMsg");
 
+// Login handler
 loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
@@ -47,6 +50,8 @@ loginBtn.addEventListener("click", async () => {
       message = "User not found.";
     } else if (error.code === "auth/wrong-password") {
       message = "Incorrect password.";
+    } else if (error.code === "auth/invalid-email") {
+      message = "Invalid email address.";
     }
 
     showError(message);
@@ -57,6 +62,7 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
+// Error helper
 function showError(message) {
   errorMsg.innerText = message;
   errorMsg.style.display = "block";
