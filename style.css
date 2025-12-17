@@ -76,11 +76,18 @@ input {
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  color: #999;
+  color: #888;
+  display: flex;
+  align-items: center;
 }
 
 .password-toggle:hover {
   color: #333;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* ONLY SIGN IN BUTTON */
