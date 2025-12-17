@@ -67,3 +67,14 @@ function showError(message) {
   errorMsg.innerText = message;
   errorMsg.style.display = "block";
 }
+
+// ===== SHOW / HIDE PASSWORD =====
+const passwordInput = document.getElementById("password");
+const togglePasswordBtn = document.getElementById("togglePassword");
+
+togglePasswordBtn.addEventListener("click", () => {
+  const isHidden = passwordInput.type === "password";
+
+  passwordInput.type = isHidden ? "text" : "password";
+  togglePasswordBtn.textContent = isHidden ? "🙈" : "👁";
+});
