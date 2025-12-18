@@ -68,6 +68,8 @@ const products = [
   }
 ];
 
+const clearBtn = document.getElementById("clearOrderBtn");
+
 /* ================= DOM ELEMENTS ================= */
 
 const grid = document.getElementById("productGrid");
@@ -134,6 +136,24 @@ function addToOrder(product) {
   table.appendChild(row);
   totalEl.textContent = total;
 }
+
+/* ================= CLEAR ORDER ================= */
+
+clearBtn.addEventListener("click", () => {
+  const confirmClear = confirm("Clear all current orders?");
+
+  if (!confirmClear) return;
+
+  // Reset state
+  order = [];
+  total = 0;
+
+  // Clear table
+  table.innerHTML = "";
+
+  // Reset total display
+  totalEl.textContent = "0";
+});
 
 /* ================= INITIAL LOAD ================= */
 

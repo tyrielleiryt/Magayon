@@ -143,3 +143,7 @@ body {
 .print {
   background: #888;
 }
+
+.clear {
+  background: #f06277; /* slightly lighter red */
+}
