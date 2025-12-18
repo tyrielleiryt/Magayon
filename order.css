@@ -8,7 +8,7 @@ body {
   background: #f2f2f2;
 }
 
-/* TOP BAR */
+/* ================= TOP BAR ================= */
 .top-bar {
   background: #343a5e;
   color: white;
@@ -27,17 +27,17 @@ body {
   cursor: pointer;
 }
 
-/* MAIN LAYOUT */
+/* ================= MAIN LAYOUT ================= */
 .pos-container {
   display: flex;
   height: calc(100vh - 50px);
 }
 
-/* CATEGORIES */
+/* ================= CATEGORIES ================= */
 .categories {
-  width: 220px;
+  width: 240px;
   background: #2e3354;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
 }
@@ -46,20 +46,29 @@ body {
   background: #3b4066;
   color: white;
   border: none;
-  padding: 14px;
-  margin-bottom: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
   cursor: pointer;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
 }
 
-.categories .active {
+.categories button:hover {
+  background: #4a507f;
+}
+
+.categories button.active {
   background: #f5c542;
-  color: black;
+  color: #000;
+  font-weight: bold;
 }
 
-/* PRODUCTS */
+/* ================= PRODUCTS ================= */
 .products {
   flex: 1;
   padding: 10px;
+  overflow-y: auto;
 }
 
 .search-bar input {
@@ -87,7 +96,7 @@ body {
   object-fit: cover;
 }
 
-/* ORDER SUMMARY */
+/* ================= ORDER SUMMARY ================= */
 .order-summary {
   width: 360px;
   background: white;
@@ -101,7 +110,8 @@ body {
   border-collapse: collapse;
 }
 
-.order-summary th, td {
+.order-summary th,
+.order-summary td {
   border-bottom: 1px solid #ccc;
   padding: 6px;
   text-align: center;
@@ -111,6 +121,11 @@ body {
   margin-top: auto;
 }
 
+.actions {
+  display: flex;
+  justify-content: space-between;
+}
+
 .actions button {
   width: 48%;
   padding: 12px;
@@ -118,6 +133,7 @@ body {
   border: none;
   color: white;
   cursor: pointer;
+  border-radius: 6px;
 }
 
 .checkout {
