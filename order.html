@@ -2,54 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Magayon SIS | Order</title>
+  <title>Magayon POS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="order.css">
 </head>
 <body>
 
-<div class="order-page">
-
-  <h2>New Order</h2>
-
-  <div class="menu-item">
-    <span>Pancit</span>
-    <button onclick="addItem(120)">Add</button>
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">🍽 POS</div>
+  <div class="top-actions">
+    <button>New</button>
+    <button>Hold</button>
+    <button>Bill List</button>
+    <button>KOT</button>
+    <button>Delivery</button>
+    <button>Take Away</button>
+    <button>Din In</button>
   </div>
+</div>
 
-  <div class="menu-item">
-    <span>Lumpia</span>
-    <button onclick="addItem(80)">Add</button>
-  </div>
+<div class="pos-container">
 
-  <div class="menu-item">
-    <span>Soft Drink</span>
-    <button onclick="addItem(40)">Add</button>
-  </div>
+  <!-- LEFT: CATEGORIES -->
+  <aside class="categories">
+    <button class="active">All Categories</button>
+    <button>Pancit Bato Meals</button>
+    <button>Dinuguan Meals</button>
+    <button>Bicol Express Meals</button>
+    <button>Lumpiang Shanghai</button>
+    <button>Siomai Meals</button>
+    <button>Ala Carte</button>
+    <button>Drinks</button>
+    <button>Add ons</button>
+  </aside>
 
-  <div class="order-total">
-    Total: ₱<span id="total">0</span>
-  </div>
+  <!-- CENTER: PRODUCTS -->
+  <main class="products">
+    <div class="search-bar">
+      <input type="text" placeholder="Search">
+    </div>
 
-  <button class="submit-order" onclick="submitOrder()">Submit Order</button>
+    <div class="product-grid" id="productGrid">
+      <!-- Product cards injected by JS -->
+    </div>
+  </main>
+
+  <!-- RIGHT: ORDER SUMMARY -->
+  <aside class="order-summary">
+    <table>
+      <thead>
+        <tr>
+          <th>SR#</th>
+          <th>Product Name</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+
+    <div class="summary-footer">
+      <div class="total">SUM TOTAL: ₱<span id="sumTotal">0</span></div>
+      <div class="actions">
+        <button class="checkout">Check out</button>
+        <button class="print">Print</button>
+      </div>
+    </div>
+  </aside>
 
 </div>
 
-<script>
-  let total = 0;
-
-  function addItem(price) {
-    total += price;
-    document.getElementById("total").innerText = total;
-  }
-
-  function submitOrder() {
-    alert("Order submitted! Total: ₱" + total);
-    total = 0;
-    document.getElementById("total").innerText = total;
-  }
-</script>
-
+<script type="module" src="order.js"></script>
 </body>
 </html>
