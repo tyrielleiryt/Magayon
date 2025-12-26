@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f4f4;
+}
+
+/* TOP BAR */
+.top-bar {
+  background: #2e3354;
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logout {
+  background: none;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* LAYOUT */
+.admin-container {
+  display: flex;
+  height: calc(100vh - 52px);
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  background: #2e3354;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar button {
+  background: #3b4066;
+  color: white;
+  border: none;
+  padding: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar button.active {
+  background: #f5c542;
+  color: black;
+  font-weight: bold;
+}
+
+/* MAIN CONTENT */
+.content {
+  flex: 1;
+  padding: 16px;
+}
+
+.content-box {
+  background: white;
+  border: 1px solid #ccc;
+  height: 100%;
+}
