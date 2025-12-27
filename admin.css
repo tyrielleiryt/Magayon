@@ -12,21 +12,22 @@ body {
 .top-bar {
   background: #343a5e;
   color: white;
-  padding: 12px;
+  padding: 12px 20px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
 }
 
 /* LAYOUT */
 .admin-layout {
   display: flex;
-  height: calc(100vh - 50px);
+  height: calc(100vh - 52px);
 }
 
 /* SIDEBAR */
 .sidebar {
   width: 220px;
-  background: #2f3354;
+  background: #2e3354;
   padding: 10px;
 }
 
@@ -37,12 +38,13 @@ body {
   background: #3b4066;
   color: white;
   border: none;
+  text-align: left;
   cursor: pointer;
 }
 
 .sidebar button.active {
   background: #f5c542;
-  color: black;
+  color: #000;
   font-weight: bold;
 }
 
@@ -50,6 +52,7 @@ body {
 .content {
   flex: 1;
   padding: 16px;
+  background: #ddd;
 }
 
 /* ACTION BUTTONS */
@@ -84,21 +87,22 @@ body {
 .category-table td {
   border: 1px solid #999;
   padding: 10px;
+  text-align: left;
 }
 
 .category-table th {
   background: #eee;
 }
 
-/* ===== MODAL ===== */
+/* MODAL */
 #modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.55);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
 }
 
 #modalOverlay.hidden {
@@ -108,51 +112,46 @@ body {
 #modalBox {
   background: white;
   width: 420px;
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 10px;
+  padding: 20px;
 }
 
-/* MODAL HEADER */
 .modal-header {
-  background: #2f3354;
-  color: white;
-  padding: 16px;
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-/* MODAL BODY */
-.modal-body {
-  padding: 20px;
+  margin-bottom: 16px;
 }
 
 .modal-body label {
   display: block;
-  margin-top: 12px;
+  margin-top: 10px;
   font-weight: bold;
 }
 
 .modal-body input,
-.modal-body textarea {
+.modal-body textarea,
+.modal-body select {
   width: 100%;
   padding: 8px;
   margin-top: 4px;
 }
 
-/* MODAL ACTIONS */
 .modal-actions {
   display: flex;
   justify-content: space-between;
-  padding: 16px 20px;
+  margin-top: 20px;
 }
 
-.btn-confirm,
-.btn-back {
+.btn-confirm {
   background: #e96a85;
   color: white;
   border: none;
-  padding: 12px 26px;
-  border-radius: 24px;
-  cursor: pointer;
+  padding: 10px 20px;
+}
+
+.btn-back {
+  background: #ccc;
+  border: none;
+  padding: 10px 20px;
 }

@@ -1,29 +1,29 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzVNXWlJ61HeqVQBb3eyjMb3-g-LU4QE9PCaYxNEauxpd0BF6HOyFoRwbKDTnvIkkt4/exec";
 
-/* ===== ELEMENTS ===== */
-const addBtn = document.getElementById("addCategoryBtn");
+/* ELEMENTS */
+const tableBody = document.getElementById("categoryTableBody");
 const modalOverlay = document.getElementById("modalOverlay");
 const modalBox = document.getElementById("modalBox");
-const tableBody = document.getElementById("categoryTableBody");
+const addBtn = document.getElementById("addCategoryBtn");
+const editBtn = document.getElementById("editCategoryBtn");
 
-/* ===== STATE ===== */
+/* STATE */
 let categories = [];
 let pendingCategory = null;
 
-/* ===== LOAD CATEGORIES ===== */
+/* LOAD DATA */
 async function loadCategories() {
   try {
     const res = await fetch(API_URL);
     categories = await res.json();
     renderTable();
-  } catch (err) {
+  } catch {
     alert("Failed to load categories");
-    console.error(err);
   }
 }
 loadCategories();
 
-/* ===== DATE & TIME ===== */
+/* DATE TIME */
 function updateDateTime() {
   document.getElementById("datetime").textContent =
     new Date().toLocaleString("en-US", {
@@ -38,105 +38,114 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* ===== ADD CATEGORY MODAL ===== */
-addBtn.addEventListener("click", () => {
-  modalOverlay.classList.remove("hidden");
-
-  modalBox.innerHTML = `
-    <div class="modal-header">
-      <h3>Add Category</h3>
-    </div>
-
-    <div class="modal-body">
-      <label>Category Name</label>
-      <input id="catName">
-
-      <label>Description</label>
-      <textarea id="catDesc"></textarea>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-confirm" id="confirmAdd">Confirm</button>
-      <button class="btn-back" id="cancelAdd">Back</button>
-    </div>
-  `;
-
-  document.getElementById("cancelAdd").onclick = closeModal;
-
-  document.getElementById("confirmAdd").onclick = () => {
-    const name = document.getElementById("catName").value.trim();
-    const desc = document.getElementById("catDesc").value.trim();
-
-    if (!name) {
-      alert("Category name is required");
-      return;
-    }
-
-    pendingCategory = { name, desc };
-    openConfirmModal();
-  };
-});
-
-/* ===== CONFIRM MODAL ===== */
-function openConfirmModal() {
-  modalBox.innerHTML = `
-    <div class="modal-header">
-      <h3>Confirm Add</h3>
-    </div>
-
-    <div class="modal-body">
-      <p>Are you sure you want to add:</p>
-      <input value="${pendingCategory.name}" disabled>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-confirm" id="finalConfirm">Confirm</button>
-      <button class="btn-back" id="backEdit">Back</button>
-    </div>
-  `;
-
-  document.getElementById("backEdit").onclick = () => addBtn.click();
-
-  document.getElementById("finalConfirm").onclick = saveCategory;
-}
-
-/* ===== SAVE CATEGORY ===== */
-async function saveCategory() {
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify(pendingCategory)
-    });
-
-    const result = await res.json();
-    if (!result.success) throw new Error("Save failed");
-
-    pendingCategory = null;
-    closeModal();
-    loadCategories();
-
-  } catch (err) {
-    alert("Failed to save category");
-    console.error(err);
-  }
-}
-
-/* ===== TABLE RENDER ===== */
+/* RENDER TABLE */
 function renderTable() {
   tableBody.innerHTML = "";
-  categories.forEach((cat, index) => {
+  categories.forEach((c, i) => {
     tableBody.innerHTML += `
       <tr>
-        <td>${index + 1}</td>
-        <td>${cat.name}</td>
-        <td>${cat.desc}</td>
+        <td>${i + 1}</td>
+        <td>${c.category_name}</td>
+        <td>${c.description}</td>
         <td>—</td>
-      </tr>
-    `;
+      </tr>`;
   });
 }
 
-/* ===== CLOSE MODAL ===== */
+/* ADD CATEGORY */
+addBtn.onclick = () => {
+  modalOverlay.classList.remove("hidden");
+  modalBox.innerHTML = `
+    <div class="modal-header"><h3>➕ Add Category</h3></div>
+    <div class="modal-body">
+      <label>Category Name</label>
+      <input id="catName">
+      <label>Description</label>
+      <textarea id="catDesc"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm" id="confirmAdd">Confirm</button>
+      <button class="btn-back" id="closeModal">Back</button>
+    </div>
+  `;
+
+  document.getElementById("closeModal").onclick = closeModal;
+  document.getElementById("confirmAdd").onclick = async () => {
+    const name = catName.value.trim();
+    const desc = catDesc.value.trim();
+    if (!name) return alert("Name required");
+
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ category_name: name, description: desc })
+    });
+
+    closeModal();
+    loadCategories();
+  };
+};
+
+/* EDIT CATEGORY */
+editBtn.onclick = () => {
+  modalOverlay.classList.remove("hidden");
+  modalBox.innerHTML = `
+    <div class="modal-header"><h3>✏ Edit Category</h3></div>
+    <div class="modal-body">
+      <label>Select Category</label>
+      <select id="catSelect">
+        ${categories.map((c,i)=>`<option value="${i}">${c.category_name}</option>`).join("")}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm" id="editNext">Edit</button>
+      <button class="btn-back" id="closeModal">Back</button>
+    </div>
+  `;
+
+  closeModalBtn();
+  document.getElementById("editNext").onclick = () => {
+    const i = catSelect.value;
+    openEditForm(i);
+  };
+};
+
+function openEditForm(i) {
+  const c = categories[i];
+  modalBox.innerHTML = `
+    <div class="modal-header"><h3>✏ Edit Category</h3></div>
+    <div class="modal-body">
+      <label>Category Name</label>
+      <input id="editName" value="${c.category_name}">
+      <label>Description</label>
+      <textarea id="editDesc">${c.description}</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm" id="saveEdit">Confirm</button>
+      <button class="btn-back" id="closeModal">Back</button>
+    </div>
+  `;
+
+  closeModalBtn();
+  document.getElementById("saveEdit").onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "edit",
+        index: i,
+        category_name: editName.value,
+        description: editDesc.value
+      })
+    });
+
+    closeModal();
+    loadCategories();
+  };
+}
+
+/* CLOSE MODAL */
+function closeModalBtn() {
+  document.getElementById("closeModal").onclick = closeModal;
+}
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalBox.innerHTML = "";
