@@ -1,4 +1,4 @@
-alert("APP.JS IS RUNNING");
+alert("APP.JS LOADED CORRECTLY");
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
