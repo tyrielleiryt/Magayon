@@ -193,17 +193,29 @@ deleteBtn.onclick = () => {
 
     cancelFinal.onclick = closeModal;
 
-    finalDelete.onclick = async () => {
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "delete",
-          category_id: selectedCategory.category_id
-        })
-      });
+ finalDelete.onclick = async () => {
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "delete",
+        category_id: selectedCategory.category_id
+      })
+    });
 
-      closeModal();
-      loadCategories();
-    };
+    const result = await res.json();
+
+    if (!result.success) {
+      alert("Delete failed: category not found.");
+      return;
+    }
+
+    closeModal();
+    loadCategories();
+  } catch (err) {
+    alert("Delete failed. Check console.");
+    console.error(err);
+  }
+};
   };
 };
