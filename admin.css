@@ -8,8 +8,7 @@ body {
   background: #f2f2f2;
 }
 
-/* ================= TOP BAR ================= */
-
+/* TOP BAR */
 .top-bar {
   height: 60px;
   background: #343a5e;
@@ -20,27 +19,17 @@ body {
   gap: 20px;
 }
 
-.top-bar .logo {
-  font-weight: bold;
-}
-
 .top-bar .datetime {
   flex: 1;
 }
 
-.top-bar .logout {
-  cursor: pointer;
-}
-
-/* ================= MAIN LAYOUT ================= */
-
+/* LAYOUT */
 .admin-layout {
   display: flex;
   height: calc(100vh - 60px);
 }
 
-/* ================= SIDEBAR ================= */
-
+/* SIDEBAR */
 .sidebar {
   width: 220px;
   background: #2e3354;
@@ -55,8 +44,8 @@ body {
   color: white;
   border: none;
   padding: 12px;
-  text-align: left;
   cursor: pointer;
+  text-align: left;
 }
 
 .sidebar button.active {
@@ -65,13 +54,10 @@ body {
   font-weight: bold;
 }
 
-/* ================= CONTENT ================= */
-
+/* CONTENT */
 .content {
   flex: 1;
   background: white;
   margin: 10px;
   padding: 12px;
-  border: 2px solid #3b78e7;
-  overflow: auto;
 }

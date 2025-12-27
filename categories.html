@@ -2,49 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Magayon | Categories</title>
+  <title>Categories</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Main admin styles -->
   <link rel="stylesheet" href="admin.css">
-  <!-- Categories-specific styles -->
   <link rel="stylesheet" href="categories.css">
 </head>
 <body>
 
-<!-- TOP BAR -->
 <header class="top-bar">
-  <div class="logo">🍽 POS</div>
+  <div>🍽 POS</div>
   <div class="datetime">Thursday, December 18 2025, 1:31PM</div>
-  <div class="logout">LOGOUT</div>
+  <div>LOGOUT</div>
 </header>
 
-<!-- MAIN LAYOUT -->
 <div class="admin-layout">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button>Dashboard</button>
     <button class="active">Categories</button>
     <button>Products</button>
     <button>Staff</button>
     <button>POS</button>
-    <button>Customer Orders</button>
-    <button>Inventory</button>
-    <button>Deliveries Received</button>
   </aside>
 
-  <!-- CONTENT -->
   <main class="content">
 
-    <!-- ACTION BUTTONS -->
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
-      <button disabled>+/- Edit Category</button>
-      <button disabled>-- Delete Category</button>
     </div>
 
-    <!-- TABLE WRAPPER -->
     <div class="table-wrapper">
       <table class="category-table">
         <thead>
@@ -55,24 +42,31 @@
             <th>QTY</th>
           </tr>
         </thead>
-        <tbody id="categoryTableBody">
-          <!-- rows injected by JS -->
-        </tbody>
+        <tbody id="categoryTableBody"></tbody>
       </table>
     </div>
 
   </main>
 </div>
 
-<!-- MODAL OVERLAY 
-<div id="modalOverlay" class="modal-overlay hidden">
-  <div class="modal-box" id="modalContent">
+<!-- MODAL -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Add Category</h3>
 
+    <label>Category Name</label>
+    <input id="catName">
+
+    <label>Description</label>
+    <textarea id="catDesc"></textarea>
+
+    <div class="modal-actions">
+      <button id="saveCategory">Confirm</button>
+      <button id="closeModal">Back</button>
+    </div>
   </div>
-</div>  -->
+</div>
 
-<!-- LOGIC -->
 <script src="categories.js"></script>
-
 </body>
 </html>

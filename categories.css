@@ -1,38 +1,20 @@
-/* ==================================================
-   ACTION BUTTONS
-================================================== */
-
+/* ACTION BUTTONS */
 .category-actions {
-  display: flex;
-  gap: 10px;
   margin-bottom: 10px;
 }
 
 .category-actions button {
+  padding: 10px 16px;
   background: #2e3354;
   color: white;
   border: none;
-  padding: 10px 16px;
   cursor: pointer;
-  border-radius: 4px;
 }
 
-.category-actions button:hover {
-  opacity: 0.9;
-}
-
-.category-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ==================================================
-   TABLE
-================================================== */
-
+/* TABLE */
 .table-wrapper {
   border: 1px solid #999;
-  height: calc(100% - 50px);
+  height: 100%;
   overflow: auto;
 }
 
@@ -45,111 +27,31 @@
 .category-table td {
   border: 1px solid #999;
   padding: 10px;
-  text-align: left;
 }
 
 .category-table th {
   background: #eee;
-  font-weight: bold;
 }
 
-/* ==================================================
-   MODAL OVERLAY (CRITICAL SECTION)
-================================================== */
-
-/* Overlay base */
+/* MODAL — SIMPLE & SAFE */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
+  background: rgba(0,0,0,0.4);
+  display: none;            /* IMPORTANT */
   justify-content: center;
   align-items: center;
-  z-index: 999;
-
-  /* IMPORTANT: default is NON-interactive */
-  pointer-events: none;
+  z-index: 1000;
 }
-
-/* Overlay when visible */
-.modal-overlay:not(.hidden) {
-  pointer-events: auto;
-}
-
-/* Overlay when hidden — HARD STOP */
-.modal-overlay.hidden {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-/* ==================================================
-   MODAL BOX
-================================================== */
 
 .modal-box {
   background: white;
   width: 320px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  padding: 20px;
 }
-
-/* Header */
-.modal-header {
-  background: #2e3354;
-  color: white;
-  padding: 14px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Body fields */
-.modal-box label {
-  display: block;
-  margin: 12px 16px 4px;
-  font-weight: bold;
-}
-
-.modal-box input,
-.modal-box textarea {
-  width: calc(100% - 32px);
-  margin: 0 16px 12px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.modal-box textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-
-.modal-box input:disabled {
-  background: #f2f2f2;
-  color: #666;
-}
-
-/* ==================================================
-   MODAL ACTION BUTTONS
-================================================== */
 
 .modal-actions {
   display: flex;
   justify-content: space-between;
-  padding: 16px;
-}
-
-.modal-actions button {
-  padding: 10px 18px;
-  border: none;
-  cursor: pointer;
-  background: #e96a85;
-  color: white;
-  border-radius: 20px;
-}
-
-.modal-actions button:hover {
-  opacity: 0.9;
+  margin-top: 10px;
 }

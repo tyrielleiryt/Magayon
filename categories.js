@@ -1,104 +1,51 @@
 const addBtn = document.getElementById("addCategoryBtn");
-const modalOverlay = document.getElementById("modalOverlay");
-const modalContent = document.getElementById("modalContent");
+const modal = document.getElementById("modalOverlay");
+const saveBtn = document.getElementById("saveCategory");
+const closeBtn = document.getElementById("closeModal");
 const tableBody = document.getElementById("categoryTableBody");
 
 let categories = [];
-let pendingCategory = null;
 
-/* ================= OPEN ADD CATEGORY ================= */
+/* OPEN MODAL */
+addBtn.onclick = () => {
+  modal.style.display = "flex";
+};
 
-addBtn.addEventListener("click", () => {
-  openAddCategoryModal();
-});
+/* CLOSE MODAL */
+closeBtn.onclick = () => {
+  modal.style.display = "none";
+};
 
-function openAddCategoryModal() {
-  modalContent.innerHTML = `
-    <div class="modal-header">
-      <h3>➕ Add category</h3>
-    </div>
+/* SAVE CATEGORY */
+saveBtn.onclick = () => {
+  const name = document.getElementById("catName").value.trim();
+  const desc = document.getElementById("catDesc").value.trim();
 
-    <label>Category Name</label>
-    <input id="catName" />
+  if (!name) {
+    alert("Category name required");
+    return;
+  }
 
-    <label>Description</label>
-    <textarea id="catDesc"></textarea>
+  categories.push({ name, desc });
+  renderTable();
+  modal.style.display = "none";
 
-    <div class="modal-actions">
-      <button id="confirmAdd">Confirm</button>
-      <button id="closeModal">Back</button>
-    </div>
-  `;
+  document.getElementById("catName").value = "";
+  document.getElementById("catDesc").value = "";
+};
 
-  modalOverlay.classList.remove("hidden");
-
-  document.getElementById("closeModal").onclick = closeModal;
-
-  document.getElementById("confirmAdd").onclick = () => {
-    const name = document.getElementById("catName").value.trim();
-    const desc = document.getElementById("catDesc").value.trim();
-
-    if (!name) {
-      alert("Category name is required");
-      return;
-    }
-
-    pendingCategory = { name, desc };
-    openConfirmModal();
-  };
-}
-
-/* ================= CONFIRMATION MODAL ================= */
-
-function openConfirmModal() {
-  modalContent.innerHTML = `
-    <div class="modal-header">
-      <h3>➕ Add category</h3>
-    </div>
-
-    <div style="margin: 16px 0;">
-      <strong>⚠ Are you sure you want to add:</strong>
-    </div>
-
-    <label>Category Name</label>
-    <input value="${pendingCategory.name}" disabled />
-
-    <div class="modal-actions">
-      <button id="finalConfirm">Confirm</button>
-      <button id="backToEdit">Back</button>
-    </div>
-  `;
-
-  document.getElementById("backToEdit").onclick = openAddCategoryModal;
-
-  document.getElementById("finalConfirm").onclick = () => {
-    categories.push(pendingCategory);
-    pendingCategory = null;
-    closeModal();
-    renderTable();
-  };
-}
-
-/* ================= TABLE RENDER ================= */
-
+/* RENDER TABLE */
 function renderTable() {
   tableBody.innerHTML = "";
 
-  categories.forEach((cat, index) => {
+  categories.forEach((cat, i) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${index + 1}</td>
+      <td>${i + 1}</td>
       <td>${cat.name}</td>
       <td>${cat.desc}</td>
       <td>—</td>
     `;
     tableBody.appendChild(row);
   });
-}
-
-/* ================= CLOSE MODAL ================= */
-
-function closeModal() {
-  modalOverlay.classList.add("hidden");
-  modalContent.innerHTML = "";
 }
