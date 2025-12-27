@@ -68,11 +68,13 @@ body {
   flex-direction: column;
 }
 
-/* ===== ACTION BAR ===== */
+/* ===== ACTION BAR (TOOLBAR) ===== */
 .action-bar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  padding-bottom: 8px;
   margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
 }
 
 .action-bar button {
@@ -85,36 +87,57 @@ body {
   font-size: 14px;
 }
 
+.action-bar button:hover {
+  background: #3b4066;
+}
+
 /* ===== VIEW BODY ===== */
 .view-body {
   flex: 1;
   overflow: auto;
   border: 1px solid #aaa;
+  background: #fff;
 }
 
 /* ===== TABLE ===== */
 .category-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 14px;
 }
 
 .category-table th,
 .category-table td {
-  border: 1px solid #aaa;
-  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  padding: 6px 10px;
 }
 
 .category-table th {
   background: #f3f3f3;
+  font-weight: bold;
   text-align: left;
 }
 
+/* Column sizing */
+.category-table th:first-child,
+.category-table td:first-child {
+  width: 40px;
+  text-align: center;
+}
+
+.category-table th:last-child,
+.category-table td:last-child {
+  width: 60px;
+  text-align: center;
+}
+
+/* Row states */
 #categoryTableBody tr {
   cursor: pointer;
 }
 
 #categoryTableBody tr:hover {
-  background: #f9f0c8;
+  background: #f9f4dc;
 }
 
 #categoryTableBody tr.selected {
@@ -164,8 +187,10 @@ body {
   width: 100%;
   padding: 8px;
   margin-top: 6px;
+  box-sizing: border-box;
 }
 
+/* Modal actions */
 .modal-actions {
   display: flex;
   justify-content: space-between;
