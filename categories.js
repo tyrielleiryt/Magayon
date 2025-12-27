@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzVNXWlJ61HeqVQBb3eyjMb3-g-LU4QE9PCaYxNEauxpd0BF6HOyFoRwbKDTnvIkkt4/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
 /* ===== DATE & TIME ===== */
 function updateDateTime() {
