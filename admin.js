@@ -1,7 +1,7 @@
 /* ================= AUTH GUARD ================= */
 // Block access if not logged in
 if (localStorage.getItem("isLoggedIn") !== "true") {
-  window.location.href = "index.html"; // login page
+  window.location.replace("index.html");
 }
 
 /* ================= DATE & TIME ================= */
@@ -29,11 +29,12 @@ if (logoutBtn) {
     const confirmLogout = confirm("Are you sure you want to logout?");
     if (!confirmLogout) return;
 
-    // Clear login state
-    localStorage.removeItem("isLoggedIn");
+    // Clear ALL session data
+    localStorage.clear();
+    sessionStorage.clear();
 
-    // Redirect to LOGIN (index.html)
-    window.location.href = "index.html";
+    // Prevent back-button access
+    window.location.replace("index.html");
   });
 }
 
@@ -41,34 +42,39 @@ if (logoutBtn) {
 import loadCategoriesView from "./views/categories.js";
 
 const navButtons = document.querySelectorAll(".nav-btn");
+const actionBar = document.getElementById("actionBar");
+const contentBox = document.getElementById("contentBox");
 
 navButtons.forEach(btn => {
   btn.addEventListener("click", () => {
+    // UI state
     navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
+    // Clear previous content
+    actionBar.innerHTML = "";
+    contentBox.innerHTML = "";
+
     const view = btn.dataset.view;
 
-    // Clear previous UI
-    document.getElementById("actionBar").innerHTML = "";
-    document.getElementById("contentBox").innerHTML = "";
-
-    // Load selected view
     switch (view) {
       case "categories":
         loadCategoriesView();
         break;
 
       case "dashboard":
-        document.getElementById("contentBox").innerHTML = `
+        contentBox.innerHTML = `
           <h2>Dashboard</h2>
           <p>Welcome to the admin panel.</p>
         `;
         break;
 
       default:
-        document.getElementById("contentBox").innerHTML =
-          "<h2>Coming soon…</h2>";
+        contentBox.innerHTML = `<h2>Coming soon…</h2>`;
     }
   });
 });
+
+/* ================= LOAD DEFAULT VIEW ================= */
+// Load Dashboard on first open
+document.querySelector('.nav-btn[data-view="dashboard"]')?.click();

@@ -1,5 +1,3 @@
-// app.js (LOGIN LOGIC)
-
 /* ===== FIREBASE IMPORTS ===== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
@@ -29,8 +27,8 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("errorMsg");
 
-/* ===== LOGIN HANDLER ===== */
-loginBtn.addEventListener("click", async () => {
+/* ===== LOGIN FUNCTION ===== */
+async function handleLogin() {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 
@@ -45,11 +43,11 @@ loginBtn.addEventListener("click", async () => {
   loginBtn.textContent = "Signing in...";
 
   try {
-    // 🔐 FIREBASE AUTH
+    // 🔐 Firebase Auth
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const user = cred.user;
 
-    // 🔎 FETCH ROLE FROM FIRESTORE
+    // 🔎 Fetch role from Firestore
     const snap = await getDoc(doc(db, "users", user.uid));
 
     if (!snap.exists()) {
@@ -58,17 +56,18 @@ loginBtn.addEventListener("click", async () => {
 
     const role = snap.data().role;
 
-    // ✅ SAVE LOGIN STATE
+    // ✅ Save session state
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("userRole", role);
+    localStorage.setItem("userEmail", email);
 
-    // 🚦 ROUTE BY ROLE
+    // 🚦 Route by role
     if (role === "admin") {
-      window.location.href = "main.html";
+      window.location.replace("main.html");
     } else if (role === "cashier") {
-      window.location.href = "order.html";
+      window.location.replace("order.html");
     } else {
-      throw new Error("Invalid user role");
+      throw new Error("Invalid role");
     }
 
   } catch (err) {
@@ -76,5 +75,15 @@ loginBtn.addEventListener("click", async () => {
     errorMsg.textContent = "Invalid email or password.";
     loginBtn.disabled = false;
     loginBtn.textContent = "Sign In";
+  }
+}
+
+/* ===== BUTTON CLICK ===== */
+loginBtn.addEventListener("click", handleLogin);
+
+/* ===== ENTER KEY SUPPORT ===== */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    handleLogin();
   }
 });
