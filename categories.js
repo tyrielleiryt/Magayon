@@ -1,4 +1,4 @@
-const API_URL = "PASTE_YOUR_NEW_DEPLOY_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbyk6FRUvT3tALi0LSvDtH8dRxX9mdv1MRJDKZo3e-iqxJdMiQRK5-lkjTk1v2u5xdHz/exec";
 
 /* ===== ELEMENTS ===== */
 const addBtn = document.getElementById("addCategoryBtn");
