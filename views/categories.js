@@ -4,20 +4,13 @@ const API_URL =
 let categories = [];
 let selectedIndex = null;
 
-/* ===== ENTRY POINT (REQUIRED) ===== */
+/* ===== ENTRY POINT ===== */
 export default function loadCategoriesView() {
-  // Inject action buttons
-  document.getElementById("actionBar").innerHTML = `
-    <button onclick="addCategory()">+ Add Category</button>
-    <button onclick="editCategory()">Edit</button>
-    <button onclick="deleteCategory()">Delete</button>
-    <button onclick="moveUp()">⬆ Move Up</button>
-    <button onclick="moveDown()">⬇ Move Down</button>
-  `;
+  const contentBox = document.getElementById("contentBox");
 
-  // Inject table
-  document.getElementById("contentBox").innerHTML = `
-    <div class="table-wrapper">
+  contentBox.innerHTML = `
+    <div class="action-bar" id="actionBar"></div>
+    <div class="view-body">
       <table class="category-table">
         <thead>
           <tr>
@@ -36,10 +29,18 @@ export default function loadCategoriesView() {
     </div>
   `;
 
+  document.getElementById("actionBar").innerHTML = `
+    <button onclick="addCategory()">+ Add Category</button>
+    <button onclick="editCategory()">Edit</button>
+    <button onclick="deleteCategory()">Delete</button>
+    <button onclick="moveUp()">⬆ Move Up</button>
+    <button onclick="moveDown()">⬇ Move Down</button>
+  `;
+
   loadCategories();
 }
 
-/* ===== LOAD DATA ===== */
+/* ===== LOAD ===== */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -47,14 +48,13 @@ async function loadCategories() {
   renderTable();
 }
 
-/* ===== RENDER TABLE ===== */
+/* ===== TABLE ===== */
 function renderTable() {
   const tableBody = document.getElementById("categoryTableBody");
   tableBody.innerHTML = "";
 
   categories.forEach((cat, i) => {
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${cat.category_name}</td>
@@ -88,13 +88,10 @@ function closeModal() {
 window.addCategory = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
-
     <label>Category Name</label>
     <input id="addName">
-
     <label>Description</label>
     <textarea id="addDesc"></textarea>
-
     <div class="modal-actions">
       <button class="btn-danger" id="saveAdd">Confirm</button>
       <button class="btn-back" id="cancelAdd">Back</button>
@@ -102,7 +99,6 @@ window.addCategory = () => {
   `);
 
   cancelAdd.onclick = closeModal;
-
   saveAdd.onclick = async () => {
     if (!addName.value.trim()) return alert("Category name required");
 
@@ -121,22 +117,15 @@ window.addCategory = () => {
 
 /* ===== EDIT ===== */
 window.editCategory = () => {
-  if (selectedIndex === null) {
-    alert("Select a category first");
-    return;
-  }
-
+  if (selectedIndex === null) return alert("Select a category first");
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
-
     <label>Category Name</label>
     <input id="editName" value="${cat.category_name}">
-
     <label>Description</label>
     <textarea id="editDesc">${cat.description}</textarea>
-
     <div class="modal-actions">
       <button class="btn-danger" id="saveEdit">Confirm</button>
       <button class="btn-back" id="cancelEdit">Back</button>
@@ -144,7 +133,6 @@ window.editCategory = () => {
   `);
 
   cancelEdit.onclick = closeModal;
-
   saveEdit.onclick = async () => {
     await fetch(API_URL, {
       method: "POST",
@@ -163,19 +151,13 @@ window.editCategory = () => {
 
 /* ===== DELETE ===== */
 window.deleteCategory = () => {
-  if (selectedIndex === null) {
-    alert("Select a category first");
-    return;
-  }
-
+  if (selectedIndex === null) return alert("Select a category first");
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header danger">⚠ Delete Category</div>
-
     <p>Are you sure you want to delete:</p>
     <input value="${cat.category_name}" disabled>
-
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDel">Delete</button>
       <button class="btn-back" id="cancelDel">Back</button>
@@ -183,7 +165,6 @@ window.deleteCategory = () => {
   `);
 
   cancelDel.onclick = closeModal;
-
   confirmDel.onclick = async () => {
     await fetch(API_URL, {
       method: "POST",
@@ -198,33 +179,24 @@ window.deleteCategory = () => {
   };
 };
 
-/* ===== MOVE UP ===== */
+/* ===== MOVE ===== */
 window.moveUp = async () => {
   if (selectedIndex === null || selectedIndex === 0) return;
 
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({
-      action: "move",
-      rowIndex: selectedIndex,
-      direction: "up"
-    })
+    body: JSON.stringify({ action: "move", rowIndex: selectedIndex, direction: "up" })
   });
 
   loadCategories();
 };
 
-/* ===== MOVE DOWN ===== */
 window.moveDown = async () => {
   if (selectedIndex === null || selectedIndex === categories.length - 1) return;
 
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({
-      action: "move",
-      rowIndex: selectedIndex,
-      direction: "down"
-    })
+    body: JSON.stringify({ action: "move", rowIndex: selectedIndex, direction: "down" })
   });
 
   loadCategories();
