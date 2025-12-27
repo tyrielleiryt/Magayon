@@ -1,57 +1,116 @@
-/* ACTION BUTTONS */
-.category-actions {
-  margin-bottom: 10px;
+const addBtn = document.getElementById("addCategoryBtn");
+const modal = document.getElementById("modalOverlay");
+const modalContent = document.getElementById("modalContent");
+const tableBody = document.getElementById("categoryTableBody");
+const dateTimeEl = document.getElementById("dateTime");
+
+let categories = [];
+let pendingCategory = null;
+
+/* ================= LIVE DATE & TIME ================= */
+
+function updateDateTime() {
+  const now = new Date();
+
+  const options = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  };
+
+  dateTimeEl.textContent = now.toLocaleString("en-US", options);
 }
 
-.category-actions button {
-  padding: 10px 16px;
-  background: #2e3354;
-  color: white;
-  border: none;
-  cursor: pointer;
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+/* ================= ADD CATEGORY ================= */
+
+addBtn.onclick = () => openAddModal();
+
+function openAddModal() {
+  modalContent.innerHTML = `
+    <h3>➕ Add Category</h3>
+
+    <label>Category Name</label>
+    <input id="catName">
+
+    <label>Description</label>
+    <textarea id="catDesc"></textarea>
+
+    <div class="modal-actions">
+      <button id="nextConfirm">Confirm</button>
+      <button id="closeModal">Back</button>
+    </div>
+  `;
+
+  modal.style.display = "flex";
+
+  document.getElementById("closeModal").onclick = closeModal;
+
+  document.getElementById("nextConfirm").onclick = () => {
+    const name = document.getElementById("catName").value.trim();
+    const desc = document.getElementById("catDesc").value.trim();
+
+    if (!name) {
+      alert("Category name required");
+      return;
+    }
+
+    pendingCategory = { name, desc };
+    openConfirmModal();
+  };
 }
 
-/* TABLE */
-.table-wrapper {
-  border: 1px solid #999;
-  height: 100%;
-  overflow: auto;
+/* ================= CONFIRMATION MODAL ================= */
+
+function openConfirmModal() {
+  modalContent.innerHTML = `
+    <h3>⚠ Confirm Add</h3>
+
+    <p>Are you sure you want to add:</p>
+    <strong>${pendingCategory.name}</strong>
+
+    <div class="modal-actions">
+      <button id="finalConfirm">Confirm</button>
+      <button id="backToEdit">Back</button>
+    </div>
+  `;
+
+  document.getElementById("backToEdit").onclick = openAddModal;
+
+  document.getElementById("finalConfirm").onclick = () => {
+    categories.push(pendingCategory);
+    pendingCategory = null;
+    renderTable();
+    closeModal();
+  };
 }
 
-.category-table {
-  width: 100%;
-  border-collapse: collapse;
+/* ================= TABLE ================= */
+
+function renderTable() {
+  tableBody.innerHTML = "";
+
+  categories.forEach((cat, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${cat.name}</td>
+      <td>${cat.desc}</td>
+      <td>—</td>
+    `;
+    tableBody.appendChild(row);
+  });
 }
 
-.category-table th,
-.category-table td {
-  border: 1px solid #999;
-  padding: 10px;
-}
+/* ================= CLOSE MODAL ================= */
 
-.category-table th {
-  background: #eee;
-}
-
-/* MODAL — SIMPLE & SAFE */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: none;            /* IMPORTANT */
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-box {
-  background: white;
-  width: 320px;
-  padding: 20px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
+function closeModal() {
+  modal.style.display = "none";
+  modalContent.innerHTML = "";
 }

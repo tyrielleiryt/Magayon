@@ -12,7 +12,7 @@
 
 <header class="top-bar">
   <div>🍽 POS</div>
-  <div class="datetime">Thursday, December 18 2025, 1:31PM</div>
+  <div id="dateTime" class="datetime"></div>
   <div>LOGOUT</div>
 </header>
 
@@ -51,20 +51,7 @@
 
 <!-- MODAL -->
 <div id="modalOverlay" class="modal-overlay">
-  <div class="modal-box">
-    <h3>Add Category</h3>
-
-    <label>Category Name</label>
-    <input id="catName">
-
-    <label>Description</label>
-    <textarea id="catDesc"></textarea>
-
-    <div class="modal-actions">
-      <button id="saveCategory">Confirm</button>
-      <button id="closeModal">Back</button>
-    </div>
-  </div>
+  <div class="modal-box" id="modalContent"></div>
 </div>
 
 <script src="categories.js"></script>
