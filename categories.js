@@ -197,6 +197,7 @@ deleteBtn.onclick = () => {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         action: "delete",
         category_id: selectedCategory.category_id
