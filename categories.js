@@ -27,21 +27,26 @@ const tableBody = document.getElementById("categoryTableBody");
 let categories = [];
 let selectedCategory = null;
 
-/* ===== LOAD ===== */
+/* ===== LOAD CATEGORIES ===== */
 async function loadCategories() {
-  const res = await fetch(API_URL);
-  categories = await res.json();
-  renderTable();
+  try {
+    const res = await fetch(API_URL);
+    categories = await res.json();
+    renderTable();
+  } catch (err) {
+    alert("Failed to load categories");
+    console.error(err);
+  }
 }
 loadCategories();
 
-/* ===== TABLE ===== */
+/* ===== TABLE RENDER ===== */
 function renderTable() {
   tableBody.innerHTML = "";
-  categories.forEach(cat => {
+  categories.forEach((cat, index) => {
     tableBody.innerHTML += `
       <tr>
-        <td>${cat.category_id}</td>
+        <td>${index + 1}</td>
         <td>${cat.category_name}</td>
         <td>${cat.description}</td>
         <td>—</td>
@@ -65,59 +70,73 @@ function closeModal() {
 
 deleteBtn.onclick = () => {
   openModal(`
-    <div class="modal-header danger">
-      🗑 Delete Category
-    </div>
+    <div class="modal-header danger">🗑 Delete Category</div>
 
-    <label>Select Category</label>
-    <select id="deleteSelect">
-      ${categories.map(c =>
-        `<option value="${c.category_id}">${c.category_name}</option>`
-      ).join("")}
-    </select>
+    <div class="modal-body">
+      <label>Select Category</label>
+      <select id="deleteSelect">
+        ${categories
+          .map(
+            c =>
+              `<option value="${c.category_id}">${c.category_name}</option>`
+          )
+          .join("")}
+      </select>
+    </div>
 
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
-      <button class="btn-back" id="cancel">Back</button>
+      <button class="btn-back" id="cancelDelete">Back</button>
     </div>
   `);
 
-  document.getElementById("cancel").onclick = closeModal;
+  document.getElementById("cancelDelete").onclick = closeModal;
 
   document.getElementById("confirmDelete").onclick = () => {
-    const id = Number(deleteSelect.value);
-    selectedCategory = categories.find(c => c.category_id === id);
+    const select = document.getElementById("deleteSelect");
+    const id = select.value;
+
+    selectedCategory = categories.find(
+      c => String(c.category_id) === String(id)
+    );
+
     openDeleteConfirm();
   };
 };
 
+/* ===== DELETE CONFIRM ===== */
 function openDeleteConfirm() {
   openModal(`
-    <div class="modal-header danger">
-      ⚠ Confirm Delete
-    </div>
+    <div class="modal-header danger">⚠ Confirm Delete</div>
 
-    <p>Are you sure you want to delete:</p>
-    <input value="${selectedCategory.category_name}" disabled>
+    <div class="modal-body">
+      <p>Are you sure you want to delete:</p>
+      <input value="${selectedCategory.category_name}" disabled>
+    </div>
 
     <div class="modal-actions">
       <button class="btn-danger" id="finalDelete">Confirm</button>
-      <button class="btn-back" id="back">Back</button>
+      <button class="btn-back" id="backDelete">Back</button>
     </div>
   `);
 
-  document.getElementById("back").onclick = deleteBtn.onclick;
+  document.getElementById("backDelete").onclick = deleteBtn.onclick;
 
   document.getElementById("finalDelete").onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "delete",
-        category_id: selectedCategory.category_id
-      })
-    });
+    try {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "delete",
+          category_id: selectedCategory.category_id
+        })
+      });
 
-    closeModal();
-    loadCategories();
+      closeModal();
+      loadCategories();
+    } catch (err) {
+      alert("Failed to delete category");
+      console.error(err);
+    }
   };
 }
