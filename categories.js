@@ -1,5 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzVNXWlJ61HeqVQBb3eyjMb3-g-LU4QE9PCaYxNEauxpd0BF6HOyFoRwbKDTnvIkkt4/exec";
-
+const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLjaI73X9KrypY3uVWiU-xAtgZxkXflE7NsKA4PtTiTKih5nMq_HS2mAXaHG5XgJ2s6SWUOZsYf4X87oIyO8nhItAStzPi22A-3Xls_dFReIOaMmwrAlWcpFy8-oS3m7U36gbYWVMaQpCiJtIOzykfHVWVKUiqlEeZIyRjdGE5RxaO30pqkBMObvfXKDy634StpvQkvLr1Ow7iuoQlD1iBJfddQ5H4TjzCI-j3-uuyZRGamvOx3PaPr89MNcCSvs6CrI6BUV4mR_7_tHtH4G5FAU-xNHCA&lib=MJrHeO5UOtvZjUj-Ywv-pGGXl3gJVnX-m";
 /* ELEMENTS */
 const tableBody = document.getElementById("categoryTableBody");
 const modalOverlay = document.getElementById("modalOverlay");
