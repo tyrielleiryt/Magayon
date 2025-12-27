@@ -67,13 +67,11 @@ addBtn.onclick = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
 
-    <div class="modal-body">
-      <label>Category Name</label>
-      <input id="addName">
+    <label>Category Name</label>
+    <input id="addName">
 
-      <label>Description</label>
-      <textarea id="addDesc"></textarea>
-    </div>
+    <label>Description</label>
+    <textarea id="addDesc"></textarea>
 
     <div class="modal-actions">
       <button class="btn-danger" id="confirmAdd">Confirm</button>
@@ -87,7 +85,10 @@ addBtn.onclick = () => {
     const name = addName.value.trim();
     const desc = addDesc.value.trim();
 
-    if (!name) return alert("Category name required");
+    if (!name) {
+      alert("Category name required");
+      return;
+    }
 
     await fetch(API_URL, {
       method: "POST",
@@ -109,17 +110,14 @@ editBtn.onclick = () => {
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
 
-    <div class="modal-body">
-      <label>Select Category</label>
-      <select id="editSelect">
-        ${categories
-          .map(
-            c =>
-              `<option value="${c.category_id}">${c.category_name}</option>`
-          )
-          .join("")}
-      </select>
-    </div>
+    <label>Select Category</label>
+    <select id="editSelect">
+      ${categories
+        .map(
+          c => `<option value="${c.category_id}">${c.category_name}</option>`
+        )
+        .join("")}
+    </select>
 
     <div class="modal-actions">
       <button class="btn-danger" id="editNext">Edit</button>
@@ -127,9 +125,9 @@ editBtn.onclick = () => {
     </div>
   `);
 
-  document.getElementById("cancelEdit").onclick = closeModal;
+  cancelEdit.onclick = closeModal;
 
-  document.getElementById("editNext").onclick = () => {
+  editNext.onclick = () => {
     const id = editSelect.value;
     selectedCategory = categories.find(
       c => String(c.category_id) === String(id)
@@ -142,21 +140,19 @@ function openEditForm() {
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
 
-    <div class="modal-body">
-      <label>Category Name</label>
-      <input id="editName" value="${selectedCategory.category_name}">
+    <label>Category Name</label>
+    <input id="editName" value="${selectedCategory.category_name}">
 
-      <label>Description</label>
-      <textarea id="editDesc">${selectedCategory.description}</textarea>
-    </div>
+    <label>Description</label>
+    <textarea id="editDesc">${selectedCategory.description}</textarea>
 
     <div class="modal-actions">
       <button class="btn-danger" id="saveEdit">Confirm</button>
-      <button class="btn-back" id="backEdit">Back</button>
+      <button class="btn-back" id="cancelEdit2">Back</button>
     </div>
   `);
 
-  backEdit.onclick = editBtn.onclick;
+  cancelEdit2.onclick = closeModal;
 
   saveEdit.onclick = async () => {
     await fetch(API_URL, {
@@ -174,23 +170,20 @@ function openEditForm() {
   };
 }
 
-/* ================= DELETE CATEGORY (UNCHANGED) ================= */
+/* ================= DELETE CATEGORY ================= */
 
 deleteBtn.onclick = () => {
   openModal(`
     <div class="modal-header danger">🗑 Delete Category</div>
 
-    <div class="modal-body">
-      <label>Select Category</label>
-      <select id="deleteSelect">
-        ${categories
-          .map(
-            c =>
-              `<option value="${c.category_id}">${c.category_name}</option>`
-          )
-          .join("")}
-      </select>
-    </div>
+    <label>Select Category</label>
+    <select id="deleteSelect">
+      ${categories
+        .map(
+          c => `<option value="${c.category_id}">${c.category_name}</option>`
+        )
+        .join("")}
+    </select>
 
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
@@ -213,17 +206,15 @@ function openDeleteConfirm() {
   openModal(`
     <div class="modal-header danger">⚠ Confirm Delete</div>
 
-    <div class="modal-body">
-      <input value="${selectedCategory.category_name}" disabled>
-    </div>
+    <input value="${selectedCategory.category_name}" disabled>
 
     <div class="modal-actions">
       <button class="btn-danger" id="finalDelete">Confirm</button>
-      <button class="btn-back" id="backDelete">Back</button>
+      <button class="btn-back" id="cancelFinalDelete">Back</button>
     </div>
   `);
 
-  backDelete.onclick = deleteBtn.onclick;
+  cancelFinalDelete.onclick = closeModal;
 
   finalDelete.onclick = async () => {
     await fetch(API_URL, {
