@@ -1,10 +1,11 @@
+/* ===== GLOBAL ===== */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
 }
 
-/* TOP BAR */
+/* ===== TOP BAR ===== */
 .top-bar {
   background: #2f3457;
   color: white;
@@ -14,22 +15,22 @@ body {
   align-items: center;
 }
 
-.logout-btn {
-  background: #fff;
-  color: #2f3457;
+.logout {
+  background: #e06780;
+  color: white;
   border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 8px 18px;
+  border-radius: 20px;
   cursor: pointer;
 }
 
-/* LAYOUT */
+/* ===== LAYOUT ===== */
 .admin-layout {
   display: flex;
   height: calc(100vh - 56px);
 }
 
-/* SIDEBAR */
+/* ===== SIDEBAR ===== */
 .sidebar {
   width: 220px;
   background: #2e3354;
@@ -47,70 +48,175 @@ body {
   text-align: left;
 }
 
+.sidebar button:hover {
+  background: #4a4f77;
+}
+
 .sidebar .active {
   background: #f3c84b;
   color: black;
   font-weight: bold;
 }
 
-/* CONTENT */
+/* ===== CONTENT ===== */
 .content {
   flex: 1;
-  padding: 14px;
+  padding: 16px;
 }
 
 .content-box {
   background: white;
-  border: 1px solid #999;
+  border: 1px solid #aaa;
   height: 100%;
+  padding: 12px;
   display: flex;
   flex-direction: column;
 }
 
-/* ACTION BAR */
+/* ===== ACTION BAR (TOOLBAR) ===== */
 .action-bar {
   display: flex;
-  gap: 8px;
-  padding: 10px;
-  border-bottom: 1px solid #999;
-  background: #eee;
+  gap: 6px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
 }
 
 .action-bar button {
   background: #2e3354;
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 6px 14px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 3px;
+  font-size: 14px;
 }
 
-/* TABLE */
-.table-wrapper {
+.action-bar button:hover {
+  background: #3b4066;
+}
+
+/* ===== TABLE WRAPPER ===== */
+.view-body {
   flex: 1;
   overflow: auto;
+  border: 1px solid #aaa;
+  background: #fff;
 }
 
+/* ===== CATEGORY TABLE ===== */
 .category-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 14px;
+}
+
+.category-table th,
+.category-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 6px 10px;
 }
 
 .category-table th {
-  background: #dcdcdc;
-  border: 1px solid #888;
-  padding: 8px;
+  background: #f3f3f3;
+  font-weight: bold;
+  text-align: left;
 }
 
-.category-table td {
-  border: 1px solid #888;
-  padding: 8px;
+/* Column sizing */
+.category-table th:first-child,
+.category-table td:first-child {
+  width: 40px;
+  text-align: center;
 }
 
+.category-table th:last-child,
+.category-table td:last-child {
+  width: 60px;
+  text-align: center;
+}
+
+/* Row states */
 #categoryTableBody tr {
   cursor: pointer;
 }
 
+#categoryTableBody tr:hover {
+  background: #f9f4dc;
+}
+
 #categoryTableBody tr.selected {
   background: #f3c84b;
+}
+
+/* ===== MODAL OVERLAY ===== */
+#modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#modalOverlay.hidden {
+  display: none;
+}
+
+/* ===== MODAL BOX ===== */
+#modalBox {
+  background: white;
+  width: 420px;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+/* ===== MODAL CONTENT ===== */
+.modal-header {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.modal-header.danger {
+  color: #c0392b;
+}
+
+#modalBox label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+#modalBox input,
+#modalBox textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+/* ===== MODAL ACTIONS ===== */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btn-danger {
+  background: #e06780;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.btn-back {
+  background: #ddd;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
 }
