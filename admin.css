@@ -14,10 +14,19 @@ body {
   align-items: center;
 }
 
+.logout-btn {
+  background: #e06780;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
 /* LAYOUT */
 .admin-layout {
   display: flex;
-  height: calc(100vh - 50px);
+  height: calc(100vh - 56px);
 }
 
 /* SIDEBAR */
@@ -50,6 +59,13 @@ body {
   padding: 20px;
 }
 
+.content-box {
+  background: white;
+  border: 1px solid #aaa;
+  height: 100%;
+  padding: 20px;
+}
+
 /* ACTION BUTTONS */
 .category-actions {
   display: flex;
@@ -68,7 +84,6 @@ body {
 
 /* TABLE */
 .table-wrapper {
-  background: white;
   border: 1px solid #aaa;
   height: calc(100% - 60px);
   overflow: auto;
@@ -136,7 +151,6 @@ body {
   width: 100%;
   padding: 8px;
   margin-top: 6px;
-  box-sizing: border-box;
 }
 
 .modal-actions {
@@ -150,14 +164,14 @@ body {
   color: white;
   border: none;
   padding: 10px 20px;
-  cursor: pointer;
   border-radius: 20px;
+  cursor: pointer;
 }
 
 .btn-back {
   background: #ddd;
   border: none;
   padding: 10px 20px;
-  cursor: pointer;
   border-radius: 20px;
+  cursor: pointer;
 }

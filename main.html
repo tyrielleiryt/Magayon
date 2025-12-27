@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Magayon Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
@@ -15,34 +15,35 @@
     <span class="title">POS</span>
   </div>
 
-  <div class="datetime" id="datetime"></div>
+  <div id="datetime"></div>
 
-  <button id="logoutBtn" class="logout">LOGOUT</button>
+  <button id="logoutBtn" class="logout-btn">LOGOUT</button>
 </header>
 
-<div class="admin-container">
+<div class="admin-layout">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <button class="nav-btn active" data-page="main.html">Dashboard</button>
-    <button class="nav-btn" data-page="categories.html">Categories</button>
-    <button class="nav-btn" data-page="products.html">Products</button>
-    <button class="nav-btn" data-page="staff.html">Staff</button>
-    <button class="nav-btn" data-page="order.html">POS</button>
-    <button class="nav-btn" data-page="orders.html">Customer Orders</button>
-    <button class="nav-btn" data-page="inventory.html">Inventory</button>
-    <button class="nav-btn" data-page="deliveries.html">Deliveries Received</button>
+    <button class="nav-btn active">Dashboard</button>
+    <button class="nav-btn">Categories</button>
+    <button class="nav-btn">Products</button>
+    <button class="nav-btn">Staff</button>
+    <button class="nav-btn">POS</button>
+    <button class="nav-btn">Customer Orders</button>
+    <button class="nav-btn">Inventory</button>
+    <button class="nav-btn">Deliveries Received</button>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- CONTENT -->
   <main class="content">
     <div class="content-box">
-      <!-- Charts & data will go here later -->
+      <!-- Dashboard / Categories content goes here -->
     </div>
   </main>
 
 </div>
 
-<script type="module" src="main.js"></script>
+<script type="module" src="admin.js"></script>
+<script src="categories.js"></script>
 </body>
 </html>
