@@ -56,7 +56,6 @@ function openModal(html) {
   modalBox.innerHTML = html;
   modalOverlay.classList.remove("hidden");
 }
-
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalBox.innerHTML = "";
@@ -66,13 +65,10 @@ function closeModal() {
 addBtn.onclick = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
-
     <label>Category Name</label>
     <input id="addName">
-
     <label>Description</label>
     <textarea id="addDesc"></textarea>
-
     <div class="modal-actions">
       <button class="btn-danger" id="saveAdd">Confirm</button>
       <button class="btn-back" id="cancelAdd">Back</button>
@@ -80,13 +76,11 @@ addBtn.onclick = () => {
   `);
 
   cancelAdd.onclick = closeModal;
-
   saveAdd.onclick = async () => {
     if (!addName.value.trim()) return alert("Category name required");
 
     await fetch(API_URL, {
       method: "POST",
-      mode: "no-cors",
       body: JSON.stringify({
         category_name: addName.value,
         description: addDesc.value
@@ -102,14 +96,12 @@ addBtn.onclick = () => {
 editBtn.onclick = () => {
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
-
     <label>Select Category</label>
     <select id="editSelect">
-      ${categories.map(c =>
-        `<option value="${c.category_id}">${c.category_name}</option>`
+      ${categories.map((c, i) =>
+        `<option value="${i}">${c.category_name}</option>`
       ).join("")}
     </select>
-
     <div class="modal-actions">
       <button class="btn-danger" id="editNext">Edit</button>
       <button class="btn-back" id="cancelEdit">Back</button>
@@ -119,19 +111,14 @@ editBtn.onclick = () => {
   cancelEdit.onclick = closeModal;
 
   editNext.onclick = () => {
-    selectedCategory = categories.find(
-      c => String(c.category_id) === editSelect.value
-    );
+    selectedCategory = categories[editSelect.value];
 
     openModal(`
       <div class="modal-header">✏ Edit Category</div>
-
       <label>Category Name</label>
       <input id="editName" value="${selectedCategory.category_name}">
-
       <label>Description</label>
       <textarea id="editDesc">${selectedCategory.description}</textarea>
-
       <div class="modal-actions">
         <button class="btn-danger" id="saveEdit">Confirm</button>
         <button class="btn-back" id="cancelEdit2">Back</button>
@@ -143,10 +130,9 @@ editBtn.onclick = () => {
     saveEdit.onclick = async () => {
       await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
         body: JSON.stringify({
           action: "edit",
-          category_id: selectedCategory.category_id,
+          rowIndex: categories.indexOf(selectedCategory),
           category_name: editName.value,
           description: editDesc.value
         })
@@ -162,14 +148,12 @@ editBtn.onclick = () => {
 deleteBtn.onclick = () => {
   openModal(`
     <div class="modal-header danger">🗑 Delete Category</div>
-
     <label>Select Category</label>
     <select id="deleteSelect">
-      ${categories.map(c =>
-        `<option value="${c.category_id}">${c.category_name}</option>`
+      ${categories.map((c, i) =>
+        `<option value="${i}">${c.category_name}</option>`
       ).join("")}
     </select>
-
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
       <button class="btn-back" id="cancelDelete">Back</button>
@@ -179,14 +163,11 @@ deleteBtn.onclick = () => {
   cancelDelete.onclick = closeModal;
 
   confirmDelete.onclick = () => {
-    selectedCategory = categories.find(
-      c => String(c.category_id) === deleteSelect.value
-    );
+    selectedCategory = categories[deleteSelect.value];
 
     openModal(`
       <div class="modal-header danger">⚠ Confirm Delete</div>
       <input value="${selectedCategory.category_name}" disabled>
-
       <div class="modal-actions">
         <button class="btn-danger" id="finalDelete">Confirm</button>
         <button class="btn-back" id="cancelFinal">Back</button>
@@ -198,10 +179,9 @@ deleteBtn.onclick = () => {
     finalDelete.onclick = async () => {
       await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
         body: JSON.stringify({
           action: "delete",
-          category_id: selectedCategory.category_id
+          rowIndex: categories.indexOf(selectedCategory)
         })
       });
 
