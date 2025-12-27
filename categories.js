@@ -183,7 +183,7 @@ finalDelete.onclick = async () => {
     mode: "no-cors",
     body: JSON.stringify({
       action: "delete",
-      rowIndex: categories.indexOf(selectedCategory)
+      category_name: selectedCategory.category_name
     })
   });
 
