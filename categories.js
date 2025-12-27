@@ -20,6 +20,8 @@ setInterval(updateDateTime, 60000);
 const addBtn = document.getElementById("addCategoryBtn");
 const editBtn = document.getElementById("editCategoryBtn");
 const deleteBtn = document.getElementById("deleteCategoryBtn");
+const moveUpBtn = document.getElementById("moveUpBtn");
+const moveDownBtn = document.getElementById("moveDownBtn");
 const modalOverlay = document.getElementById("modalOverlay");
 const modalBox = document.getElementById("modalBox");
 const tableBody = document.getElementById("categoryTableBody");
@@ -32,6 +34,7 @@ let selectedIndex = null;
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
+  selectedIndex = null;
   renderTable();
 }
 loadCategories();
@@ -39,19 +42,29 @@ loadCategories();
 /* ===== TABLE ===== */
 function renderTable() {
   tableBody.innerHTML = "";
+
   categories.forEach((cat, i) => {
-    tableBody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${cat.category_name}</td>
-        <td>${cat.description}</td>
-        <td>—</td>
-      </tr>
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${cat.category_name}</td>
+      <td>${cat.description}</td>
+      <td>—</td>
     `;
+
+    tr.onclick = () => {
+      document.querySelectorAll("#categoryTableBody tr")
+        .forEach(r => r.classList.remove("selected"));
+      tr.classList.add("selected");
+      selectedIndex = i;
+    };
+
+    tableBody.appendChild(tr);
   });
 }
 
-/* ===== MODAL HELPERS ===== */
+/* ===== MODAL ===== */
 function openModal(html) {
   modalBox.innerHTML = html;
   modalOverlay.classList.remove("hidden");
@@ -61,7 +74,7 @@ function closeModal() {
   modalBox.innerHTML = "";
 }
 
-/* ===== ADD CATEGORY ===== */
+/* ===== ADD ===== */
 addBtn.onclick = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
@@ -78,9 +91,9 @@ addBtn.onclick = () => {
     </div>
   `);
 
-  document.getElementById("cancelAdd").onclick = closeModal;
+  cancelAdd.onclick = closeModal;
 
-  document.getElementById("saveAdd").onclick = async () => {
+  saveAdd.onclick = async () => {
     if (!addName.value.trim()) return alert("Category name required");
 
     await fetch(API_URL, {
@@ -96,75 +109,62 @@ addBtn.onclick = () => {
   };
 };
 
-/* ===== EDIT CATEGORY ===== */
+/* ===== EDIT ===== */
 editBtn.onclick = () => {
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
+
+  const cat = categories[selectedIndex];
+
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
 
-    <label>Select Category</label>
-    <select id="editSelect">
-      ${categories.map((c, i) =>
-        `<option value="${i}">${c.category_name}</option>`
-      ).join("")}
-    </select>
+    <label>Category Name</label>
+    <input id="editName" value="${cat.category_name}">
+
+    <label>Description</label>
+    <textarea id="editDesc">${cat.description}</textarea>
 
     <div class="modal-actions">
-      <button class="btn-danger" id="editNext">Edit</button>
+      <button class="btn-danger" id="saveEdit">Confirm</button>
       <button class="btn-back" id="cancelEdit">Back</button>
     </div>
   `);
 
-  document.getElementById("cancelEdit").onclick = closeModal;
+  cancelEdit.onclick = closeModal;
 
-  document.getElementById("editNext").onclick = () => {
-    selectedIndex = Number(document.getElementById("editSelect").value);
-    const cat = categories[selectedIndex];
+  saveEdit.onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "edit",
+        rowIndex: selectedIndex,
+        category_name: editName.value,
+        description: editDesc.value
+      })
+    });
 
-    openModal(`
-      <div class="modal-header">✏ Edit Category</div>
-
-      <label>Category Name</label>
-      <input id="editName" value="${cat.category_name}">
-
-      <label>Description</label>
-      <textarea id="editDesc">${cat.description}</textarea>
-
-      <div class="modal-actions">
-        <button class="btn-danger" id="saveEdit">Confirm</button>
-        <button class="btn-back" id="cancelEdit2">Back</button>
-      </div>
-    `);
-
-    document.getElementById("cancelEdit2").onclick = closeModal;
-
-    document.getElementById("saveEdit").onclick = async () => {
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "edit",
-          rowIndex: selectedIndex,
-          category_name: editName.value,
-          description: editDesc.value
-        })
-      });
-
-      closeModal();
-      loadCategories();
-    };
+    closeModal();
+    loadCategories();
   };
 };
 
-/* ===== DELETE CATEGORY ===== */
+/* ===== DELETE ===== */
 deleteBtn.onclick = () => {
-  openModal(`
-    <div class="modal-header danger">🗑 Delete Category</div>
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
 
-    <label>Select Category</label>
-    <select id="deleteSelect">
-      ${categories.map((c, i) =>
-        `<option value="${i}">${c.category_name}</option>`
-      ).join("")}
-    </select>
+  const cat = categories[selectedIndex];
+
+  openModal(`
+    <div class="modal-header danger">⚠ Delete Category</div>
+
+    <p>Are you sure you want to delete:</p>
+    <input value="${cat.category_name}" disabled>
 
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
@@ -172,37 +172,50 @@ deleteBtn.onclick = () => {
     </div>
   `);
 
-  document.getElementById("cancelDelete").onclick = closeModal;
+  cancelDelete.onclick = closeModal;
 
-  document.getElementById("confirmDelete").onclick = () => {
-    selectedIndex = Number(document.getElementById("deleteSelect").value);
-    const cat = categories[selectedIndex];
+  confirmDelete.onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "delete",
+        rowIndex: selectedIndex
+      })
+    });
 
-    openModal(`
-      <div class="modal-header danger">⚠ Confirm Delete</div>
-
-      <p>Are you sure you want to delete:</p>
-      <input value="${cat.category_name}" disabled>
-
-      <div class="modal-actions">
-        <button class="btn-danger" id="finalDelete">Confirm</button>
-        <button class="btn-back" id="cancelFinal">Back</button>
-      </div>
-    `);
-
-    document.getElementById("cancelFinal").onclick = closeModal;
-
-    document.getElementById("finalDelete").onclick = async () => {
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "delete",
-          rowIndex: selectedIndex
-        })
-      });
-
-      closeModal();
-      loadCategories();
-    };
+    closeModal();
+    loadCategories();
   };
+};
+
+/* ===== MOVE UP ===== */
+moveUpBtn.onclick = async () => {
+  if (selectedIndex === null || selectedIndex === 0) return;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "up"
+    })
+  });
+
+  loadCategories();
+};
+
+/* ===== MOVE DOWN ===== */
+moveDownBtn.onclick = async () => {
+  if (selectedIndex === null || selectedIndex === categories.length - 1) return;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "down"
+    })
+  });
+
+  loadCategories();
 };

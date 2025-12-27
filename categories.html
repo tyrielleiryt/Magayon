@@ -4,22 +4,18 @@
   <meta charset="UTF-8">
   <title>Magayon | Categories</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
-<!-- TOP BAR -->
 <header class="top-bar">
   <div class="logo">🍽 POS</div>
   <div id="datetime"></div>
   <div class="logout">LOGOUT</div>
 </header>
 
-<!-- MAIN LAYOUT -->
 <div class="admin-layout">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button>Dashboard</button>
     <button class="active">Categories</button>
@@ -31,17 +27,16 @@
     <button>Deliveries Received</button>
   </aside>
 
-  <!-- CONTENT -->
   <main class="content">
 
-    <!-- ACTION BUTTONS -->
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
       <button id="editCategoryBtn">Edit</button>
       <button id="deleteCategoryBtn">Delete</button>
+      <button id="moveUpBtn">⬆ Move Up</button>
+      <button id="moveDownBtn">⬇ Move Down</button>
     </div>
 
-    <!-- TABLE -->
     <div class="table-wrapper">
       <table class="category-table">
         <thead>
@@ -59,7 +54,6 @@
   </main>
 </div>
 
-<!-- MODAL -->
 <div id="modalOverlay" class="hidden">
   <div id="modalBox"></div>
 </div>
