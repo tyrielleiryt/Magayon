@@ -82,10 +82,11 @@ addBtn.onclick = () => {
   cancelAdd.onclick = closeModal;
 
   saveAdd.onclick = async () => {
-    if (!addName.value.trim()) return alert("Required");
+    if (!addName.value.trim()) return alert("Category name required");
 
     await fetch(API_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         category_name: addName.value,
         description: addDesc.value
@@ -142,6 +143,7 @@ editBtn.onclick = () => {
     saveEdit.onclick = async () => {
       await fetch(API_URL, {
         method: "POST",
+        mode: "no-cors",
         body: JSON.stringify({
           action: "edit",
           category_id: selectedCategory.category_id,
@@ -193,30 +195,18 @@ deleteBtn.onclick = () => {
 
     cancelFinal.onclick = closeModal;
 
- finalDelete.onclick = async () => {
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        action: "delete",
-        category_id: selectedCategory.category_id
-      })
-    });
+    finalDelete.onclick = async () => {
+      await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: "delete",
+          category_id: selectedCategory.category_id
+        })
+      });
 
-    const result = await res.json();
-
-    if (!result.success) {
-      alert("Delete failed: category not found.");
-      return;
-    }
-
-    closeModal();
-    loadCategories();
-  } catch (err) {
-    alert("Delete failed. Check console.");
-    console.error(err);
-  }
-};
+      closeModal();
+      loadCategories();
+    };
   };
 };
