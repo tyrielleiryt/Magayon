@@ -177,14 +177,14 @@ deleteBtn.onclick = () => {
     cancelFinal.onclick = closeModal;
 
 finalDelete.onclick = async () => {
-  const url =
-    API_URL +
-    "?action=delete&category_name=" +
-    encodeURIComponent(selectedCategory.category_name);
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "delete",
+      category_name: selectedCategory.category_name
+    })
+  });
 
-  console.log("DELETE URL:", url); // 🔴 ADD THIS
-
-  await fetch(url);
   closeModal();
   loadCategories();
 };
