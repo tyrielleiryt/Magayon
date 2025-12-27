@@ -1,4 +1,5 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
 /* ===== DATE & TIME ===== */
 function updateDateTime() {
@@ -61,8 +62,7 @@ function closeModal() {
   modalBox.innerHTML = "";
 }
 
-/* ================= ADD CATEGORY ================= */
-
+/* ===== ADD CATEGORY ===== */
 addBtn.onclick = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
@@ -74,28 +74,21 @@ addBtn.onclick = () => {
     <textarea id="addDesc"></textarea>
 
     <div class="modal-actions">
-      <button class="btn-danger" id="confirmAdd">Confirm</button>
+      <button class="btn-danger" id="saveAdd">Confirm</button>
       <button class="btn-back" id="cancelAdd">Back</button>
     </div>
   `);
 
-  document.getElementById("cancelAdd").onclick = closeModal;
+  cancelAdd.onclick = closeModal;
 
-  document.getElementById("confirmAdd").onclick = async () => {
-    const name = addName.value.trim();
-    const desc = addDesc.value.trim();
-
-    if (!name) {
-      alert("Category name required");
-      return;
-    }
+  saveAdd.onclick = async () => {
+    if (!addName.value.trim()) return alert("Required");
 
     await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
-        action: "add",
-        category_name: name,
-        description: desc
+        category_name: addName.value,
+        description: addDesc.value
       })
     });
 
@@ -104,19 +97,16 @@ addBtn.onclick = () => {
   };
 };
 
-/* ================= EDIT CATEGORY ================= */
-
+/* ===== EDIT CATEGORY ===== */
 editBtn.onclick = () => {
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
 
     <label>Select Category</label>
     <select id="editSelect">
-      ${categories
-        .map(
-          c => `<option value="${c.category_id}">${c.category_name}</option>`
-        )
-        .join("")}
+      ${categories.map(c =>
+        `<option value="${c.category_id}">${c.category_name}</option>`
+      ).join("")}
     </select>
 
     <div class="modal-actions">
@@ -128,61 +118,54 @@ editBtn.onclick = () => {
   cancelEdit.onclick = closeModal;
 
   editNext.onclick = () => {
-    const id = editSelect.value;
     selectedCategory = categories.find(
-      c => String(c.category_id) === String(id)
+      c => String(c.category_id) === editSelect.value
     );
-    openEditForm();
+
+    openModal(`
+      <div class="modal-header">✏ Edit Category</div>
+
+      <label>Category Name</label>
+      <input id="editName" value="${selectedCategory.category_name}">
+
+      <label>Description</label>
+      <textarea id="editDesc">${selectedCategory.description}</textarea>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="saveEdit">Confirm</button>
+        <button class="btn-back" id="cancelEdit2">Back</button>
+      </div>
+    `);
+
+    cancelEdit2.onclick = closeModal;
+
+    saveEdit.onclick = async () => {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "edit",
+          category_id: selectedCategory.category_id,
+          category_name: editName.value,
+          description: editDesc.value
+        })
+      });
+
+      closeModal();
+      loadCategories();
+    };
   };
 };
 
-function openEditForm() {
-  openModal(`
-    <div class="modal-header">✏ Edit Category</div>
-
-    <label>Category Name</label>
-    <input id="editName" value="${selectedCategory.category_name}">
-
-    <label>Description</label>
-    <textarea id="editDesc">${selectedCategory.description}</textarea>
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveEdit">Confirm</button>
-      <button class="btn-back" id="cancelEdit2">Back</button>
-    </div>
-  `);
-
-  cancelEdit2.onclick = closeModal;
-
-  saveEdit.onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "edit",
-        category_id: selectedCategory.category_id,
-        category_name: editName.value.trim(),
-        description: editDesc.value.trim()
-      })
-    });
-
-    closeModal();
-    loadCategories();
-  };
-}
-
-/* ================= DELETE CATEGORY ================= */
-
+/* ===== DELETE CATEGORY ===== */
 deleteBtn.onclick = () => {
   openModal(`
     <div class="modal-header danger">🗑 Delete Category</div>
 
     <label>Select Category</label>
     <select id="deleteSelect">
-      ${categories
-        .map(
-          c => `<option value="${c.category_id}">${c.category_name}</option>`
-        )
-        .join("")}
+      ${categories.map(c =>
+        `<option value="${c.category_id}">${c.category_name}</option>`
+      ).join("")}
     </select>
 
     <div class="modal-actions">
@@ -194,38 +177,33 @@ deleteBtn.onclick = () => {
   cancelDelete.onclick = closeModal;
 
   confirmDelete.onclick = () => {
-    const id = deleteSelect.value;
     selectedCategory = categories.find(
-      c => String(c.category_id) === String(id)
+      c => String(c.category_id) === deleteSelect.value
     );
-    openDeleteConfirm();
+
+    openModal(`
+      <div class="modal-header danger">⚠ Confirm Delete</div>
+      <input value="${selectedCategory.category_name}" disabled>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="finalDelete">Confirm</button>
+        <button class="btn-back" id="cancelFinal">Back</button>
+      </div>
+    `);
+
+    cancelFinal.onclick = closeModal;
+
+    finalDelete.onclick = async () => {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "delete",
+          category_id: selectedCategory.category_id
+        })
+      });
+
+      closeModal();
+      loadCategories();
+    };
   };
 };
-
-function openDeleteConfirm() {
-  openModal(`
-    <div class="modal-header danger">⚠ Confirm Delete</div>
-
-    <input value="${selectedCategory.category_name}" disabled>
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="finalDelete">Confirm</button>
-      <button class="btn-back" id="cancelFinalDelete">Back</button>
-    </div>
-  `);
-
-  cancelFinalDelete.onclick = closeModal;
-
-  finalDelete.onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "delete",
-        category_id: selectedCategory.category_id
-      })
-    });
-
-    closeModal();
-    loadCategories();
-  };
-}

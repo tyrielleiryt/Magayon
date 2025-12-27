@@ -4,7 +4,7 @@ body {
   background: #f0f0f0;
 }
 
-/* ===== TOP BAR ===== */
+/* TOP BAR */
 .top-bar {
   background: #2f3457;
   color: white;
@@ -14,13 +14,13 @@ body {
   align-items: center;
 }
 
-/* ===== LAYOUT ===== */
+/* LAYOUT */
 .admin-layout {
   display: flex;
   height: calc(100vh - 50px);
 }
 
-/* ===== SIDEBAR ===== */
+/* SIDEBAR */
 .sidebar {
   width: 220px;
   background: #2e3354;
@@ -38,23 +38,19 @@ body {
   text-align: left;
 }
 
-.sidebar button:hover {
-  opacity: 0.9;
-}
-
 .sidebar .active {
   background: #f3c84b;
   color: black;
   font-weight: bold;
 }
 
-/* ===== CONTENT ===== */
+/* CONTENT */
 .content {
   flex: 1;
   padding: 20px;
 }
 
-/* ===== ACTION BUTTONS ===== */
+/* ACTION BUTTONS */
 .category-actions {
   display: flex;
   gap: 10px;
@@ -65,20 +61,16 @@ body {
   background: #2e3354;
   color: white;
   border: none;
-  padding: 10px 16px;
+  padding: 10px 18px;
   cursor: pointer;
   border-radius: 4px;
 }
 
-.category-actions button:hover {
-  opacity: 0.9;
-}
-
-/* ===== TABLE ===== */
+/* TABLE */
 .table-wrapper {
   background: white;
   border: 1px solid #aaa;
-  height: calc(100% - 50px);
+  height: calc(100% - 60px);
   overflow: auto;
 }
 
@@ -93,16 +85,11 @@ body {
   padding: 10px;
 }
 
-.category-table th {
-  background: #eee;
-  text-align: left;
-}
-
-/* ===== MODAL OVERLAY ===== */
+/* MODAL OVERLAY */
 #modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,19 +100,17 @@ body {
   display: none;
 }
 
-/* ===== MODAL BOX ===== */
+/* MODAL BOX */
 #modalBox {
   background: white;
   width: 420px;
-  max-width: 90%;
-  padding: 24px 28px;
-  border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  border-radius: 12px;
 }
 
-/* ===== MODAL CONTENT ===== */
+/* MODAL CONTENT */
 .modal-header {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   margin-bottom: 16px;
 }
@@ -134,42 +119,41 @@ body {
   color: #c0392b;
 }
 
-.modal-body label {
+#modalBox label {
   display: block;
   margin-top: 12px;
   font-weight: bold;
 }
 
-.modal-body input,
-.modal-body textarea,
-.modal-body select {
+#modalBox input,
+#modalBox textarea,
+#modalBox select {
   width: 100%;
+  padding: 8px;
   margin-top: 6px;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
-/* ===== MODAL ACTIONS ===== */
+/* MODAL ACTIONS */
 .modal-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .btn-danger {
   background: #e06780;
-  border: none;
   color: white;
-  padding: 10px 22px;
-  border-radius: 20px;
+  border: none;
+  padding: 10px 20px;
   cursor: pointer;
+  border-radius: 20px;
 }
 
 .btn-back {
   background: #ddd;
   border: none;
-  padding: 10px 22px;
-  border-radius: 20px;
+  padding: 10px 20px;
   cursor: pointer;
+  border-radius: 20px;
 }
