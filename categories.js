@@ -30,21 +30,22 @@ addBtn.addEventListener("click", () => {
 
 modalBox.innerHTML = `
   <div class="modal-header">
-    <span class="modal-icon">➕</span>
-    <h3>Add Category</h3>
+    <span class="modal-icon">⚠️</span>
+    <h3>Confirm Add</h3>
   </div>
 
   <div class="modal-body">
-    <label>Category Name</label>
-    <input id="catName" placeholder="Enter category name">
+    <p style="margin-bottom: 16px; font-weight: bold;">
+      Are you sure you want to add:
+    </p>
 
-    <label>Description</label>
-    <textarea id="catDesc" placeholder="Enter description"></textarea>
+    <label>Category Name</label>
+    <input value="${pending.name}" disabled>
   </div>
 
   <div class="modal-actions">
-    <button class="btn-confirm" id="confirm">Confirm</button>
-    <button class="btn-back" id="cancel">Back</button>
+    <button class="btn-confirm" id="final">Confirm</button>
+    <button class="btn-back" id="back">Back</button>
   </div>
 `;
 
