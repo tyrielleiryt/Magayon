@@ -4,15 +4,22 @@ const modalContent = document.getElementById("modalContent");
 const tableBody = document.getElementById("categoryTableBody");
 
 let categories = [];
-let tempCategory = null;
+let pendingCategory = null;
 
-/* OPEN ADD CATEGORY MODAL */
+/* ================= OPEN ADD CATEGORY ================= */
+
 addBtn.addEventListener("click", () => {
+  openAddCategoryModal();
+});
+
+function openAddCategoryModal() {
   modalContent.innerHTML = `
-    <h3>➕ Add Category</h3>
+    <div class="modal-header">
+      <h3>➕ Add category</h3>
+    </div>
 
     <label>Category Name</label>
-    <input id="catName">
+    <input id="catName" />
 
     <label>Description</label>
     <textarea id="catDesc"></textarea>
@@ -22,6 +29,7 @@ addBtn.addEventListener("click", () => {
       <button id="closeModal">Back</button>
     </div>
   `;
+
   modalOverlay.classList.remove("hidden");
 
   document.getElementById("closeModal").onclick = closeModal;
@@ -31,40 +39,48 @@ addBtn.addEventListener("click", () => {
     const desc = document.getElementById("catDesc").value.trim();
 
     if (!name) {
-      alert("Category name required");
+      alert("Category name is required");
       return;
     }
 
-    tempCategory = { name, desc };
+    pendingCategory = { name, desc };
     openConfirmModal();
   };
-});
+}
 
-/* CONFIRMATION MODAL */
+/* ================= CONFIRMATION MODAL ================= */
+
 function openConfirmModal() {
   modalContent.innerHTML = `
-    <h3>⚠️ Confirm Add</h3>
+    <div class="modal-header">
+      <h3>➕ Add category</h3>
+    </div>
 
-    <p>Are you sure you want to add:</p>
-    <strong>${tempCategory.name}</strong>
+    <div style="margin: 16px 0;">
+      <strong>⚠ Are you sure you want to add:</strong>
+    </div>
+
+    <label>Category Name</label>
+    <input value="${pendingCategory.name}" disabled />
 
     <div class="modal-actions">
       <button id="finalConfirm">Confirm</button>
-      <button id="backToForm">Back</button>
+      <button id="backToEdit">Back</button>
     </div>
   `;
 
-  document.getElementById("backToForm").onclick = () => addBtn.click();
+  document.getElementById("backToEdit").onclick = openAddCategoryModal;
 
   document.getElementById("finalConfirm").onclick = () => {
-    categories.push(tempCategory);
-    tempCategory = null;
+    categories.push(pendingCategory);
+    pendingCategory = null;
     closeModal();
     renderTable();
   };
 }
 
-/* RENDER TABLE */
+/* ================= TABLE RENDER ================= */
+
 function renderTable() {
   tableBody.innerHTML = "";
 
@@ -80,7 +96,8 @@ function renderTable() {
   });
 }
 
-/* CLOSE MODAL */
+/* ================= CLOSE MODAL ================= */
+
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalContent.innerHTML = "";
