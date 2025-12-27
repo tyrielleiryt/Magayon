@@ -175,17 +175,14 @@ deleteBtn.onclick = () => {
     `);
 
     cancelFinal.onclick = closeModal;
-
+    
 finalDelete.onclick = async () => {
-  // IMPORTANT: use rowIndex + no-cors
-  await fetch(API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({
-      action: "delete",
-      category_name: selectedCategory.category_name
-    })
-  });
+  const url =
+    API_URL +
+    "?action=delete&category_name=" +
+    encodeURIComponent(selectedCategory.category_name);
+
+  await fetch(url); // GET request — no CORS issues
 
   closeModal();
   loadCategories();
