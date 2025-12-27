@@ -1,40 +1,30 @@
-* {
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
-
 body {
   margin: 0;
-  background: #f4f4f4;
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
 }
 
 /* TOP BAR */
 .top-bar {
-  background: #2e3354;
+  background: #2f3457;
   color: white;
-  padding: 14px 18px;
+  padding: 12px 20px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-}
-
-.brand {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 18px;
 }
 
-.logout {
-  background: none;
+.logout-btn {
+  background: #fff;
+  color: #2f3457;
   border: none;
-  color: white;
-  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
 /* LAYOUT */
-.admin-container {
+.admin-layout {
   display: flex;
   height: calc(100vh - 56px);
 }
@@ -44,35 +34,83 @@ body {
   width: 220px;
   background: #2e3354;
   padding: 10px;
-  display: flex;
-  flex-direction: column;
 }
 
-.nav-btn {
-  background: #3b4066;
-  color: white;
-  border: none;
-  padding: 14px;
+.sidebar button {
+  width: 100%;
+  padding: 12px;
   margin-bottom: 8px;
+  background: #3b4066;
+  border: none;
+  color: white;
   cursor: pointer;
   text-align: left;
-  font-size: 14px;
 }
 
-.nav-btn.active {
-  background: #f5c542;
+.sidebar .active {
+  background: #f3c84b;
   color: black;
   font-weight: bold;
 }
 
-/* MAIN CONTENT */
+/* CONTENT */
 .content {
   flex: 1;
-  padding: 16px;
+  padding: 14px;
 }
 
 .content-box {
   background: white;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ACTION BAR */
+.action-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid #999;
+  background: #eee;
+}
+
+.action-bar button {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+/* TABLE */
+.table-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.category-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.category-table th {
+  background: #dcdcdc;
+  border: 1px solid #888;
+  padding: 8px;
+}
+
+.category-table td {
+  border: 1px solid #888;
+  padding: 8px;
+}
+
+#categoryTableBody tr {
+  cursor: pointer;
+}
+
+#categoryTableBody tr.selected {
+  background: #f3c84b;
 }

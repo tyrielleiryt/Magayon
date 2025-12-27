@@ -13,11 +13,13 @@
     <span class="icon">🍴</span>
     <span class="title">POS</span>
   </div>
+
   <div id="datetime"></div>
   <button id="logoutBtn" class="logout-btn">LOGOUT</button>
 </header>
 
 <div class="admin-layout">
+
   <aside class="sidebar">
     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
     <button class="nav-btn" data-view="categories">Categories</button>
@@ -27,9 +29,12 @@
   </aside>
 
   <main class="content">
-    <div id="actionBar"></div>
-    <div id="contentBox" class="content-box"></div>
+    <div class="content-box">
+      <div id="actionBar"></div>
+      <div id="contentBox"></div>
+    </div>
   </main>
+
 </div>
 
 <script type="module" src="admin.js"></script>
