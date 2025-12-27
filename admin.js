@@ -1,31 +1,72 @@
-import loadCategoriesView from "./views/categories.js";
+/* ================= AUTH GUARD ================= */
+// Prevent access if not logged in
+if (localStorage.getItem("isLoggedIn") !== "true") {
+  window.location.href = "login.html";
+}
 
-/* DATE & TIME */
+/* ================= DATE & TIME ================= */
 function updateDateTime() {
-  document.getElementById("datetime").textContent =
-    new Date().toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit"
-    });
+  const el = document.getElementById("datetime");
+  if (!el) return;
+
+  el.textContent = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
 }
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* NAVIGATION */
-document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+/* ================= LOGOUT ================= */
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    const confirmLogout = confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return;
+
+    // Clear login state
+    localStorage.removeItem("isLoggedIn");
+
+    // Redirect to login screen
+    window.location.href = "login.html";
+  });
+}
+
+/* ================= SPA NAVIGATION ================= */
+import loadCategoriesView from "./views/categories.js";
+
+const navButtons = document.querySelectorAll(".nav-btn");
+
+navButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
     const view = btn.dataset.view;
-    if (view === "categories") loadCategoriesView();
-    else document.getElementById("contentBox").innerHTML = `<p>Coming soon</p>`;
-  };
-});
 
-/* DEFAULT VIEW */
-loadCategoriesView();
+    // Clear UI
+    document.getElementById("actionBar").innerHTML = "";
+    document.getElementById("contentBox").innerHTML = "";
+
+    // Load view
+    switch (view) {
+      case "categories":
+        loadCategoriesView();
+        break;
+
+      case "dashboard":
+        document.getElementById("contentBox").innerHTML =
+          "<h2>Dashboard</h2><p>Coming soon…</p>";
+        break;
+
+      default:
+        document.getElementById("contentBox").innerHTML =
+          "<h2>Coming soon…</h2>";
+    }
+  });
+});
