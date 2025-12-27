@@ -5,6 +5,7 @@
   <title>Magayon | Categories</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- SINGLE CSS FILE ONLY -->
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
@@ -16,7 +17,6 @@
   <div class="logout">LOGOUT</div>
 </header>
 
-<!-- MAIN LAYOUT -->
 <div class="admin-layout">
 
   <!-- SIDEBAR -->
@@ -31,17 +31,15 @@
     <button>Deliveries Received</button>
   </aside>
 
-  <!-- CONTENT -->
+  <!-- MAIN CONTENT -->
   <main class="content">
 
-    <!-- ACTION BUTTONS -->
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
       <button disabled>+/- Edit Category</button>
       <button disabled>-- Delete Category</button>
     </div>
 
-    <!-- TABLE -->
     <div class="table-wrapper">
       <table class="category-table">
         <thead>
@@ -60,8 +58,8 @@
 </div>
 
 <!-- MODAL -->
-<div id="modalOverlay" class="modal-overlay">
-  <div class="modal-box" id="modalContent"></div>
+<div id="modalOverlay">
+  <div id="modalBox"></div>
 </div>
 
 <script src="categories.js"></script>

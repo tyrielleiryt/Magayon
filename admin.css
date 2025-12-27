@@ -75,10 +75,10 @@ body {
 
 /* TABLE */
 .table-wrapper {
+  background: white;
   border: 1px solid #999;
   height: calc(100% - 50px);
   overflow: auto;
-  background: white;
 }
 
 .category-table {
@@ -96,8 +96,8 @@ body {
   background: #eee;
 }
 
-/* MODAL */
-.modal-overlay {
+/* MODAL OVERLAY */
+#modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -110,26 +110,29 @@ body {
   z-index: 9999;
 }
 
-.modal-box {
+/* MODAL BOX */
+#modalBox {
   background: white;
-  width: 400px;
+  width: 420px;
   padding: 24px;
   border-radius: 8px;
 }
 
-.modal-box label {
+/* MODAL CONTENT */
+#modalBox label {
   display: block;
   margin-top: 12px;
   font-weight: bold;
 }
 
-.modal-box input,
-.modal-box textarea {
+#modalBox input,
+#modalBox textarea {
   width: 100%;
   padding: 8px;
   margin-top: 4px;
 }
 
+/* MODAL BUTTONS */
 .modal-actions {
   display: flex;
   justify-content: space-between;
@@ -139,8 +142,8 @@ body {
 .modal-actions button {
   padding: 10px 18px;
   border: none;
-  cursor: pointer;
   border-radius: 6px;
+  cursor: pointer;
 }
 
 .modal-actions button:first-child {
