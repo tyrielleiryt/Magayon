@@ -1,7 +1,7 @@
 /* ================= AUTH GUARD ================= */
-// Prevent access if not logged in
+// Block access if not logged in
 if (localStorage.getItem("isLoggedIn") !== "true") {
-  window.location.href = "login.html";
+  window.location.href = "index.html"; // login page
 }
 
 /* ================= DATE & TIME ================= */
@@ -32,8 +32,8 @@ if (logoutBtn) {
     // Clear login state
     localStorage.removeItem("isLoggedIn");
 
-    // Redirect to login screen
-    window.location.href = "login.html";
+    // Redirect to LOGIN (index.html)
+    window.location.href = "index.html";
   });
 }
 
@@ -49,19 +49,21 @@ navButtons.forEach(btn => {
 
     const view = btn.dataset.view;
 
-    // Clear UI
+    // Clear previous UI
     document.getElementById("actionBar").innerHTML = "";
     document.getElementById("contentBox").innerHTML = "";
 
-    // Load view
+    // Load selected view
     switch (view) {
       case "categories":
         loadCategoriesView();
         break;
 
       case "dashboard":
-        document.getElementById("contentBox").innerHTML =
-          "<h2>Dashboard</h2><p>Coming soon…</p>";
+        document.getElementById("contentBox").innerHTML = `
+          <h2>Dashboard</h2>
+          <p>Welcome to the admin panel.</p>
+        `;
         break;
 
       default:
