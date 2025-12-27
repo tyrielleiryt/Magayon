@@ -15,95 +15,100 @@ setInterval(updateDateTime, 60000);
 
 /* ===== ELEMENTS ===== */
 const addBtn = document.getElementById("addCategoryBtn");
-const modal = document.getElementById("modalOverlay");
+const modalOverlay = document.getElementById("modalOverlay");
 const modalBox = document.getElementById("modalBox");
 const tableBody = document.getElementById("categoryTableBody");
 
 /* ===== STATE ===== */
 let categories = [];
-let pending = null;
+let pendingCategory = null;
 
-/* ===== OPEN MODAL ===== */
+/* ===== OPEN ADD MODAL ===== */
 addBtn.addEventListener("click", () => {
-  modal.style.display = "flex";
-  modal.style.pointerEvents = "auto";
+  modalOverlay.classList.remove("hidden");
 
-modalBox.innerHTML = `
-  <div class="modal-header">
-    <span class="modal-icon">⚠️</span>
-    <h3>Confirm Add</h3>
-  </div>
-
-  <div class="modal-body">
-    <p style="margin-bottom: 16px; font-weight: bold;">
-      Are you sure you want to add:
-    </p>
-
-    <label>Category Name</label>
-    <input value="${pending.name}" disabled>
-  </div>
-
-  <div class="modal-actions">
-    <button class="btn-confirm" id="final">Confirm</button>
-    <button class="btn-back" id="back">Back</button>
-  </div>
-`;
-
-  document.getElementById("cancel").onclick = closeModal;
-
-  document.getElementById("confirm").onclick = () => {
-    const name = document.getElementById("catName").value.trim();
-    const desc = document.getElementById("catDesc").value.trim();
-    if (!name) return alert("Category name required");
-
-    pending = { name, desc };
-    confirmModal();
-  };
-});
-
-/* ===== CONFIRM ===== */
-function confirmModal() {
   modalBox.innerHTML = `
-    <h3>Confirm Add</h3>
+    <div class="modal-header">
+      <span class="modal-icon">➕</span>
+      <h3>Add Category</h3>
+    </div>
 
-    <p>Are you sure you want to add:</p>
+    <div class="modal-body">
+      <label>Category Name</label>
+      <input id="catName">
 
-    <input value="${pending.name}" disabled>
+      <label>Description</label>
+      <textarea id="catDesc"></textarea>
+    </div>
 
     <div class="modal-actions">
-      <button id="final">Confirm</button>
-      <button id="back">Back</button>
+      <button class="btn-confirm" id="confirmAdd">Confirm</button>
+      <button class="btn-back" id="cancelAdd">Back</button>
     </div>
   `;
 
-  document.getElementById("back").onclick = () => addBtn.click();
+  document.getElementById("cancelAdd").onclick = closeModal;
 
-  document.getElementById("final").onclick = () => {
-    categories.push(pending);
-    pending = null;
+  document.getElementById("confirmAdd").onclick = () => {
+    const name = document.getElementById("catName").value.trim();
+    const desc = document.getElementById("catDesc").value.trim();
+
+    if (!name) {
+      alert("Category name is required");
+      return;
+    }
+
+    pendingCategory = { name, desc };
+    openConfirmModal();
+  };
+});
+
+/* ===== CONFIRM MODAL ===== */
+function openConfirmModal() {
+  modalBox.innerHTML = `
+    <div class="modal-header">
+      <span class="modal-icon">⚠️</span>
+      <h3>Confirm Add</h3>
+    </div>
+
+    <div class="modal-body">
+      <p><strong>Are you sure you want to add:</strong></p>
+      <input value="${pendingCategory.name}" disabled>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-confirm" id="finalConfirm">Confirm</button>
+      <button class="btn-back" id="backEdit">Back</button>
+    </div>
+  `;
+
+  document.getElementById("backEdit").onclick = () => addBtn.click();
+
+  document.getElementById("finalConfirm").onclick = () => {
+    categories.push(pendingCategory);
+    pendingCategory = null;
     closeModal();
-    render();
+    renderTable();
   };
 }
 
 /* ===== TABLE ===== */
-function render() {
+function renderTable() {
   tableBody.innerHTML = "";
-  categories.forEach((c, i) => {
+  categories.forEach((cat, i) => {
     tableBody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
-        <td>${c.name}</td>
-        <td>${c.desc}</td>
+        <td>${cat.name}</td>
+        <td>${cat.desc}</td>
         <td>—</td>
       </tr>
     `;
   });
 }
 
-/* ===== CLOSE ===== */
+/* ===== CLOSE MODAL ===== */
 function closeModal() {
-  modal.style.display = "none";
-  modal.style.pointerEvents = "none";
+  modalOverlay.classList.add("hidden");
   modalBox.innerHTML = "";
 }
