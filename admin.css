@@ -8,43 +8,46 @@ body {
 .top-bar {
   background: #2f3457;
   color: white;
-  padding: 12px 20px;
+  padding: 10px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 14px;
 }
 
 .logout-btn {
   background: #e06780;
   color: white;
   border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
+  padding: 6px 16px;
+  border-radius: 2px;
   cursor: pointer;
+  font-size: 13px;
 }
 
 /* ===== LAYOUT ===== */
 .admin-layout {
   display: flex;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 48px);
 }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: 220px;
   background: #2e3354;
-  padding: 10px;
+  padding: 8px;
 }
 
 .sidebar button {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
   background: #3b4066;
-  border: none;
+  border: 1px solid #2a2f4f;
   color: white;
   cursor: pointer;
   text-align: left;
+  font-size: 13px;
 }
 
 .sidebar .active {
@@ -56,46 +59,46 @@ body {
 /* ===== CONTENT ===== */
 .content {
   flex: 1;
-  padding: 16px;
+  padding: 10px;
 }
 
 .content-box {
-  background: white;
-  border: 1px solid #aaa;
+  background: #ffffff;
+  border: 1px solid #666;
   height: 100%;
-  padding: 12px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
 }
 
-/* ===== ACTION BAR (TOOLBAR) ===== */
+/* ===== ACTION BAR ===== */
 .action-bar {
   display: flex;
   gap: 6px;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #ccc;
+  padding: 4px;
+  margin-bottom: 6px;
+  border: 1px solid #666;
+  background: #d0d0d0;
 }
 
 .action-bar button {
-  background: #2e3354;
+  background: #3b4066;
   color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
+  border: 1px solid #2a2f4f;
+  padding: 4px 10px;
+  font-size: 13px;
   cursor: pointer;
-  font-size: 14px;
 }
 
 .action-bar button:hover {
-  background: #3b4066;
+  background: #4a4f78;
 }
 
 /* ===== VIEW BODY ===== */
 .view-body {
   flex: 1;
+  border: 1px solid #666;
   overflow: auto;
-  border: 1px solid #aaa;
   background: #fff;
 }
 
@@ -103,22 +106,22 @@ body {
 .category-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
-}
-
-.category-table th,
-.category-table td {
-  border-bottom: 1px solid #ddd;
-  padding: 6px 10px;
+  font-size: 13px;
 }
 
 .category-table th {
-  background: #f3f3f3;
+  background: #bdbdbd;
+  border: 1px solid #666;
+  padding: 6px;
   font-weight: bold;
-  text-align: left;
+  text-align: center;
 }
 
-/* Column sizing */
+.category-table td {
+  border: 1px solid #666;
+  padding: 6px;
+}
+
 .category-table th:first-child,
 .category-table td:first-child {
   width: 40px;
@@ -131,20 +134,20 @@ body {
   text-align: center;
 }
 
-/* Row states */
+/* ===== ROW STATES ===== */
 #categoryTableBody tr {
   cursor: pointer;
 }
 
 #categoryTableBody tr:hover {
-  background: #f9f4dc;
+  background: #e6e6e6;
 }
 
 #categoryTableBody tr.selected {
   background: #f3c84b;
 }
 
-/* ===== MODAL ===== */
+/* ===== MODAL (UNCHANGED, PARKED) ===== */
 #modalOverlay {
   position: fixed;
   inset: 0;
@@ -163,13 +166,13 @@ body {
   background: white;
   width: 420px;
   padding: 24px;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .modal-header {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modal-header.danger {
@@ -178,38 +181,35 @@ body {
 
 #modalBox label {
   display: block;
-  margin-top: 12px;
+  margin-top: 10px;
   font-weight: bold;
 }
 
 #modalBox input,
 #modalBox textarea {
   width: 100%;
-  padding: 8px;
-  margin-top: 6px;
+  padding: 6px;
+  margin-top: 4px;
   box-sizing: border-box;
 }
 
-/* Modal actions */
 .modal-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .btn-danger {
   background: #e06780;
   color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 6px 16px;
   cursor: pointer;
 }
 
 .btn-back {
   background: #ddd;
   border: none;
-  padding: 8px 20px;
-  border-radius: 20px;
+  padding: 6px 16px;
   cursor: pointer;
 }
