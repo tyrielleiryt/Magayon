@@ -10,42 +10,35 @@ body {
 
 /* TOP BAR */
 .top-bar {
-  height: 60px;
   background: #343a5e;
   color: white;
+  padding: 12px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  gap: 20px;
-}
-
-.top-bar .datetime {
-  flex: 1;
 }
 
 /* LAYOUT */
 .admin-layout {
   display: flex;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 50px);
 }
 
 /* SIDEBAR */
 .sidebar {
   width: 220px;
-  background: #2e3354;
+  background: #2f3354;
   padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .sidebar button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 8px;
   background: #3b4066;
   color: white;
   border: none;
-  padding: 12px;
   cursor: pointer;
-  text-align: left;
 }
 
 .sidebar button.active {
@@ -57,7 +50,105 @@ body {
 /* CONTENT */
 .content {
   flex: 1;
+  padding: 16px;
+}
+
+/* ACTION BUTTONS */
+.category-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.category-actions button {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.category-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* TABLE */
+.table-wrapper {
+  border: 1px solid #999;
+  height: calc(100% - 50px);
+  overflow: auto;
   background: white;
-  margin: 10px;
-  padding: 12px;
+}
+
+.category-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.category-table th,
+.category-table td {
+  border: 1px solid #999;
+  padding: 10px;
+}
+
+.category-table th {
+  background: #eee;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: white;
+  width: 400px;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.modal-box label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+.modal-box input,
+.modal-box textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.modal-actions button:first-child {
+  background: #e96a85;
+  color: white;
+}
+
+.modal-actions button:last-child {
+  background: #777;
+  color: white;
 }

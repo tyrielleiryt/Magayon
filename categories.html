@@ -2,36 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Categories</title>
+  <title>Magayon | Categories</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" href="admin.css">
-  <link rel="stylesheet" href="categories.css">
 </head>
 <body>
 
+<!-- TOP BAR -->
 <header class="top-bar">
-  <div>🍽 POS</div>
-  <div id="dateTime" class="datetime"></div>
-  <div>LOGOUT</div>
+  <div class="logo">🍽 POS</div>
+  <div id="datetime" class="datetime"></div>
+  <div class="logout">LOGOUT</div>
 </header>
 
+<!-- MAIN LAYOUT -->
 <div class="admin-layout">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button>Dashboard</button>
     <button class="active">Categories</button>
     <button>Products</button>
     <button>Staff</button>
     <button>POS</button>
+    <button>Customer Orders</button>
+    <button>Inventory</button>
+    <button>Deliveries Received</button>
   </aside>
 
+  <!-- CONTENT -->
   <main class="content">
 
+    <!-- ACTION BUTTONS -->
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
+      <button disabled>+/- Edit Category</button>
+      <button disabled>-- Delete Category</button>
     </div>
 
+    <!-- TABLE -->
     <div class="table-wrapper">
       <table class="category-table">
         <thead>
