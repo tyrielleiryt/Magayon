@@ -176,17 +176,19 @@ deleteBtn.onclick = () => {
 
     cancelFinal.onclick = closeModal;
 
-    finalDelete.onclick = async () => {
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "delete",
-          rowIndex: categories.indexOf(selectedCategory)
-        })
-      });
+finalDelete.onclick = async () => {
+  // IMPORTANT: use rowIndex + no-cors
+  await fetch(API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      action: "delete",
+      rowIndex: categories.indexOf(selectedCategory)
+    })
+  });
 
-      closeModal();
-      loadCategories();
-    };
+  closeModal();
+  loadCategories();
+};
   };
 };
