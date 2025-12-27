@@ -1,18 +1,29 @@
-/* ================= API ================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbxx2r8mzm9wfGa5J8pGKeQkNJTpsMzBcDzEgpTSMRTgPKipu8W2adiUetS0leY9JEQ0/exec";
+const API_URL = "PASTE_YOUR_NEW_DEPLOY_URL_HERE";
 
-/* ================= STATE ================= */
-let categories = [];
-let pendingCategory = null;
-
-/* ================= ELEMENTS ================= */
+/* ===== ELEMENTS ===== */
 const addBtn = document.getElementById("addCategoryBtn");
 const modalOverlay = document.getElementById("modalOverlay");
 const modalBox = document.getElementById("modalBox");
 const tableBody = document.getElementById("categoryTableBody");
 
-/* ================= DATE & TIME ================= */
+/* ===== STATE ===== */
+let categories = [];
+let pendingCategory = null;
+
+/* ===== LOAD CATEGORIES ===== */
+async function loadCategories() {
+  try {
+    const res = await fetch(API_URL);
+    categories = await res.json();
+    renderTable();
+  } catch (err) {
+    alert("Failed to load categories");
+    console.error(err);
+  }
+}
+loadCategories();
+
+/* ===== DATE & TIME ===== */
 function updateDateTime() {
   document.getElementById("datetime").textContent =
     new Date().toLocaleString("en-US", {
@@ -27,31 +38,18 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* ================= LOAD FROM DATABASE ================= */
-async function loadCategories() {
-  try {
-    const res = await fetch(API_URL);
-    categories = await res.json();
-    renderTable();
-  } catch (err) {
-    console.error("Failed to load categories", err);
-  }
-}
-loadCategories();
-
-/* ================= ADD CATEGORY MODAL ================= */
+/* ===== ADD CATEGORY MODAL ===== */
 addBtn.addEventListener("click", () => {
   modalOverlay.classList.remove("hidden");
 
   modalBox.innerHTML = `
     <div class="modal-header">
-      <span class="modal-icon">➕</span>
       <h3>Add Category</h3>
     </div>
 
     <div class="modal-body">
       <label>Category Name</label>
-      <input id="catName" />
+      <input id="catName">
 
       <label>Description</label>
       <textarea id="catDesc"></textarea>
@@ -79,17 +77,16 @@ addBtn.addEventListener("click", () => {
   };
 });
 
-/* ================= CONFIRM MODAL ================= */
+/* ===== CONFIRM MODAL ===== */
 function openConfirmModal() {
   modalBox.innerHTML = `
     <div class="modal-header">
-      <span class="modal-icon">⚠️</span>
       <h3>Confirm Add</h3>
     </div>
 
     <div class="modal-body">
-      <p><strong>Are you sure you want to add:</strong></p>
-      <input value="${pendingCategory.name}" disabled />
+      <p>Are you sure you want to add:</p>
+      <input value="${pendingCategory.name}" disabled>
     </div>
 
     <div class="modal-actions">
@@ -100,35 +97,37 @@ function openConfirmModal() {
 
   document.getElementById("backEdit").onclick = () => addBtn.click();
 
-  document.getElementById("finalConfirm").onclick = saveCategoryToDB;
+  document.getElementById("finalConfirm").onclick = saveCategory;
 }
 
-/* ================= SAVE TO GOOGLE SHEETS ================= */
-async function saveCategoryToDB() {
+/* ===== SAVE CATEGORY ===== */
+async function saveCategory() {
   try {
-    await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(pendingCategory)
     });
 
+    const result = await res.json();
+    if (!result.success) throw new Error("Save failed");
+
     pendingCategory = null;
     closeModal();
-    loadCategories(); // reload table from DB
+    loadCategories();
+
   } catch (err) {
     alert("Failed to save category");
     console.error(err);
   }
 }
 
-/* ================= RENDER TABLE ================= */
+/* ===== TABLE RENDER ===== */
 function renderTable() {
   tableBody.innerHTML = "";
-
-  categories.forEach((cat, i) => {
+  categories.forEach((cat, index) => {
     tableBody.innerHTML += `
       <tr>
-        <td>${i + 1}</td>
+        <td>${index + 1}</td>
         <td>${cat.name}</td>
         <td>${cat.desc}</td>
         <td>—</td>
@@ -137,7 +136,7 @@ function renderTable() {
   });
 }
 
-/* ================= CLOSE MODAL ================= */
+/* ===== CLOSE MODAL ===== */
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalBox.innerHTML = "";
