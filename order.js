@@ -14,21 +14,44 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ========== AUTH + ROLE CHECK (CASHIER ONLY) ========== */
+/* ================= AUTH + ROLE CHECK ================= */
+
+let authResolved = false;
 
 onAuthStateChanged(auth, async (user) => {
+  if (authResolved) return; // prevent re-run
+  authResolved = true;
+
   if (!user) {
-    window.location.href = "index.html";
+    window.location.replace("index.html");
     return;
   }
 
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().role !== "cashier") {
-    window.location.href = "index.html";
+  try {
+    const snap = await getDoc(doc(db, "users", user.uid));
+
+    if (!snap.exists()) {
+      window.location.replace("index.html");
+      return;
+    }
+
+    const role = snap.data().role;
+
+    // Allow ADMIN and CASHIER
+    if (role !== "admin" && role !== "cashier") {
+      window.location.replace("index.html");
+      return;
+    }
+
+    // ✅ Authorized — allow POS to load
+
+  } catch (error) {
+    console.error("Auth check error:", error);
+    window.location.replace("index.html");
   }
 });
 
-/* ================= PRODUCTS ================= */
+/* ================= PRODUCTS (TEMP) ================= */
 
 const products = [
   {
@@ -68,13 +91,12 @@ const products = [
   }
 ];
 
-const clearBtn = document.getElementById("clearOrderBtn");
-
 /* ================= DOM ELEMENTS ================= */
 
 const grid = document.getElementById("productGrid");
 const table = document.getElementById("orderTable");
 const totalEl = document.getElementById("sumTotal");
+const clearBtn = document.getElementById("clearOrderBtn");
 const categoryButtons = document.querySelectorAll(".category-btn");
 
 /* ================= STATE ================= */
@@ -112,8 +134,7 @@ categoryButtons.forEach(btn => {
     if (category === "all") {
       renderProducts(products);
     } else {
-      const filtered = products.filter(p => p.category === category);
-      renderProducts(filtered);
+      renderProducts(products.filter(p => p.category === category));
     }
   });
 });
@@ -140,18 +161,11 @@ function addToOrder(product) {
 /* ================= CLEAR ORDER ================= */
 
 clearBtn.addEventListener("click", () => {
-  const confirmClear = confirm("Clear all current orders?");
+  if (!confirm("Clear all current orders?")) return;
 
-  if (!confirmClear) return;
-
-  // Reset state
   order = [];
   total = 0;
-
-  // Clear table
   table.innerHTML = "";
-
-  // Reset total display
   totalEl.textContent = "0";
 });
 
