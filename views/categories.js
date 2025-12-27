@@ -9,15 +9,22 @@ export default function loadCategoriesView() {
   const contentBox = document.getElementById("contentBox");
 
   contentBox.innerHTML = `
-    <div class="action-bar" id="actionBar"></div>
+    <div class="action-bar">
+      <button onclick="addCategory()">+ Add Category</button>
+      <button onclick="editCategory()">Edit</button>
+      <button onclick="deleteCategory()">Delete</button>
+      <button onclick="moveUp()">⬆ Move Up</button>
+      <button onclick="moveDown()">⬇ Move Down</button>
+    </div>
+
     <div class="view-body">
       <table class="category-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th style="width:50px">#</th>
             <th>Category Name</th>
             <th>Description</th>
-            <th>QTY</th>
+            <th style="width:70px">QTY</th>
           </tr>
         </thead>
         <tbody id="categoryTableBody"></tbody>
@@ -27,14 +34,6 @@ export default function loadCategoriesView() {
     <div id="modalOverlay" class="hidden">
       <div id="modalBox"></div>
     </div>
-  `;
-
-  document.getElementById("actionBar").innerHTML = `
-    <button onclick="addCategory()">+ Add Category</button>
-    <button onclick="editCategory()">Edit</button>
-    <button onclick="deleteCategory()">Delete</button>
-    <button onclick="moveUp()">⬆ Move Up</button>
-    <button onclick="moveDown()">⬇ Move Down</button>
   `;
 
   loadCategories();
@@ -55,6 +54,7 @@ function renderTable() {
 
   categories.forEach((cat, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${cat.category_name}</td>
@@ -88,10 +88,13 @@ function closeModal() {
 window.addCategory = () => {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
+
     <label>Category Name</label>
     <input id="addName">
+
     <label>Description</label>
     <textarea id="addDesc"></textarea>
+
     <div class="modal-actions">
       <button class="btn-danger" id="saveAdd">Confirm</button>
       <button class="btn-back" id="cancelAdd">Back</button>
@@ -118,14 +121,18 @@ window.addCategory = () => {
 /* ===== EDIT ===== */
 window.editCategory = () => {
   if (selectedIndex === null) return alert("Select a category first");
+
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
+
     <label>Category Name</label>
     <input id="editName" value="${cat.category_name}">
+
     <label>Description</label>
     <textarea id="editDesc">${cat.description}</textarea>
+
     <div class="modal-actions">
       <button class="btn-danger" id="saveEdit">Confirm</button>
       <button class="btn-back" id="cancelEdit">Back</button>
@@ -152,12 +159,15 @@ window.editCategory = () => {
 /* ===== DELETE ===== */
 window.deleteCategory = () => {
   if (selectedIndex === null) return alert("Select a category first");
+
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header danger">⚠ Delete Category</div>
+
     <p>Are you sure you want to delete:</p>
     <input value="${cat.category_name}" disabled>
+
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDel">Delete</button>
       <button class="btn-back" id="cancelDel">Back</button>
@@ -185,7 +195,11 @@ window.moveUp = async () => {
 
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ action: "move", rowIndex: selectedIndex, direction: "up" })
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "up"
+    })
   });
 
   loadCategories();
@@ -196,7 +210,11 @@ window.moveDown = async () => {
 
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ action: "move", rowIndex: selectedIndex, direction: "down" })
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "down"
+    })
   });
 
   loadCategories();

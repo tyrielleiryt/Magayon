@@ -106,10 +106,15 @@ body {
 
 .category-table th {
   background: #f3f3f3;
+  text-align: left;
 }
 
 #categoryTableBody tr {
   cursor: pointer;
+}
+
+#categoryTableBody tr:hover {
+  background: #f9f0c8;
 }
 
 #categoryTableBody tr.selected {
@@ -146,6 +151,19 @@ body {
 
 .modal-header.danger {
   color: #c0392b;
+}
+
+#modalBox label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+#modalBox input,
+#modalBox textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
 }
 
 .modal-actions {
