@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzVNXWlJ61HeqVQBb3eyjMb3-g-LU4QE9PCaYxNEauxpd0BF6HOyFoRwbKDTnvIkkt4/exec";
 
 /* ===== DATE & TIME ===== */
 function updateDateTime() {
@@ -25,27 +25,23 @@ const tableBody = document.getElementById("categoryTableBody");
 
 /* ===== STATE ===== */
 let categories = [];
-let pendingCategory = null;
+let selectedCategory = null;
 
 /* ===== LOAD ===== */
 async function loadCategories() {
-  try {
-    const res = await fetch(API_URL);
-    categories = await res.json();
-    renderTable();
-  } catch {
-    alert("Failed to load categories");
-  }
+  const res = await fetch(API_URL);
+  categories = await res.json();
+  renderTable();
 }
 loadCategories();
 
 /* ===== TABLE ===== */
 function renderTable() {
   tableBody.innerHTML = "";
-  categories.forEach((cat, i) => {
+  categories.forEach(cat => {
     tableBody.innerHTML += `
       <tr>
-        <td>${i + 1}</td>
+        <td>${cat.category_id}</td>
         <td>${cat.category_name}</td>
         <td>${cat.description}</td>
         <td>—</td>
@@ -54,7 +50,7 @@ function renderTable() {
   });
 }
 
-/* ===== MODAL UTILS ===== */
+/* ===== MODAL HELPERS ===== */
 function openModal(html) {
   modalBox.innerHTML = html;
   modalOverlay.classList.remove("hidden");
@@ -65,82 +61,48 @@ function closeModal() {
   modalBox.innerHTML = "";
 }
 
-/* ======================================================
-   ADD CATEGORY (already working – unchanged)
-====================================================== */
-addBtn.onclick = () => {
-  openModal(`
-    <div class="modal-header">➕ Add Category</div>
-    <label>Category Name</label>
-    <input id="catName">
-    <label>Description</label>
-    <textarea id="catDesc"></textarea>
-    <div class="modal-actions">
-      <button id="confirmAdd">Confirm</button>
-      <button id="cancel">Back</button>
-    </div>
-  `);
+/* ================= DELETE CATEGORY ================= */
 
-  document.getElementById("cancel").onclick = closeModal;
-
-  document.getElementById("confirmAdd").onclick = async () => {
-    const name = catName.value.trim();
-    const desc = catDesc.value.trim();
-    if (!name) return alert("Required");
-
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        category_name: name,
-        description: desc
-      })
-    });
-
-    closeModal();
-    loadCategories();
-  };
-};
-
-/* ======================================================
-   DELETE CATEGORY – STEP 1 (SELECT)
-====================================================== */
 deleteBtn.onclick = () => {
-  if (!categories.length) return alert("No categories");
-
   openModal(`
-    <div class="modal-header">🗑 Delete Category</div>
+    <div class="modal-header danger">
+      🗑 Delete Category
+    </div>
+
     <label>Select Category</label>
     <select id="deleteSelect">
       ${categories.map(c =>
         `<option value="${c.category_id}">${c.category_name}</option>`
       ).join("")}
     </select>
+
     <div class="modal-actions">
-      <button id="nextDelete">Delete</button>
-      <button id="cancel">Back</button>
+      <button class="btn-danger" id="confirmDelete">Delete</button>
+      <button class="btn-back" id="cancel">Back</button>
     </div>
   `);
 
   document.getElementById("cancel").onclick = closeModal;
 
-  document.getElementById("nextDelete").onclick = () => {
-    const id = deleteSelect.value;
-    pendingCategory = categories.find(c => c.category_id == id);
+  document.getElementById("confirmDelete").onclick = () => {
+    const id = Number(deleteSelect.value);
+    selectedCategory = categories.find(c => c.category_id === id);
     openDeleteConfirm();
   };
 };
 
-/* ======================================================
-   DELETE CATEGORY – STEP 2 (CONFIRM)
-====================================================== */
 function openDeleteConfirm() {
   openModal(`
-    <div class="modal-header">⚠ Confirm Delete</div>
+    <div class="modal-header danger">
+      ⚠ Confirm Delete
+    </div>
+
     <p>Are you sure you want to delete:</p>
-    <input value="${pendingCategory.category_name}" disabled>
+    <input value="${selectedCategory.category_name}" disabled>
+
     <div class="modal-actions">
-      <button id="finalDelete">Confirm</button>
-      <button id="back">Back</button>
+      <button class="btn-danger" id="finalDelete">Confirm</button>
+      <button class="btn-back" id="back">Back</button>
     </div>
   `);
 
@@ -151,11 +113,10 @@ function openDeleteConfirm() {
       method: "POST",
       body: JSON.stringify({
         action: "delete",
-        category_id: pendingCategory.category_id
+        category_id: selectedCategory.category_id
       })
     });
 
-    pendingCategory = null;
     closeModal();
     loadCategories();
   };
