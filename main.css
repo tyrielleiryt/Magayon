@@ -197,6 +197,10 @@ body {
   box-sizing: border-box;
 }
 
+#modalBox textarea {
+  resize: none; /* 🔒 lock textarea size */
+}
+
 /* ===== MODAL ACTIONS ===== */
 .modal-actions {
   display: flex;
