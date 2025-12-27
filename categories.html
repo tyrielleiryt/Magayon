@@ -5,21 +5,18 @@
   <title>Magayon | Categories</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- SINGLE CSS FILE ONLY -->
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
-<!-- TOP BAR -->
 <header class="top-bar">
   <div class="logo">🍽 POS</div>
-  <div id="datetime" class="datetime"></div>
+  <div id="datetime"></div>
   <div class="logout">LOGOUT</div>
 </header>
 
 <div class="admin-layout">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button>Dashboard</button>
     <button class="active">Categories</button>
@@ -31,13 +28,12 @@
     <button>Deliveries Received</button>
   </aside>
 
-  <!-- MAIN CONTENT -->
   <main class="content">
 
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
-      <button disabled>+/- Edit Category</button>
-      <button disabled>-- Delete Category</button>
+      <button disabled>Edit</button>
+      <button disabled>Delete</button>
     </div>
 
     <div class="table-wrapper">
