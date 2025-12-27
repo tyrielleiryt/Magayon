@@ -1,0 +1,77 @@
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f2f2f2;
+}
+
+/* ================= TOP BAR ================= */
+
+.top-bar {
+  height: 60px;
+  background: #343a5e;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+}
+
+.top-bar .logo {
+  font-weight: bold;
+}
+
+.top-bar .datetime {
+  flex: 1;
+}
+
+.top-bar .logout {
+  cursor: pointer;
+}
+
+/* ================= MAIN LAYOUT ================= */
+
+.admin-layout {
+  display: flex;
+  height: calc(100vh - 60px);
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar {
+  width: 220px;
+  background: #2e3354;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar button {
+  background: #3b4066;
+  color: white;
+  border: none;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar button.active {
+  background: #f5c542;
+  color: black;
+  font-weight: bold;
+}
+
+/* ================= CONTENT ================= */
+
+.content {
+  flex: 1;
+  background: white;
+  margin: 10px;
+  padding: 12px;
+  border: 2px solid #3b78e7;
+  overflow: auto;
+}
