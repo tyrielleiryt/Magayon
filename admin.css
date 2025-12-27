@@ -97,3 +97,79 @@ body { margin: 0; background: #f2f2f2; }
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* ===== MODAL HEADER ===== */
+.modal-header {
+  background: #2f3354;
+  color: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-icon {
+  font-size: 22px;
+}
+
+/* ===== MODAL BODY ===== */
+.modal-body {
+  padding: 20px;
+}
+
+.modal-body label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.modal-body input,
+.modal-body textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+}
+
+/* ===== MODAL BOX OVERRIDE ===== */
+#modalBox {
+  padding: 0; /* important */
+  overflow: hidden;
+}
+
+/* ===== MODAL ACTION BUTTONS ===== */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px 20px;
+}
+
+.btn-confirm {
+  background: #e96a85;
+  color: white;
+  padding: 12px 26px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-back {
+  background: #e96a85;
+  color: white;
+  padding: 12px 26px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-confirm:hover,
+.btn-back:hover {
+  opacity: 0.9;
+}

@@ -28,20 +28,25 @@ addBtn.addEventListener("click", () => {
   modal.style.display = "flex";
   modal.style.pointerEvents = "auto";
 
-  modalBox.innerHTML = `
+modalBox.innerHTML = `
+  <div class="modal-header">
+    <span class="modal-icon">➕</span>
     <h3>Add Category</h3>
+  </div>
 
+  <div class="modal-body">
     <label>Category Name</label>
-    <input id="catName">
+    <input id="catName" placeholder="Enter category name">
 
     <label>Description</label>
-    <textarea id="catDesc"></textarea>
+    <textarea id="catDesc" placeholder="Enter description"></textarea>
+  </div>
 
-    <div class="modal-actions">
-      <button id="confirm">Confirm</button>
-      <button id="cancel">Back</button>
-    </div>
-  `;
+  <div class="modal-actions">
+    <button class="btn-confirm" id="confirm">Confirm</button>
+    <button class="btn-back" id="cancel">Back</button>
+  </div>
+`;
 
   document.getElementById("cancel").onclick = closeModal;
 
