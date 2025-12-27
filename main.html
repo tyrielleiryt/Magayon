@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Magayon Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 
@@ -16,10 +16,10 @@
   </div>
 
   <div id="datetime"></div>
-  <button id="logoutBtn" class="logout">LOGOUT</button>
+  <button id="logoutBtn" class="logout-btn">LOGOUT</button>
 </header>
 
-<div class="admin-container">
+<div class="admin-layout">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -32,11 +32,13 @@
 
   <!-- MAIN CONTENT -->
   <main class="content">
-    <!-- ACTION BAR (changes per view) -->
-    <div id="actionBar"></div>
+
+    <!-- FIXED ACTION BAR -->
+    <div id="actionBar" class="action-bar"></div>
 
     <!-- WHITE CONTENT BOX -->
     <div id="contentBox" class="content-box"></div>
+
   </main>
 
 </div>
