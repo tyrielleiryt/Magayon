@@ -1,53 +1,53 @@
+/* ===== GLOBAL ===== */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f0f0f0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #dcdcdc;
 }
 
 /* ===== TOP BAR ===== */
 .top-bar {
   background: #2f3457;
   color: white;
-  padding: 10px 18px;
+  padding: 10px 16px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   font-size: 14px;
 }
 
 .logout-btn {
-  background: #e06780;
-  color: white;
+  background: transparent;
   border: none;
-  padding: 6px 16px;
-  border-radius: 2px;
+  color: white;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 13px;
 }
 
 /* ===== LAYOUT ===== */
 .admin-layout {
   display: flex;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 44px);
 }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
-  width: 220px;
+  width: 210px;
   background: #2e3354;
   padding: 8px;
+  border-right: 2px solid #1e223d;
 }
 
 .sidebar button {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 6px;
   background: #3b4066;
-  border: 1px solid #2a2f4f;
+  border: 2px solid #1e223d;
   color: white;
   cursor: pointer;
-  text-align: left;
-  font-size: 13px;
+  font-size: 14px;
+  text-align: center;
 }
 
 .sidebar .active {
@@ -59,69 +59,71 @@ body {
 /* ===== CONTENT ===== */
 .content {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
 }
 
 .content-box {
   background: #ffffff;
-  border: 1px solid #666;
+  border: 2px solid #4f4f4f;
   height: 100%;
-  padding: 6px;
   display: flex;
   flex-direction: column;
 }
 
-/* ===== ACTION BAR ===== */
+/* ===== ACTION BAR (TOP BUTTON STRIP) ===== */
 .action-bar {
   display: flex;
-  gap: 6px;
-  padding: 4px;
-  margin-bottom: 6px;
-  border: 1px solid #666;
-  background: #d0d0d0;
+  gap: 12px;
+  padding: 10px;
+  background: #ffffff;
+  border-bottom: 2px solid #4f4f4f;
 }
 
 .action-bar button {
-  background: #3b4066;
+  background: #2f3457;
   color: white;
-  border: 1px solid #2a2f4f;
-  padding: 4px 10px;
-  font-size: 13px;
+  border: 2px solid #1e223d;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
 }
 
 .action-bar button:hover {
-  background: #4a4f78;
+  background: #3b4066;
 }
 
-/* ===== VIEW BODY ===== */
+/* ===== TABLE CONTAINER ===== */
 .view-body {
   flex: 1;
-  border: 1px solid #666;
-  overflow: auto;
-  background: #fff;
+  background: #ffffff;
+  overflow-y: auto;
 }
 
 /* ===== TABLE ===== */
 .category-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
 }
 
-.category-table th {
-  background: #bdbdbd;
-  border: 1px solid #666;
-  padding: 6px;
-  font-weight: bold;
+/* HEADER */
+.category-table thead th {
+  background: #e5e5e5;
+  border: 2px solid #4f4f4f;
+  padding: 8px;
   text-align: center;
+  font-weight: bold;
 }
 
+/* BODY */
 .category-table td {
-  border: 1px solid #666;
-  padding: 6px;
+  border: 2px solid #4f4f4f;
+  padding: 8px;
+  background: #ffffff;
 }
 
+/* COLUMN WIDTHS */
 .category-table th:first-child,
 .category-table td:first-child {
   width: 40px;
@@ -134,20 +136,21 @@ body {
   text-align: center;
 }
 
-/* ===== ROW STATES ===== */
+/* ROW STATES */
 #categoryTableBody tr {
   cursor: pointer;
 }
 
 #categoryTableBody tr:hover {
-  background: #e6e6e6;
+  background: #f2f2f2;
 }
 
 #categoryTableBody tr.selected {
   background: #f3c84b;
+  font-weight: bold;
 }
 
-/* ===== MODAL (UNCHANGED, PARKED) ===== */
+/* ===== MODALS (UNCHANGED / PARKED) ===== */
 #modalOverlay {
   position: fixed;
   inset: 0;
@@ -166,50 +169,6 @@ body {
   background: white;
   width: 420px;
   padding: 24px;
-  border-radius: 6px;
-}
-
-.modal-header {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 12px;
-}
-
-.modal-header.danger {
-  color: #c0392b;
-}
-
-#modalBox label {
-  display: block;
-  margin-top: 10px;
-  font-weight: bold;
-}
-
-#modalBox input,
-#modalBox textarea {
-  width: 100%;
-  padding: 6px;
-  margin-top: 4px;
-  box-sizing: border-box;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 16px;
-}
-
-.btn-danger {
-  background: #e06780;
-  color: white;
-  border: none;
-  padding: 6px 16px;
-  cursor: pointer;
-}
-
-.btn-back {
-  background: #ddd;
-  border: none;
-  padding: 6px 16px;
-  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid #4f4f4f;
 }
