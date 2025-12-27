@@ -1,4 +1,18 @@
-/* ===== DATE & TIME ===== */
+/* ================= API ================= */
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbxx2r8mzm9wfGa5J8pGKeQkNJTpsMzBcDzEgpTSMRTgPKipu8W2adiUetS0leY9JEQ0/exec";
+
+/* ================= STATE ================= */
+let categories = [];
+let pendingCategory = null;
+
+/* ================= ELEMENTS ================= */
+const addBtn = document.getElementById("addCategoryBtn");
+const modalOverlay = document.getElementById("modalOverlay");
+const modalBox = document.getElementById("modalBox");
+const tableBody = document.getElementById("categoryTableBody");
+
+/* ================= DATE & TIME ================= */
 function updateDateTime() {
   document.getElementById("datetime").textContent =
     new Date().toLocaleString("en-US", {
@@ -13,17 +27,19 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* ===== ELEMENTS ===== */
-const addBtn = document.getElementById("addCategoryBtn");
-const modalOverlay = document.getElementById("modalOverlay");
-const modalBox = document.getElementById("modalBox");
-const tableBody = document.getElementById("categoryTableBody");
+/* ================= LOAD FROM DATABASE ================= */
+async function loadCategories() {
+  try {
+    const res = await fetch(API_URL);
+    categories = await res.json();
+    renderTable();
+  } catch (err) {
+    console.error("Failed to load categories", err);
+  }
+}
+loadCategories();
 
-/* ===== STATE ===== */
-let categories = [];
-let pendingCategory = null;
-
-/* ===== OPEN ADD MODAL ===== */
+/* ================= ADD CATEGORY MODAL ================= */
 addBtn.addEventListener("click", () => {
   modalOverlay.classList.remove("hidden");
 
@@ -35,7 +51,7 @@ addBtn.addEventListener("click", () => {
 
     <div class="modal-body">
       <label>Category Name</label>
-      <input id="catName">
+      <input id="catName" />
 
       <label>Description</label>
       <textarea id="catDesc"></textarea>
@@ -63,7 +79,7 @@ addBtn.addEventListener("click", () => {
   };
 });
 
-/* ===== CONFIRM MODAL ===== */
+/* ================= CONFIRM MODAL ================= */
 function openConfirmModal() {
   modalBox.innerHTML = `
     <div class="modal-header">
@@ -73,7 +89,7 @@ function openConfirmModal() {
 
     <div class="modal-body">
       <p><strong>Are you sure you want to add:</strong></p>
-      <input value="${pendingCategory.name}" disabled>
+      <input value="${pendingCategory.name}" disabled />
     </div>
 
     <div class="modal-actions">
@@ -84,17 +100,31 @@ function openConfirmModal() {
 
   document.getElementById("backEdit").onclick = () => addBtn.click();
 
-  document.getElementById("finalConfirm").onclick = () => {
-    categories.push(pendingCategory);
-    pendingCategory = null;
-    closeModal();
-    renderTable();
-  };
+  document.getElementById("finalConfirm").onclick = saveCategoryToDB;
 }
 
-/* ===== TABLE ===== */
+/* ================= SAVE TO GOOGLE SHEETS ================= */
+async function saveCategoryToDB() {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pendingCategory)
+    });
+
+    pendingCategory = null;
+    closeModal();
+    loadCategories(); // reload table from DB
+  } catch (err) {
+    alert("Failed to save category");
+    console.error(err);
+  }
+}
+
+/* ================= RENDER TABLE ================= */
 function renderTable() {
   tableBody.innerHTML = "";
+
   categories.forEach((cat, i) => {
     tableBody.innerHTML += `
       <tr>
@@ -107,7 +137,7 @@ function renderTable() {
   });
 }
 
-/* ===== CLOSE MODAL ===== */
+/* ================= CLOSE MODAL ================= */
 function closeModal() {
   modalOverlay.classList.add("hidden");
   modalBox.innerHTML = "";
