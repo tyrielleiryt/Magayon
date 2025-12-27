@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Magayon Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="main.css">
 </head>
 <body>
 
@@ -16,34 +16,31 @@
   </div>
 
   <div id="datetime"></div>
-
-  <button id="logoutBtn" class="logout-btn">LOGOUT</button>
+  <button id="logoutBtn" class="logout">LOGOUT</button>
 </header>
 
-<div class="admin-layout">
+<div class="admin-container">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <button class="nav-btn active">Dashboard</button>
-    <button class="nav-btn">Categories</button>
-    <button class="nav-btn">Products</button>
-    <button class="nav-btn">Staff</button>
-    <button class="nav-btn">POS</button>
-    <button class="nav-btn">Customer Orders</button>
-    <button class="nav-btn">Inventory</button>
-    <button class="nav-btn">Deliveries Received</button>
+    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn" data-view="categories">Categories</button>
+    <button class="nav-btn" data-view="products">Products</button>
+    <button class="nav-btn" data-view="staff">Staff</button>
+    <button class="nav-btn" data-view="inventory">Inventory</button>
   </aside>
 
-  <!-- CONTENT -->
+  <!-- MAIN CONTENT -->
   <main class="content">
-    <div class="content-box">
-      <!-- Dashboard / Categories content goes here -->
-    </div>
+    <!-- ACTION BAR (changes per view) -->
+    <div id="actionBar"></div>
+
+    <!-- WHITE CONTENT BOX -->
+    <div id="contentBox" class="content-box"></div>
   </main>
 
 </div>
 
 <script type="module" src="admin.js"></script>
-<script src="categories.js"></script>
 </body>
 </html>

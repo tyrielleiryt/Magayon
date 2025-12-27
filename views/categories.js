@@ -1,0 +1,231 @@
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
+
+let categories = [];
+let selectedIndex = null;
+
+/* ===== ENTRY POINT (REQUIRED) ===== */
+export default function loadCategoriesView() {
+  // Inject action buttons
+  document.getElementById("actionBar").innerHTML = `
+    <button onclick="addCategory()">+ Add Category</button>
+    <button onclick="editCategory()">Edit</button>
+    <button onclick="deleteCategory()">Delete</button>
+    <button onclick="moveUp()">⬆ Move Up</button>
+    <button onclick="moveDown()">⬇ Move Down</button>
+  `;
+
+  // Inject table
+  document.getElementById("contentBox").innerHTML = `
+    <div class="table-wrapper">
+      <table class="category-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Category Name</th>
+            <th>Description</th>
+            <th>QTY</th>
+          </tr>
+        </thead>
+        <tbody id="categoryTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="modalOverlay" class="hidden">
+      <div id="modalBox"></div>
+    </div>
+  `;
+
+  loadCategories();
+}
+
+/* ===== LOAD DATA ===== */
+async function loadCategories() {
+  const res = await fetch(API_URL);
+  categories = await res.json();
+  selectedIndex = null;
+  renderTable();
+}
+
+/* ===== RENDER TABLE ===== */
+function renderTable() {
+  const tableBody = document.getElementById("categoryTableBody");
+  tableBody.innerHTML = "";
+
+  categories.forEach((cat, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${cat.category_name}</td>
+      <td>${cat.description}</td>
+      <td>—</td>
+    `;
+
+    tr.onclick = () => {
+      document
+        .querySelectorAll("#categoryTableBody tr")
+        .forEach(r => r.classList.remove("selected"));
+      tr.classList.add("selected");
+      selectedIndex = i;
+    };
+
+    tableBody.appendChild(tr);
+  });
+}
+
+/* ===== MODAL HELPERS ===== */
+function openModal(html) {
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+}
+function closeModal() {
+  document.getElementById("modalOverlay").classList.add("hidden");
+  document.getElementById("modalBox").innerHTML = "";
+}
+
+/* ===== ADD ===== */
+window.addCategory = () => {
+  openModal(`
+    <div class="modal-header">➕ Add Category</div>
+
+    <label>Category Name</label>
+    <input id="addName">
+
+    <label>Description</label>
+    <textarea id="addDesc"></textarea>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="saveAdd">Confirm</button>
+      <button class="btn-back" id="cancelAdd">Back</button>
+    </div>
+  `);
+
+  cancelAdd.onclick = closeModal;
+
+  saveAdd.onclick = async () => {
+    if (!addName.value.trim()) return alert("Category name required");
+
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        category_name: addName.value,
+        description: addDesc.value
+      })
+    });
+
+    closeModal();
+    loadCategories();
+  };
+};
+
+/* ===== EDIT ===== */
+window.editCategory = () => {
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
+
+  const cat = categories[selectedIndex];
+
+  openModal(`
+    <div class="modal-header">✏ Edit Category</div>
+
+    <label>Category Name</label>
+    <input id="editName" value="${cat.category_name}">
+
+    <label>Description</label>
+    <textarea id="editDesc">${cat.description}</textarea>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="saveEdit">Confirm</button>
+      <button class="btn-back" id="cancelEdit">Back</button>
+    </div>
+  `);
+
+  cancelEdit.onclick = closeModal;
+
+  saveEdit.onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "edit",
+        rowIndex: selectedIndex,
+        category_name: editName.value,
+        description: editDesc.value
+      })
+    });
+
+    closeModal();
+    loadCategories();
+  };
+};
+
+/* ===== DELETE ===== */
+window.deleteCategory = () => {
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
+
+  const cat = categories[selectedIndex];
+
+  openModal(`
+    <div class="modal-header danger">⚠ Delete Category</div>
+
+    <p>Are you sure you want to delete:</p>
+    <input value="${cat.category_name}" disabled>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="confirmDel">Delete</button>
+      <button class="btn-back" id="cancelDel">Back</button>
+    </div>
+  `);
+
+  cancelDel.onclick = closeModal;
+
+  confirmDel.onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "delete",
+        rowIndex: selectedIndex
+      })
+    });
+
+    closeModal();
+    loadCategories();
+  };
+};
+
+/* ===== MOVE UP ===== */
+window.moveUp = async () => {
+  if (selectedIndex === null || selectedIndex === 0) return;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "up"
+    })
+  });
+
+  loadCategories();
+};
+
+/* ===== MOVE DOWN ===== */
+window.moveDown = async () => {
+  if (selectedIndex === null || selectedIndex === categories.length - 1) return;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "move",
+      rowIndex: selectedIndex,
+      direction: "down"
+    })
+  });
+
+  loadCategories();
+};

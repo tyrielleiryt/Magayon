@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===== FIREBASE CONFIG ===== */
+/* ===== FIREBASE ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
   authDomain: "magayon.firebaseapp.com",
@@ -13,50 +13,55 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ===== AUTH CHECK (ADMIN ONLY) ===== */
+/* ===== AUTH (ADMIN ONLY) ===== */
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "index.html";
-    return;
-  }
+  if (!user) return location.href = "index.html";
 
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists() || snap.data().role !== "admin") {
-    window.location.href = "order.html"; // cashier fallback
+    location.href = "order.html";
   }
 });
 
 /* ===== LOGOUT ===== */
-const logoutBtn = document.getElementById("logoutBtn");
-if (logoutBtn) {
-  logoutBtn.onclick = async () => {
-    await signOut(auth);
-    window.location.href = "index.html";
-  };
-}
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+  location.href = "index.html";
+};
 
 /* ===== DATE & TIME ===== */
 function updateDateTime() {
-  const el = document.getElementById("datetime");
-  if (!el) return;
-
-  el.textContent = new Date().toLocaleString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
+  document.getElementById("datetime").textContent =
+    new Date().toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
 }
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* ===== SIDEBAR ACTIVE STATE ===== */
-document.querySelectorAll(".nav-btn").forEach(btn => {
+/* ===== NAVIGATION ===== */
+const buttons = document.querySelectorAll(".nav-btn");
+buttons.forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll(".nav-btn")
-      .forEach(b => b.classList.remove("active"));
+    buttons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    loadView(btn.dataset.view);
   };
 });
+
+/* ===== VIEW LOADER ===== */
+async function loadView(view) {
+  document.getElementById("actionBar").innerHTML = "";
+  document.getElementById("contentBox").innerHTML = "Loading...";
+
+  const module = await import(`./views/${view}.js`);
+  module.default();
+}
+
+/* ===== DEFAULT VIEW ===== */
+loadView("dashboard");
