@@ -4,24 +4,20 @@
   <meta charset="UTF-8">
   <title>Magayon Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="main.css">
 </head>
 <body>
 
-<!-- TOP BAR -->
 <header class="top-bar">
   <div class="brand">
     <span class="icon">🍴</span>
     <span class="title">POS</span>
   </div>
-
   <div id="datetime"></div>
   <button id="logoutBtn" class="logout-btn">LOGOUT</button>
 </header>
 
 <div class="admin-layout">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
     <button class="nav-btn" data-view="categories">Categories</button>
@@ -30,17 +26,10 @@
     <button class="nav-btn" data-view="inventory">Inventory</button>
   </aside>
 
-  <!-- MAIN CONTENT -->
   <main class="content">
-
-    <!-- FIXED ACTION BAR -->
-    <div id="actionBar" class="action-bar"></div>
-
-    <!-- WHITE CONTENT BOX -->
+    <div id="actionBar"></div>
     <div id="contentBox" class="content-box"></div>
-
   </main>
-
 </div>
 
 <script type="module" src="admin.js"></script>
