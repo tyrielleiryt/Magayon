@@ -9,14 +9,17 @@
 </head>
 <body>
 
+<!-- TOP BAR -->
 <header class="top-bar">
   <div class="logo">🍽 POS</div>
   <div id="datetime"></div>
   <div class="logout">LOGOUT</div>
 </header>
 
+<!-- MAIN LAYOUT -->
 <div class="admin-layout">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button>Dashboard</button>
     <button class="active">Categories</button>
@@ -28,14 +31,17 @@
     <button>Deliveries Received</button>
   </aside>
 
+  <!-- CONTENT -->
   <main class="content">
 
+    <!-- ACTION BUTTONS -->
     <div class="category-actions">
       <button id="addCategoryBtn">+ Add Category</button>
-      <button disabled>Edit</button>
-      <button disabled>Delete</button>
+      <button id="editCategoryBtn">Edit</button>
+      <button id="deleteCategoryBtn" disabled>Delete</button>
     </div>
 
+    <!-- TABLE -->
     <div class="table-wrapper">
       <table class="category-table">
         <thead>
@@ -46,18 +52,21 @@
             <th>QTY</th>
           </tr>
         </thead>
-        <tbody id="categoryTableBody"></tbody>
+        <tbody id="categoryTableBody">
+          <!-- rows injected by JS -->
+        </tbody>
       </table>
     </div>
 
   </main>
 </div>
 
-<!-- MODAL (hidden by default) -->
+<!-- MODAL OVERLAY -->
 <div id="modalOverlay" class="hidden">
   <div id="modalBox"></div>
 </div>
 
+<!-- LOGIC -->
 <script src="categories.js"></script>
 </body>
 </html>
