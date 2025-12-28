@@ -81,5 +81,17 @@ navButtons.forEach(btn => {
   });
 });
 
-/* ================= LOAD DEFAULT VIEW ================= */
-document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
+// ================= LOAD DEFAULT VIEW =================
+(function loadDefaultView() {
+  const dashboardBtn = document.querySelector('.nav-btn[data-view="dashboard"]');
+  if (dashboardBtn) {
+    dashboardBtn.classList.add("active");
+  }
+
+  // Render dashboard content manually
+  document.getElementById("actionBar").innerHTML = "";
+  document.getElementById("contentBox").innerHTML = `
+    <h2>Dashboard</h2>
+    <p>Welcome to the admin panel.</p>
+  `;
+})();
