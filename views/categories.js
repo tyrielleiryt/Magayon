@@ -4,19 +4,19 @@ const API_URL =
 let categories = [];
 let selectedIndex = null;
 
-/* ===== ENTRY POINT ===== */
+/* ================= ENTRY POINT ================= */
 export default function loadCategoriesView() {
-  const contentBox = document.getElementById("contentBox");
+  // ACTION BAR (GLOBAL)
+  document.getElementById("actionBar").innerHTML = `
+    <button id="addBtn">+ Add Category</button>
+    <button id="editBtn">Edit</button>
+    <button id="deleteBtn">Delete</button>
+    <button id="upBtn">⬆ Move Up</button>
+    <button id="downBtn">⬇ Move Down</button>
+  `;
 
-  contentBox.innerHTML = `
-    <div class="action-bar">
-      <button id="addBtn">+ Add Category</button>
-      <button id="editBtn">Edit</button>
-      <button id="deleteBtn">Delete</button>
-      <button id="upBtn">⬆ Move Up</button>
-      <button id="downBtn">⬇ Move Down</button>
-    </div>
-
+  // MAIN CONTENT
+  document.getElementById("contentBox").innerHTML = `
     <div class="view-body">
       <table class="category-table">
         <thead>
@@ -36,16 +36,16 @@ export default function loadCategoriesView() {
   loadCategories();
 }
 
-/* ===== ACTION BINDING (CRITICAL FIX) ===== */
+/* ================= BUTTON BINDING ================= */
 function bindActions() {
-  document.getElementById("addBtn").addEventListener("click", openAddModal);
-  document.getElementById("editBtn").addEventListener("click", openEditModal);
-  document.getElementById("deleteBtn").addEventListener("click", openDeleteModal);
-  document.getElementById("upBtn").addEventListener("click", moveUp);
-  document.getElementById("downBtn").addEventListener("click", moveDown);
+  document.getElementById("addBtn").onclick = openAddModal;
+  document.getElementById("editBtn").onclick = openEditModal;
+  document.getElementById("deleteBtn").onclick = openDeleteModal;
+  document.getElementById("upBtn").onclick = moveUp;
+  document.getElementById("downBtn").onclick = moveDown;
 }
 
-/* ===== LOAD ===== */
+/* ================= LOAD DATA ================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -53,13 +53,14 @@ async function loadCategories() {
   renderTable();
 }
 
-/* ===== TABLE ===== */
+/* ================= TABLE ================= */
 function renderTable() {
   const tbody = document.getElementById("categoryTableBody");
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${cat.category_name}</td>
@@ -67,26 +68,28 @@ function renderTable() {
       <td>—</td>
     `;
 
-    tr.addEventListener("click", () => {
-      document.querySelectorAll("#categoryTableBody tr")
+    tr.onclick = () => {
+      document
+        .querySelectorAll("#categoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selectedIndex = i;
-    });
+    };
 
     tbody.appendChild(tr);
   });
 }
 
-/* ===== MODAL CORE ===== */
+/* ================= MODAL CORE ================= */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
 
-  const modal = document.createElement("div");
-  modal.id = "modalOverlay";
-  modal.className = "hidden";
-  modal.innerHTML = `<div id="modalBox"></div>`;
-  document.body.appendChild(modal);
+  const overlay = document.createElement("div");
+  overlay.id = "modalOverlay";
+  overlay.className = "hidden";
+  overlay.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(overlay);
 }
 
 function openModal(html) {
@@ -100,14 +103,17 @@ function closeModal() {
   document.getElementById("modalBox").innerHTML = "";
 }
 
-/* ===== ADD ===== */
+/* ================= ADD ================= */
 function openAddModal() {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
+
     <label>Category Name</label>
     <input id="addName">
+
     <label>Description</label>
     <textarea id="addDesc"></textarea>
+
     <div class="modal-actions">
       <button class="btn-danger" id="confirmAdd">Confirm</button>
       <button class="btn-back" id="cancelAdd">Back</button>
@@ -132,18 +138,24 @@ function openAddModal() {
   };
 }
 
-/* ===== EDIT ===== */
+/* ================= EDIT ================= */
 function openEditModal() {
-  if (selectedIndex === null) return alert("Select a category first");
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
 
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header">✏ Edit Category</div>
+
     <label>Category Name</label>
     <input id="editName" value="${cat.category_name}">
+
     <label>Description</label>
     <textarea id="editDesc">${cat.description}</textarea>
+
     <div class="modal-actions">
       <button class="btn-danger" id="confirmEdit">Confirm</button>
       <button class="btn-back" id="cancelEdit">Back</button>
@@ -167,16 +179,21 @@ function openEditModal() {
   };
 }
 
-/* ===== DELETE ===== */
+/* ================= DELETE ================= */
 function openDeleteModal() {
-  if (selectedIndex === null) return alert("Select a category first");
+  if (selectedIndex === null) {
+    alert("Select a category first");
+    return;
+  }
 
   const cat = categories[selectedIndex];
 
   openModal(`
     <div class="modal-header danger">⚠ Delete Category</div>
+
     <p>Are you sure you want to delete:</p>
     <input value="${cat.category_name}" disabled>
+
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Confirm</button>
       <button class="btn-back" id="cancelDelete">Back</button>
@@ -198,7 +215,7 @@ function openDeleteModal() {
   };
 }
 
-/* ===== MOVE ===== */
+/* ================= MOVE ================= */
 async function moveUp() {
   if (selectedIndex === null || selectedIndex === 0) return;
 
