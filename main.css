@@ -277,3 +277,63 @@ body {
     transform: scale(1);
   }
 }
+
+/* ================= CATEGORY ACTION BUTTONS ================= */
+.action-bar button,
+.category-action-btn {
+  background: #2f3457;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.action-bar button:hover,
+.category-action-btn:hover {
+  background: #3b4066;
+}
+
+.action-bar button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+/* ================= ICON STYLE ================= */
+.category-action-btn i {
+  font-size: 16px;
+}
+
+/* ================= MODAL CONFIRM BUTTON ================= */
+.modal-actions .btn-confirm {
+  background: #e06780;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-actions .btn-confirm:hover {
+  opacity: 0.9;
+}
+
+/* ================= MODAL BACK BUTTON ================= */
+.modal-actions .btn-back {
+  background: #ddd;
+  color: #333;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 22px;
+  cursor: pointer;
+}
+
+.modal-actions .btn-back:hover {
+  background: #ccc;
+}

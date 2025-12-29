@@ -10,9 +10,9 @@ let selected = null;
 /* ================= ENTRY ================= */
 export default function loadCategoriesView() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="addBtn">+ Add</button>
-    <button id="editBtn" disabled>Edit</button>
-    <button id="deleteBtn" disabled>Delete</button>
+    <button id="addBtn" class="category-action-btn">➕ Add Category</button>
+    <button id="editBtn" class="category-action-btn" disabled>✏️ Edit Category</button>
+    <button id="deleteBtn" class="category-action-btn" disabled>🗑️ Delete Category</button>
   `;
 
   const contentBox = document.getElementById("contentBox");
@@ -24,7 +24,7 @@ export default function loadCategoriesView() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Name</th>
+              <th>Category Name</th>
               <th>Description</th>
               <th>Qty</th>
             </tr>
@@ -57,6 +57,7 @@ function renderTable() {
 
   categories.forEach((c, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${c.category_name}</td>
@@ -84,20 +85,23 @@ function renderTable() {
 function bindActions() {
   document.getElementById("addBtn").onclick = openAddModal;
   document.getElementById("editBtn").onclick = openEditModal;
-  document.getElementById("deleteBtn").onclick = deleteCategory;
+  document.getElementById("deleteBtn").onclick = openDeleteModal;
 }
 
 /* ================= ADD ================= */
 function openAddModal() {
   openModal(`
-    <div class="modal-header">Add Category</div>
-    <label>Name</label>
+    <div class="modal-header">➕ Add Category</div>
+
+    <label>Category Name</label>
     <input id="catName">
+
     <label>Description</label>
     <textarea id="catDesc"></textarea>
+
     <div class="modal-actions">
-      <button id="saveCat">Save</button>
-      <button onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="saveCat">Confirm</button>
+      <button class="btn-back" onclick="closeModal()">Back</button>
     </div>
   `);
 
@@ -118,14 +122,17 @@ function openEditModal() {
   if (!selected) return;
 
   openModal(`
-    <div class="modal-header">Edit Category</div>
-    <label>Name</label>
+    <div class="modal-header">✏️ Edit Category</div>
+
+    <label>Category Name</label>
     <input id="catName" value="${selected.category_name}">
+
     <label>Description</label>
     <textarea id="catDesc">${selected.description}</textarea>
+
     <div class="modal-actions">
-      <button id="saveEdit">Save</button>
-      <button onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="saveEdit">Edit</button>
+      <button class="btn-back" onclick="closeModal()">Back</button>
     </div>
   `);
 
@@ -143,13 +150,26 @@ function openEditModal() {
 }
 
 /* ================= DELETE ================= */
-function deleteCategory() {
+function openDeleteModal() {
   if (!selected) return;
-  if (!confirm("Delete this category?")) return;
 
-  new Image().src =
-    API_URL +
-    `?action=deleteCategory&rowIndex=${selected.rowIndex}`;
+  openModal(`
+    <div class="modal-header danger">🗑️ Delete Category</div>
 
-  setTimeout(loadCategories, 500);
+    <p>Are you sure you want to delete <b>${selected.category_name}</b>?</p>
+
+    <div class="modal-actions">
+      <button class="btn-confirm" id="confirmDelete">Confirm</button>
+      <button class="btn-back" onclick="closeModal()">Back</button>
+    </div>
+  `);
+
+  document.getElementById("confirmDelete").onclick = () => {
+    new Image().src =
+      API_URL +
+      `?action=deleteCategory&rowIndex=${selected.rowIndex}`;
+
+    closeModal();
+    setTimeout(loadCategories, 500);
+  };
 }
