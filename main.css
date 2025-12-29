@@ -106,8 +106,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: 1px solid #aaa;
-  background: #fff;
+  overflow: hidden;
 }
 
 /* ================= TABLE ================= */
@@ -181,4 +180,36 @@ body {
   width: 420px;
   padding: 24px;
   border-radius: 12px;
+}
+
+/* ================= BOTTOM SCROLL CONTROLS ================= */
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+}
+
+/* Container for buttons */
+.scroll-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #ccc;
+  background: #fafafa;
+}
+
+/* Buttons */
+.scroll-controls .scroll-btn {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.scroll-controls .scroll-btn:hover {
+  background: #3b4066;
 }
