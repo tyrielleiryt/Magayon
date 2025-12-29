@@ -43,11 +43,11 @@ const contentBox = document.getElementById("contentBox");
 
 navButtons.forEach(btn => {
   btn.addEventListener("click", () => {
-    // sidebar state
+    // Sidebar state
     navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
-    // clear previous view
+    // Clear previous view
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
@@ -69,8 +69,15 @@ navButtons.forEach(btn => {
         loadInventoryItemsView();
         break;
 
+      case "dailyInventory":
+        renderDailyInventoryHeader();
+        break;
+
       case "products":
-        contentBox.innerHTML = `<h2>Products</h2><p>Coming next.</p>`;
+        contentBox.innerHTML = `
+          <h2>Products</h2>
+          <p>Coming next.</p>
+        `;
         break;
 
       default:
@@ -78,6 +85,44 @@ navButtons.forEach(btn => {
     }
   });
 });
+
+/* ================= DAILY INVENTORY HEADER (TEMP UI) ================= */
+function renderDailyInventoryHeader() {
+  actionBar.innerHTML = `
+    <button>+ Add today's Inventory</button>
+    <button>+/- Edit Inventory Details</button>
+    <button>Inventory Items List</button>
+  `;
+
+  contentBox.innerHTML = `
+    <div class="view-body">
+      <table class="category-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>DN</th>
+            <th>Receiver</th>
+            <th>Position</th>
+            <th>Inventory</th>
+            <th>Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><button>View</button></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 
 /* ================= LOAD DEFAULT VIEW ================= */
 document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
