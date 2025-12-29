@@ -44,7 +44,8 @@ export default function loadCategoriesView() {
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }
 
-/* ===== DATA ===== */
+/* ================= DATA ================= */
+
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -64,17 +65,20 @@ function renderTable() {
       <td>${cat.description}</td>
       <td>—</td>
     `;
+
     tr.onclick = () => {
       document.querySelectorAll("#categoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selectedIndex = i;
     };
+
     tbody.appendChild(tr);
   });
 }
 
-/* ===== ACTIONS ===== */
+/* ================= ACTIONS ================= */
+
 function bindActions() {
   document.getElementById("addBtn").onclick = openAddModal;
 }
@@ -100,10 +104,11 @@ function openAddModal() {
     await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
-        category_name: document.getElementById("catName").value,
-        description: document.getElementById("catDesc").value
+        category_name: catName.value,
+        description: catDesc.value
       })
     });
+
     closeModal();
     loadCategories();
   };

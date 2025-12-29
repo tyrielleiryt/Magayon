@@ -45,7 +45,8 @@ export default function loadInventoryItemsView() {
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }
 
-/* ===== DATA ===== */
+/* ================= DATA ================= */
+
 async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
@@ -66,17 +67,20 @@ function renderTable() {
       <td>${item.capital}</td>
       <td>${item.selling_price}</td>
     `;
+
     tr.onclick = () => {
       document.querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selectedIndex = i;
     };
+
     tbody.appendChild(tr);
   });
 }
 
-/* ===== ACTIONS ===== */
+/* ================= ACTIONS ================= */
+
 function bindActions() {
   document.getElementById("addItemBtn").onclick = openAddItemModal;
 }
@@ -115,6 +119,7 @@ function openAddItemModal() {
         selling_price: Number(itemPrice.value)
       })
     });
+
     closeModal();
     loadInventoryItems();
   };

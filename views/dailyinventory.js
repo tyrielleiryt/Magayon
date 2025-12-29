@@ -1,4 +1,5 @@
 import { bindDataBoxScroll } from "../admin.js";
+import { openModal, closeModal } from "./modal.js";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
@@ -53,7 +54,8 @@ export default function loadDailyInventoryView() {
     openAddTodayInventoryModal;
 }
 
-/* ===== ADD TODAY INVENTORY ===== */
+/* ================= ADD TODAY INVENTORY MODAL ================= */
+
 function openAddTodayInventoryModal() {
   openModal(`
     <div class="modal-header">📦 Add Today’s Inventory</div>
@@ -101,10 +103,11 @@ async function loadInventoryItemsForToday() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.item_name}</td>
-      <td><input type="number" min="0" value="0"
-        data-id="${item.item_id}"
-        data-cap="${item.capital}"
-        data-price="${item.selling_price}">
+      <td>
+        <input type="number" min="0" value="0"
+          data-id="${item.item_id}"
+          data-cap="${item.capital}"
+          data-price="${item.selling_price}">
       </td>
     `;
     tbody.appendChild(tr);
@@ -118,15 +121,15 @@ async function saveTodayInventory() {
   inputs.forEach(input => {
     const qty = Number(input.value);
     if (qty > 0) {
-      const cap = qty * Number(input.dataset.cap);
+      const capital = qty * Number(input.dataset.cap);
       const total = qty * Number(input.dataset.price);
 
       items.push({
         item_id: input.dataset.id,
         qty,
-        capital: cap,
+        capital,
         total,
-        earnings: total - cap
+        earnings: total - capital
       });
     }
   });
