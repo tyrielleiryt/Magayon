@@ -50,10 +50,11 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-  document.getElementById("addTodayBtn").onclick = openAddTodayInventoryModal;
+  document.getElementById("addTodayBtn").onclick =
+    openAddTodayInventoryModal;
 }
 
-/* ================= MODAL ================= */
+/* ================= ADD TODAY INVENTORY MODAL ================= */
 function openAddTodayInventoryModal() {
   openModal(`
     <div class="modal-header">📦 Add Today’s Inventory</div>
@@ -97,6 +98,7 @@ async function loadInventoryItemsForToday() {
   const tbody = document.getElementById("dailyItemsBody");
 
   if (!tbody) return;
+
   tbody.innerHTML = "";
 
   items.forEach(item => {
@@ -114,8 +116,8 @@ async function loadInventoryItemsForToday() {
   });
 }
 
-/* ================= SAVE DAILY INVENTORY (POST – STABLE) ================= */
-function saveTodayInventory() {
+/* ================= SAVE DAILY INVENTORY (REAL & WORKING) ================= */
+async function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
 
@@ -143,38 +145,33 @@ function saveTodayInventory() {
   const location =
     document.getElementById("dailyLocation")?.value || "";
 
-  /* ===== BUILD FORM (NO CORS, NO SIZE LIMIT) ===== */
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = API_URL;
-  form.target = "hiddenFrame";
-
-  const payloadInput = document.createElement("input");
-  payloadInput.type = "hidden";
-  payloadInput.name = "payload";
-  payloadInput.value = JSON.stringify({
+  const payload = {
     action: "addDailyInventory",
     date: new Date().toISOString().slice(0, 10),
     created_by: "ADMIN",
     location,
     items
-  });
+  };
 
-  form.appendChild(payloadInput);
-  document.body.appendChild(form);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  /* ===== HIDDEN IFRAME ===== */
-  let iframe = document.getElementById("hiddenFrame");
-  if (!iframe) {
-    iframe = document.createElement("iframe");
-    iframe.name = "hiddenFrame";
-    iframe.id = "hiddenFrame";
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.reason || "Save failed");
+    }
+
+    closeModal();
+    alert("Daily inventory saved ✅");
+  } catch (err) {
+    console.error("SAVE ERROR:", err);
+    alert("Failed to save daily inventory ❌");
   }
-
-  form.submit();
-
-  closeModal();
-  alert("Daily inventory saved ✅");
 }
