@@ -62,7 +62,7 @@ function openAddTodayInventoryModal() {
     <input type="date" value="${new Date().toISOString().slice(0,10)}" disabled>
 
     <label>Location</label>
-    <input placeholder="(select later)" disabled>
+    <input id="dailyLocation" placeholder="(optional)">
 
     <div style="margin-top:12px;font-weight:bold;">Inventory Items</div>
 
@@ -114,7 +114,7 @@ async function loadInventoryItemsForToday() {
   });
 }
 
-/* ================= SAVE (FINAL & CORRECT) ================= */
+/* ================= SAVE (FINAL & SAFE) ================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
@@ -140,15 +140,28 @@ function saveTodayInventory() {
     return;
   }
 
+  const location =
+    document.getElementById("dailyLocation")?.value || "";
+
   const params = new URLSearchParams({
     action: "addDailyInventory",
     date: new Date().toISOString().slice(0, 10),
     created_by: "ADMIN",
-    items: JSON.stringify(items) // ✅ DO NOT encode
+    location,
+    items: JSON.stringify(items)
   });
 
-  new Image().src = API_URL + "?" + params.toString();
+  // CORS-safe request
+  const img = new Image();
 
-  closeModal();
-  alert("Daily inventory saved ✅");
+  img.onload = () => {
+    closeModal();
+    alert("Daily inventory saved ✅");
+  };
+
+  img.onerror = () => {
+    alert("Failed to save daily inventory ❌");
+  };
+
+  img.src = API_URL + "?" + params.toString();
 }
