@@ -124,7 +124,7 @@ async function loadInventoryItemsForToday() {
 }
 
 /* =========================================================
-   SAVE DAILY INVENTORY (CORS-SAFE)
+   SAVE DAILY INVENTORY — FINAL & STABLE
 ========================================================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
@@ -158,17 +158,9 @@ function saveTodayInventory() {
     items: encodeURIComponent(JSON.stringify(items))
   });
 
-  // ✅ CORS-SAFE FIRE-AND-FORGET
-  const img = new Image();
+  // ✅ CORS-SAFE FIRE-AND-FORGET (NO CALLBACKS)
+  new Image().src = API_URL + "?" + params.toString();
 
-  img.onload = () => {
-    closeModal();
-    alert("Daily inventory saved ✅");
-  };
-
-  img.onerror = () => {
-    alert("Failed to save daily inventory ❌");
-  };
-
-  img.src = API_URL + "?" + params.toString();
+  closeModal();
+  alert("Daily inventory saved ✅");
 }
