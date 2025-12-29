@@ -37,7 +37,7 @@ export default function loadCategoriesView() {
   loadCategories();
 }
 
-/* ================= DATA ================= */
+/* ================= LOAD ================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -51,14 +51,14 @@ function renderTable() {
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${cat.category_name}</td>
-      <td>${cat.description}</td>
-      <td>${cat.qty || 0}</td>
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${cat.category_name}</td>
+        <td>${cat.description}</td>
+        <td>${cat.qty || 0}</td>
+      </tr>
     `;
-    tbody.appendChild(tr);
   });
 }
 
@@ -87,8 +87,8 @@ function openAddModal() {
   document.getElementById("saveCat").onclick = saveCategory;
 }
 
-/* ================= SAVE (JSON POST – CORRECT) ================= */
-async function saveCategory() {
+/* ================= SAVE (CORS-SAFE GET) ================= */
+function saveCategory() {
   const name = document.getElementById("catName").value.trim();
   const desc = document.getElementById("catDesc").value.trim();
 
@@ -97,28 +97,17 @@ async function saveCategory() {
     return;
   }
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "addCategory",
-        category_name: name,
-        description: desc
-      })
-    });
+  const params = new URLSearchParams({
+    action: "addCategory",
+    category_name: name,
+    description: desc
+  });
 
-    const result = await res.json();
+  // 🔑 CORS-SAFE: browser does not block this
+  new Image().src = API_URL + "?" + params.toString();
 
-    if (!result.success) {
-      alert("Failed to save category");
-      return;
-    }
+  closeModal();
 
-    closeModal();
-    loadCategories();
-  } catch (err) {
-    console.error("Save category failed", err);
-    alert("Network error while saving category");
-  }
+  // allow sheet to update
+  setTimeout(loadCategories, 600);
 }
