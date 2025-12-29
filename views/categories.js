@@ -65,7 +65,6 @@ function renderTable() {
       <td>${cat.description}</td>
       <td>—</td>
     `;
-
     tr.onclick = () => {
       document
         .querySelectorAll("#categoryTableBody tr")
@@ -73,16 +72,37 @@ function renderTable() {
       tr.classList.add("selected");
       selectedIndex = i;
     };
-
     tbody.appendChild(tr);
   });
 }
 
-/* ===== ACTIONS (unchanged logic) ===== */
+/* ===== ACTIONS ===== */
 function bindActions() {
-  document.getElementById("addBtn").onclick = () => alert("Add category");
-  document.getElementById("editBtn").onclick = () => alert("Edit category");
-  document.getElementById("deleteBtn").onclick = () => alert("Delete category");
-  document.getElementById("upBtn").onclick = () => alert("Move up");
-  document.getElementById("downBtn").onclick = () => alert("Move down");
+  document.getElementById("addBtn").onclick = openAddModal;
+  document.getElementById("editBtn").onclick = openEditModal;
+  document.getElementById("deleteBtn").onclick = openDeleteModal;
+}
+
+function openAddModal() {
+  openModal(`
+    <div class="modal-header">➕ Add Category</div>
+    <label>Name</label>
+    <input id="catName">
+    <label>Description</label>
+    <textarea id="catDesc"></textarea>
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="closeModal()">Save</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+}
+
+function openEditModal() {
+  if (selectedIndex === null) return alert("Select a category first");
+  openModal(`<div class="modal-header">✏ Edit Category</div>`);
+}
+
+function openDeleteModal() {
+  if (selectedIndex === null) return alert("Select a category first");
+  openModal(`<div class="modal-header danger">🗑 Delete Category</div>`);
 }

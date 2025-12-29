@@ -52,19 +52,15 @@ navButtons.forEach(btn => {
           <p>If you see this, JS is working.</p>
         `;
         break;
-
       case "categories":
         loadCategoriesView();
         break;
-
       case "inventory":
         loadInventoryItemsView();
         break;
-
       case "dailyInventory":
         loadDailyInventoryView();
         break;
-
       default:
         contentBox.innerHTML = `<h2>Coming soon…</h2>`;
     }
@@ -72,7 +68,6 @@ navButtons.forEach(btn => {
 });
 
 /* ================= GLOBAL SCROLL HELPER ================= */
-/* Used by categories, inventory, daily inventory, etc. */
 export function bindDataBoxScroll(container) {
   const scrollArea = container.querySelector(".data-scroll");
   const leftBtn = container.querySelector(".scroll-left");
@@ -83,6 +78,28 @@ export function bindDataBoxScroll(container) {
   leftBtn.onclick = () => (scrollArea.scrollLeft -= 300);
   rightBtn.onclick = () => (scrollArea.scrollLeft += 300);
 }
+
+/* ================= GLOBAL MODAL CORE ================= */
+function ensureModal() {
+  if (document.getElementById("modalOverlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "modalOverlay";
+  overlay.className = "hidden";
+  overlay.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(overlay);
+}
+
+window.openModal = function (html) {
+  ensureModal();
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+};
+
+window.closeModal = function () {
+  document.getElementById("modalOverlay").classList.add("hidden");
+  document.getElementById("modalBox").innerHTML = "";
+};
 
 /* ================= LOAD DEFAULT ================= */
 document.querySelector('.nav-btn[data-view="dashboard"]')?.click();

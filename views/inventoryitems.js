@@ -65,7 +65,6 @@ function renderTable() {
       <td>${item.capital}</td>
       <td>${item.selling_price}</td>
     `;
-
     tr.onclick = () => {
       document
         .querySelectorAll("#inventoryTableBody tr")
@@ -73,14 +72,16 @@ function renderTable() {
       tr.classList.add("selected");
       selectedIndex = i;
     };
-
     tbody.appendChild(tr);
   });
 }
 
 /* ===== ACTIONS ===== */
 function bindActions() {
-  document.getElementById("addItemBtn").onclick = () => alert("Add item");
-  document.getElementById("editItemBtn").onclick = () => alert("Edit item");
-  document.getElementById("deleteItemBtn").onclick = () => alert("Delete item");
+  document.getElementById("addItemBtn").onclick = () =>
+    openModal(`<div class="modal-header">➕ Add Inventory Item</div>`);
+  document.getElementById("editItemBtn").onclick = () =>
+    openModal(`<div class="modal-header">✏ Edit Inventory Item</div>`);
+  document.getElementById("deleteItemBtn").onclick = () =>
+    openModal(`<div class="modal-header danger">🗑 Delete Inventory Item</div>`);
 }
