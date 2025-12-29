@@ -1,6 +1,8 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
+let selectedIndex = null;
+
 export default function loadInventoryItemsView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
@@ -8,13 +10,13 @@ export default function loadInventoryItemsView() {
   /* ===== ACTION BAR ===== */
   actionBar.innerHTML = `
     <div class="action-bar">
-      <button id="addItemBtn">+ Add Inventory Item</button>
+      <button id="addItemBtn">+ Add inventory item</button>
       <button id="editItemBtn">Edit</button>
       <button id="deleteItemBtn">Delete</button>
     </div>
   `;
 
-  /* ===== MAIN CONTENT ===== */
+  /* ===== CONTENT ===== */
   contentBox.innerHTML = `
     <div class="view-body">
       <table class="category-table">
@@ -24,13 +26,13 @@ export default function loadInventoryItemsView() {
             <th>Item Name</th>
             <th>Description</th>
             <th style="width:120px">Capital</th>
-            <th style="width:120px">Price</th>
+            <th style="width:120px">Selling Price</th>
           </tr>
         </thead>
         <tbody id="inventoryTableBody">
           <tr>
             <td colspan="5" style="text-align:center; padding:20px;">
-              Inventory Items UI ready ✔
+              Inventory Items List (ready)
             </td>
           </tr>
         </tbody>
@@ -41,17 +43,81 @@ export default function loadInventoryItemsView() {
   bindInventoryActions();
 }
 
-/* ===== ACTIONS ===== */
+/* ================= ACTIONS ================= */
 function bindInventoryActions() {
-  document.getElementById("addItemBtn")?.addEventListener("click", () => {
-    alert("Add Inventory Item modal coming next");
-  });
+  document.getElementById("addItemBtn").addEventListener("click", openAddItemModal);
+}
 
-  document.getElementById("editItemBtn")?.addEventListener("click", () => {
-    alert("Edit Inventory Item coming next");
-  });
+/* ================= MODAL CORE (REUSE) ================= */
+function ensureModal() {
+  if (document.getElementById("modalOverlay")) return;
 
-  document.getElementById("deleteItemBtn")?.addEventListener("click", () => {
-    alert("Delete Inventory Item coming next");
-  });
+  const modal = document.createElement("div");
+  modal.id = "modalOverlay";
+  modal.className = "hidden";
+  modal.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(modal);
+}
+
+function openModal(html) {
+  ensureModal();
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.add("hidden");
+  document.getElementById("modalBox").innerHTML = "";
+}
+
+/* ================= ADD INVENTORY ITEM ================= */
+function openAddItemModal() {
+  openModal(`
+    <div class="modal-header">➕ Add inventory item</div>
+
+    <label>Item Name</label>
+    <input id="itemName">
+
+    <label>Description</label>
+    <textarea id="itemDesc"></textarea>
+
+    <label>Capital</label>
+    <input id="itemCapital" type="number">
+
+    <label>Selling Price</label>
+    <input id="itemPrice" type="number">
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="confirmAddItem">Confirm</button>
+      <button class="btn-back" id="cancelAddItem">Back</button>
+    </div>
+  `);
+
+  document.getElementById("cancelAddItem").onclick = closeModal;
+
+  document.getElementById("confirmAddItem").onclick = async () => {
+    const name = document.getElementById("itemName").value.trim();
+    const desc = document.getElementById("itemDesc").value.trim();
+    const capital = Number(document.getElementById("itemCapital").value);
+    const price = Number(document.getElementById("itemPrice").value);
+
+    if (!name || !capital || !price) {
+      alert("Please complete all required fields.");
+      return;
+    }
+
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "addInventoryItem",
+        item_name: name,
+        description: desc,
+        capital,
+        selling_price: price
+      })
+    });
+
+    closeModal();
+    alert("Inventory item added successfully");
+  };
 }
