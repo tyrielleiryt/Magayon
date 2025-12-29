@@ -213,3 +213,29 @@ body {
 .scroll-controls .scroll-btn:hover {
   background: #3b4066;
 }
+
+/* ================= DAILY INVENTORY SCROLL ================= */
+.daily-scroll-wrapper {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.daily-scrollable {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.daily-scroll-btn {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.daily-scroll-btn:hover {
+  background: #3b4066;
+}

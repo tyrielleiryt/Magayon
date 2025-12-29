@@ -2,20 +2,19 @@ export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
-  /* ================= ACTION BAR ================= */
   actionBar.innerHTML = `
-    <button id="addTodayBtn">+ Add Today's Inventory</button>
+    <button id="addTodayBtn">+ Add today's Inventory</button>
     <button id="editTodayBtn">+/- Edit Inventory Details</button>
     <button id="itemsListBtn">Inventory Items List</button>
   `;
 
-  /* ================= MAIN CONTENT ================= */
   contentBox.innerHTML = `
-    <div class="view-body">
+    <div class="daily-scroll-wrapper">
 
-      <!-- SCROLLABLE TABLE -->
-      <div class="table-scroll" id="dailyInventoryScroll">
-        <table class="category-table">
+      <button class="daily-scroll-btn" id="scrollLeft">◀</button>
+
+      <div class="daily-scrollable" id="dailyInventoryScroller">
+        <table class="category-table" style="min-width: 1200px;">
           <thead>
             <tr>
               <th>#</th>
@@ -45,27 +44,22 @@ export default function loadDailyInventoryView() {
         </table>
       </div>
 
-      <!-- SCROLL CONTROLS (BOTTOM) -->
-      <div class="scroll-controls">
-        <button class="scroll-btn" id="scrollLeft">◀</button>
-        <button class="scroll-btn" id="scrollRight">▶</button>
-      </div>
+      <button class="daily-scroll-btn" id="scrollRight">▶</button>
 
     </div>
   `;
 
-  bindScrollButtons();
+  bindDailyScroll();
 }
 
-/* ================= SCROLL LOGIC ================= */
-function bindScrollButtons() {
-  const scrollArea = document.getElementById("dailyInventoryScroll");
+function bindDailyScroll() {
+  const scroller = document.getElementById("dailyInventoryScroller");
 
   document.getElementById("scrollLeft").onclick = () => {
-    scrollArea.scrollBy({ left: -300, behavior: "smooth" });
+    scroller.scrollLeft -= 300;
   };
 
   document.getElementById("scrollRight").onclick = () => {
-    scrollArea.scrollBy({ left: 300, behavior: "smooth" });
+    scroller.scrollLeft += 300;
   };
 }
