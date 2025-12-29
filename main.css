@@ -224,3 +224,20 @@ body {
   border-radius: 20px;
   cursor: pointer;
 }
+
+#modalOverlay.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+#inventoryTableBody tr {
+  cursor: pointer;
+}
+
+#inventoryTableBody tr:hover {
+  background: #f9f4dc;
+}
+
+#inventoryTableBody tr.selected {
+  background: #f3c84b;
+}

@@ -58,13 +58,16 @@ function renderTable() {
       <td>${item.selling_price}</td>
     `;
 
-    tr.onclick = () => {
+    tr.addEventListener("click", (e) => {
+      e.stopPropagation();
+
       document
         .querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selectedIndex = i;
-    };
+    });
 
     tbody.appendChild(tr);
   });
@@ -103,15 +106,22 @@ function openAddItemModal() {
   document.getElementById("cancelAddItem").onclick = closeModal;
 
   document.getElementById("confirmAddItem").onclick = async () => {
+    const payload = {
+      action: "addInventoryItem",
+      item_name: document.getElementById("itemName").value.trim(),
+      description: document.getElementById("itemDesc").value.trim(),
+      capital: Number(document.getElementById("itemCapital").value),
+      selling_price: Number(document.getElementById("itemPrice").value)
+    };
+
+    if (!payload.item_name) {
+      alert("Item name is required");
+      return;
+    }
+
     await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "addInventoryItem",
-        item_name: document.getElementById("itemName").value,
-        description: document.getElementById("itemDesc").value,
-        capital: Number(document.getElementById("itemCapital").value),
-        selling_price: Number(document.getElementById("itemPrice").value)
-      })
+      body: JSON.stringify(payload)
     });
 
     closeModal();
@@ -121,7 +131,10 @@ function openAddItemModal() {
 
 /* ===== EDIT ===== */
 function openEditItemModal() {
-  if (selectedIndex === null) return alert("Select an item first");
+  if (selectedIndex === null) {
+    alert("Select an item first");
+    return;
+  }
 
   const item = inventoryItems[selectedIndex];
 
@@ -168,7 +181,10 @@ function openEditItemModal() {
 
 /* ===== DELETE ===== */
 function openDeleteItemModal() {
-  if (selectedIndex === null) return alert("Select an item first");
+  if (selectedIndex === null) {
+    alert("Select an item first");
+    return;
+  }
 
   const item = inventoryItems[selectedIndex];
 
