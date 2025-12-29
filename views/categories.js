@@ -7,14 +7,10 @@ const API_URL =
 let categories = [];
 let selectedIndex = null;
 
-/* =========================================================
-   ENTRY POINT
-========================================================= */
+/* ================= ENTRY ================= */
 export default function loadCategoriesView() {
   document.getElementById("actionBar").innerHTML = `
     <button id="addBtn">+ Add Category</button>
-    <button id="editBtn">Edit</button>
-    <button id="deleteBtn">Delete</button>
   `;
 
   const contentBox = document.getElementById("contentBox");
@@ -22,7 +18,7 @@ export default function loadCategoriesView() {
   contentBox.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
-        <table class="category-table" style="min-width:800px">
+        <table class="category-table">
           <thead>
             <tr>
               <th>#</th>
@@ -34,62 +30,40 @@ export default function loadCategoriesView() {
           <tbody id="categoryTableBody"></tbody>
         </table>
       </div>
-
-      <div class="data-scroll-controls">
-        <button class="scroll-left">◀</button>
-        <button class="scroll-right">▶</button>
-      </div>
     </div>
   `;
 
   bindActions();
-  loadCategories();
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  loadCategories();
 }
 
-/* =========================================================
-   DATA
-========================================================= */
+/* ================= DATA ================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
-  selectedIndex = null;
   renderTable();
 }
 
 function renderTable() {
-  // ✅ SAFETY CHECK (CRITICAL)
   const tbody = document.getElementById("categoryTableBody");
-  if (!tbody) return; // prevents app-wide crash
+  if (!tbody) return;
 
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${cat.category_name}</td>
       <td>${cat.description}</td>
-      <td>—</td>
+      <td>${cat.qty || 0}</td>
     `;
-
-    tr.onclick = () => {
-      document
-        .querySelectorAll("#categoryTableBody tr")
-        .forEach(r => r.classList.remove("selected"));
-
-      tr.classList.add("selected");
-      selectedIndex = i;
-    };
-
     tbody.appendChild(tr);
   });
 }
 
-/* =========================================================
-   ACTIONS
-========================================================= */
+/* ================= ACTIONS ================= */
 function bindActions() {
   document.getElementById("addBtn").onclick = openAddModal;
 }
@@ -111,12 +85,14 @@ function openAddModal() {
   `);
 
   document.getElementById("cancelCat").onclick = closeModal;
+
   document.getElementById("saveCat").onclick = async () => {
     await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
-        category_name: document.getElementById("catName").value,
-        description: document.getElementById("catDesc").value
+        action: "addCategory", // 🔑 REQUIRED
+        category_name: catName.value.trim(),
+        description: catDesc.value.trim()
       })
     });
 
