@@ -37,7 +37,7 @@ export default function loadCategoriesView() {
   loadCategories();
 }
 
-/* ================= DATA (GET IS OK) ================= */
+/* ================= DATA ================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -84,12 +84,11 @@ function openAddModal() {
   `);
 
   document.getElementById("cancelCat").onclick = closeModal;
-
   document.getElementById("saveCat").onclick = saveCategory;
 }
 
-/* ================= SAVE (CORS-SAFE) ================= */
-function saveCategory() {
+/* ================= SAVE (JSON POST – CORRECT) ================= */
+async function saveCategory() {
   const name = document.getElementById("catName").value.trim();
   const desc = document.getElementById("catDesc").value.trim();
 
@@ -98,42 +97,28 @@ function saveCategory() {
     return;
   }
 
-  // 🔑 FORM POST (NO FETCH)
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = API_URL;
-  form.target = "hiddenFrame";
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "addCategory",
+        category_name: name,
+        description: desc
+      })
+    });
 
-  const fields = {
-    action: "addCategory",
-    category_name: name,
-    description: desc
-  };
+    const result = await res.json();
 
-  Object.entries(fields).forEach(([k, v]) => {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = k;
-    input.value = v;
-    form.appendChild(input);
-  });
+    if (!result.success) {
+      alert("Failed to save category");
+      return;
+    }
 
-  document.body.appendChild(form);
-
-  // 🔑 Hidden iframe (required)
-  let iframe = document.getElementById("hiddenFrame");
-  if (!iframe) {
-    iframe = document.createElement("iframe");
-    iframe.name = "hiddenFrame";
-    iframe.id = "hiddenFrame";
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
+    closeModal();
+    loadCategories();
+  } catch (err) {
+    console.error("Save category failed", err);
+    alert("Network error while saving category");
   }
-
-  form.submit();
-
-  closeModal();
-
-  // slight delay so sheet updates before reload
-  setTimeout(loadCategories, 500);
 }
