@@ -1,6 +1,7 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
+let inventoryItems = [];
 let selectedIndex = null;
 
 export default function loadInventoryItemsView() {
@@ -29,26 +30,59 @@ export default function loadInventoryItemsView() {
             <th style="width:120px">Selling Price</th>
           </tr>
         </thead>
-        <tbody id="inventoryTableBody">
-          <tr>
-            <td colspan="5" style="text-align:center; padding:20px;">
-              Inventory Items List (ready)
-            </td>
-          </tr>
-        </tbody>
+        <tbody id="inventoryTableBody"></tbody>
       </table>
     </div>
   `;
 
   bindInventoryActions();
+  loadInventoryItems();
+}
+
+/* ================= LOAD ================= */
+async function loadInventoryItems() {
+  const res = await fetch(`${API_URL}?type=inventory`);
+  inventoryItems = await res.json();
+  selectedIndex = null;
+  renderInventoryTable();
+}
+
+/* ================= TABLE ================= */
+function renderInventoryTable() {
+  const tbody = document.getElementById("inventoryTableBody");
+  tbody.innerHTML = "";
+
+  inventoryItems.forEach((item, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${item.item_name}</td>
+      <td>${item.description}</td>
+      <td>${item.capital}</td>
+      <td>${item.selling_price}</td>
+    `;
+
+    tr.addEventListener("click", () => {
+      document
+        .querySelectorAll("#inventoryTableBody tr")
+        .forEach(r => r.classList.remove("selected"));
+
+      tr.classList.add("selected");
+      selectedIndex = i;
+    });
+
+    tbody.appendChild(tr);
+  });
 }
 
 /* ================= ACTIONS ================= */
 function bindInventoryActions() {
-  document.getElementById("addItemBtn").addEventListener("click", openAddItemModal);
+  document.getElementById("addItemBtn")
+    .addEventListener("click", openAddItemModal);
 }
 
-/* ================= MODAL CORE (REUSE) ================= */
+/* ================= MODAL CORE ================= */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
 
@@ -118,6 +152,6 @@ function openAddItemModal() {
     });
 
     closeModal();
-    alert("Inventory item added successfully");
+    loadInventoryItems();
   };
 }
