@@ -37,7 +37,7 @@ export default function loadCategoriesView() {
   loadCategories();
 }
 
-/* ================= DATA ================= */
+/* ================= DATA (GET IS OK) ================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -51,14 +51,14 @@ function renderTable() {
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${cat.category_name}</td>
-        <td>${cat.description}</td>
-        <td>${cat.qty || 0}</td>
-      </tr>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${cat.category_name}</td>
+      <td>${cat.description}</td>
+      <td>${cat.qty || 0}</td>
     `;
+    tbody.appendChild(tr);
   });
 }
 
@@ -85,18 +85,55 @@ function openAddModal() {
 
   document.getElementById("cancelCat").onclick = closeModal;
 
-  document.getElementById("saveCat").onclick = async () => {
-    const form = new FormData();
-    form.append("action", "addCategory");
-    form.append("category_name", catName.value.trim());
-    form.append("description", catDesc.value.trim());
+  document.getElementById("saveCat").onclick = saveCategory;
+}
 
-    await fetch(API_URL, {
-      method: "POST",
-      body: form
-    });
+/* ================= SAVE (CORS-SAFE) ================= */
+function saveCategory() {
+  const name = document.getElementById("catName").value.trim();
+  const desc = document.getElementById("catDesc").value.trim();
 
-    closeModal();
-    loadCategories();
+  if (!name) {
+    alert("Category name is required");
+    return;
+  }
+
+  // 🔑 FORM POST (NO FETCH)
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = API_URL;
+  form.target = "hiddenFrame";
+
+  const fields = {
+    action: "addCategory",
+    category_name: name,
+    description: desc
   };
+
+  Object.entries(fields).forEach(([k, v]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = k;
+    input.value = v;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+
+  // 🔑 Hidden iframe (required)
+  let iframe = document.getElementById("hiddenFrame");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = "hiddenFrame";
+    iframe.id = "hiddenFrame";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+
+  form.submit();
+
+  closeModal();
+
+  // slight delay so sheet updates before reload
+  setTimeout(loadCategories, 500);
 }
