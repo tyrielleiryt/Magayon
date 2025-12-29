@@ -7,14 +7,18 @@ const API_URL =
 let inventoryItems = [];
 let selectedIndex = null;
 
+/* =========================================================
+   ENTRY POINT
+========================================================= */
 export default function loadInventoryItemsView() {
-  document.getElementById("actionBar").innerHTML = `
-    <button id="addItemBtn">+ Add inventory item</button>
-    <button id="editItemBtn">Edit</button>
-    <button id="deleteItemBtn">Delete</button>
-  `;
-
+  const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
+
+  actionBar.innerHTML = `
+    <button id="addItemBtn">+ Add inventory item</button>
+    <button id="editItemBtn" disabled>Edit</button>
+    <button id="deleteItemBtn" disabled>Delete</button>
+  `;
 
   contentBox.innerHTML = `
     <div class="data-box">
@@ -41,25 +45,42 @@ export default function loadInventoryItemsView() {
   `;
 
   bindActions();
-  loadInventoryItems();
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  loadInventoryItems();
 }
 
-/* ================= DATA ================= */
-
+/* =========================================================
+   DATA
+========================================================= */
 async function loadInventoryItems() {
-  const res = await fetch(API_URL + "?type=inventoryItems");
-  inventoryItems = await res.json();
-  selectedIndex = null;
-  renderTable();
+  try {
+    const res = await fetch(API_URL + "?type=inventoryItems");
+    inventoryItems = await res.json();
+    selectedIndex = null;
+
+    // ✅ SPA SAFETY CHECK
+    if (document.getElementById("inventoryTableBody")) {
+      renderTable();
+    }
+  } catch (err) {
+    console.error("Failed to load inventory items", err);
+  }
 }
 
 function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
+
+  // 🛑 CRITICAL SAFETY GUARD
+  if (!tbody) {
+    console.warn("inventoryTableBody not found — view probably changed");
+    return;
+  }
+
   tbody.innerHTML = "";
 
   inventoryItems.forEach((item, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${item.item_name}</td>
@@ -69,8 +90,10 @@ function renderTable() {
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#inventoryTableBody tr")
+      document
+        .querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selectedIndex = i;
     };
@@ -79,8 +102,9 @@ function renderTable() {
   });
 }
 
-/* ================= ACTIONS ================= */
-
+/* =========================================================
+   ACTIONS
+========================================================= */
 function bindActions() {
   document.getElementById("addItemBtn").onclick = openAddItemModal;
 }
@@ -108,19 +132,25 @@ function openAddItemModal() {
   `);
 
   document.getElementById("cancelItem").onclick = closeModal;
-  document.getElementById("saveItem").onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "addInventoryItem",
-        item_name: itemName.value,
-        description: itemDesc.value,
-        capital: Number(itemCap.value),
-        selling_price: Number(itemPrice.value)
-      })
-    });
 
-    closeModal();
-    loadInventoryItems();
+  document.getElementById("saveItem").onclick = async () => {
+    try {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "addInventoryItem",
+          item_name: itemName.value.trim(),
+          description: itemDesc.value.trim(),
+          capital: Number(itemCap.value),
+          selling_price: Number(itemPrice.value)
+        })
+      });
+
+      closeModal();
+      loadInventoryItems();
+    } catch (err) {
+      alert("Failed to save item");
+      console.error(err);
+    }
   };
 }
