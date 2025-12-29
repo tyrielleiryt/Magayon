@@ -1,29 +1,33 @@
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
+// views/inventoryItems.js
+// UI ONLY – no database yet
 
-let items = [];
+let inventoryItems = [
+  { name: "Sugar", unit: "grams", notes: "White sugar" },
+  { name: "Milk", unit: "ml", notes: "Full cream" },
+  { name: "Coffee Beans", unit: "grams", notes: "Arabica" }
+];
+
 let selectedIndex = null;
 
 /* ===== ENTRY POINT ===== */
 export default function loadInventoryItemsView() {
-  document.getElementById("actionBar").innerHTML = `
-    <div class="action-bar">
-      <button onclick="addInventoryItem()">+ Add Item</button>
-      <button onclick="editInventoryItem()">Edit</button>
-      <button onclick="deleteInventoryItem()">Delete</button>
-    </div>
-  `;
+  const contentBox = document.getElementById("contentBox");
 
-  document.getElementById("contentBox").innerHTML = `
-    <div class="table-wrapper">
+  contentBox.innerHTML = `
+    <div class="action-bar">
+      <button id="addItemBtn">+ Add Inventory Item</button>
+      <button id="editItemBtn">Edit</button>
+      <button id="deleteItemBtn">Delete</button>
+    </div>
+
+    <div class="view-body">
       <table class="category-table">
         <thead>
           <tr>
             <th style="width:50px">#</th>
             <th>Item Name</th>
-            <th>Unit</th>
-            <th>Description</th>
-            <th style="width:80px">Capital</th>
+            <th style="width:120px">Unit</th>
+            <th>Notes</th>
           </tr>
         </thead>
         <tbody id="inventoryTableBody"></tbody>
@@ -31,31 +35,45 @@ export default function loadInventoryItemsView() {
     </div>
   `;
 
-  loadInventoryItems();
+  bindButtons();
+  renderTable();
 }
 
-/* ===== LOAD DATA ===== */
-async function loadInventoryItems() {
-  const res = await fetch(API_URL + "?view=inventory_items");
-  items = await res.json();
-  selectedIndex = null;
-  renderInventoryTable();
+/* ===== BUTTONS ===== */
+function bindButtons() {
+  document.getElementById("addItemBtn").onclick = () =>
+    alert("Add Inventory Item modal — NEXT STEP");
+
+  document.getElementById("editItemBtn").onclick = () => {
+    if (selectedIndex === null) {
+      alert("Select an item first");
+      return;
+    }
+    alert("Edit Inventory Item modal — NEXT STEP");
+  };
+
+  document.getElementById("deleteItemBtn").onclick = () => {
+    if (selectedIndex === null) {
+      alert("Select an item first");
+      return;
+    }
+    alert("Delete confirmation modal — NEXT STEP");
+  };
 }
 
-/* ===== TABLE ===== */
-function renderInventoryTable() {
+/* ===== TABLE RENDER ===== */
+function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
   tbody.innerHTML = "";
 
-  items.forEach((item, i) => {
+  inventoryItems.forEach((item, i) => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${item.item_name}</td>
+      <td>${item.name}</td>
       <td>${item.unit}</td>
-      <td>${item.description}</td>
-      <td>${item.capital}</td>
+      <td>${item.notes}</td>
     `;
 
     tr.onclick = () => {
@@ -69,8 +87,3 @@ function renderInventoryTable() {
     tbody.appendChild(tr);
   });
 }
-
-/* ===== PLACEHOLDERS (NEXT STEP) ===== */
-window.addInventoryItem = () => alert("Add Inventory Item – next step");
-window.editInventoryItem = () => alert("Edit Inventory Item – next step");
-window.deleteInventoryItem = () => alert("Delete Inventory Item – next step");
