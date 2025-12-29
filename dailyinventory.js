@@ -2,17 +2,19 @@ export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
+  /* ================= ACTION BAR ================= */
   actionBar.innerHTML = `
-    <button id="addTodayBtn">+ Add today's Inventory</button>
+    <button id="addTodayBtn">+ Add Today's Inventory</button>
     <button id="editTodayBtn">+/- Edit Inventory Details</button>
     <button id="itemsListBtn">Inventory Items List</button>
   `;
 
+  /* ================= MAIN CONTENT ================= */
   contentBox.innerHTML = `
-    <div class="scroll-wrapper">
-      <button class="scroll-btn left" id="scrollLeft">◀</button>
+    <div class="view-body">
 
-      <div class="view-body scrollable" id="dailyInventoryTableWrapper">
+      <!-- SCROLLABLE TABLE -->
+      <div class="table-scroll" id="dailyInventoryScroll">
         <table class="category-table">
           <thead>
             <tr>
@@ -43,21 +45,27 @@ export default function loadDailyInventoryView() {
         </table>
       </div>
 
-      <button class="scroll-btn right" id="scrollRight">▶</button>
+      <!-- SCROLL CONTROLS (BOTTOM) -->
+      <div class="scroll-controls">
+        <button class="scroll-btn" id="scrollLeft">◀</button>
+        <button class="scroll-btn" id="scrollRight">▶</button>
+      </div>
+
     </div>
   `;
 
   bindScrollButtons();
 }
 
+/* ================= SCROLL LOGIC ================= */
 function bindScrollButtons() {
-  const wrapper = document.getElementById("dailyInventoryTableWrapper");
+  const scrollArea = document.getElementById("dailyInventoryScroll");
 
   document.getElementById("scrollLeft").onclick = () => {
-    wrapper.scrollLeft -= 200;
+    scrollArea.scrollBy({ left: -300, behavior: "smooth" });
   };
 
   document.getElementById("scrollRight").onclick = () => {
-    wrapper.scrollLeft += 200;
+    scrollArea.scrollBy({ left: 300, behavior: "smooth" });
   };
 }
