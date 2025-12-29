@@ -9,12 +9,28 @@ let selected = null;
 
 /* ================= ENTRY ================= */
 export default function loadCategoriesView() {
-  document.getElementById("actionBar").innerHTML = `
+  renderActionBar();
+  renderTableLayout();
+  loadCategories();
+}
+
+/* ================= UI ================= */
+function renderActionBar() {
+  const actionBar = document.getElementById("actionBar");
+
+  actionBar.innerHTML = `
     <button id="addBtn" class="category-action-btn">➕ Add Category</button>
     <button id="editBtn" class="category-action-btn" disabled>✏️ Edit Category</button>
     <button id="deleteBtn" class="category-action-btn" disabled>🗑️ Delete Category</button>
   `;
 
+  // 🔑 RE-BIND EVERY TIME
+  document.getElementById("addBtn").onclick = openAddModal;
+  document.getElementById("editBtn").onclick = openEditModal;
+  document.getElementById("deleteBtn").onclick = openDeleteModal;
+}
+
+function renderTableLayout() {
   const contentBox = document.getElementById("contentBox");
 
   contentBox.innerHTML = `
@@ -35,9 +51,7 @@ export default function loadCategoriesView() {
     </div>
   `;
 
-  bindActions();
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-  loadCategories();
 }
 
 /* ================= DATA ================= */
@@ -79,13 +93,6 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
-}
-
-/* ================= ACTIONS ================= */
-function bindActions() {
-  document.getElementById("addBtn").onclick = openAddModal;
-  document.getElementById("editBtn").onclick = openEditModal;
-  document.getElementById("deleteBtn").onclick = openDeleteModal;
 }
 
 /* ================= ADD ================= */
