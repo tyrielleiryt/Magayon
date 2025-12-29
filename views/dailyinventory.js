@@ -5,7 +5,7 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
 /* =========================================================
-   ✅ REQUIRED DEFAULT EXPORT
+   REQUIRED DEFAULT EXPORT
 ========================================================= */
 export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
@@ -52,9 +52,7 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-
-  document.getElementById("addTodayBtn").onclick =
-    openAddTodayInventoryModal;
+  document.getElementById("addTodayBtn").onclick = openAddTodayInventoryModal;
 }
 
 /* =========================================================
@@ -97,7 +95,7 @@ function openAddTodayInventoryModal() {
 }
 
 /* =========================================================
-   LOAD ITEMS
+   LOAD INVENTORY ITEMS
 ========================================================= */
 async function loadInventoryItemsForToday() {
   const res = await fetch(API_URL + "?type=inventoryItems");
@@ -122,7 +120,7 @@ async function loadInventoryItemsForToday() {
 }
 
 /* =========================================================
-   SAVE (CORS-SAFE)
+   SAVE DAILY INVENTORY (CORS-SAFE)
 ========================================================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
@@ -153,9 +151,10 @@ function saveTodayInventory() {
     action: "addDailyInventory",
     date: new Date().toISOString().slice(0, 10),
     created_by: "ADMIN",
-    items: JSON.stringify(items)
+    items: encodeURIComponent(JSON.stringify(items))
   });
 
+  // 🔒 CORS-safe save using image ping
   const img = new Image();
   img.onload = () => {
     closeModal();
