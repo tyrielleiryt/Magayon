@@ -7,6 +7,9 @@ const API_URL =
 let categories = [];
 let selectedIndex = null;
 
+/* =========================================================
+   ENTRY POINT
+========================================================= */
 export default function loadCategoriesView() {
   document.getElementById("actionBar").innerHTML = `
     <button id="addBtn">+ Add Category</button>
@@ -44,8 +47,9 @@ export default function loadCategoriesView() {
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }
 
-/* ================= DATA ================= */
-
+/* =========================================================
+   DATA
+========================================================= */
 async function loadCategories() {
   const res = await fetch(API_URL);
   categories = await res.json();
@@ -54,11 +58,15 @@ async function loadCategories() {
 }
 
 function renderTable() {
+  // ✅ SAFETY CHECK (CRITICAL)
   const tbody = document.getElementById("categoryTableBody");
+  if (!tbody) return; // prevents app-wide crash
+
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${cat.category_name}</td>
@@ -67,8 +75,10 @@ function renderTable() {
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#categoryTableBody tr")
+      document
+        .querySelectorAll("#categoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selectedIndex = i;
     };
@@ -77,8 +87,9 @@ function renderTable() {
   });
 }
 
-/* ================= ACTIONS ================= */
-
+/* =========================================================
+   ACTIONS
+========================================================= */
 function bindActions() {
   document.getElementById("addBtn").onclick = openAddModal;
 }
@@ -104,8 +115,8 @@ function openAddModal() {
     await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
-        category_name: catName.value,
-        description: catDesc.value
+        category_name: document.getElementById("catName").value,
+        description: document.getElementById("catDesc").value
       })
     });
 
