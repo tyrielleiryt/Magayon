@@ -1,18 +1,20 @@
 import { bindDataBoxScroll } from "../admin.js";
 
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
+
 export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
   actionBar.innerHTML = `
     <button id="addTodayBtn">+ Add today's Inventory</button>
-    <button disabled>+/- Edit Inventory Details</button>
+    <button disabled>Edit Inventory</button>
     <button disabled>Inventory Items List</button>
   `;
 
   contentBox.innerHTML = `
     <div class="data-box">
-
       <div class="data-scroll">
         <table class="category-table" style="min-width:1200px">
           <thead>
@@ -30,15 +32,9 @@ export default function loadDailyInventoryView() {
           </thead>
           <tbody>
             <tr>
-              <td>1</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
+              <td>1</td><td>—</td><td>—</td><td>—</td><td>—</td>
               <td><button disabled>View</button></td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
+              <td>—</td><td>—</td><td>—</td>
             </tr>
           </tbody>
         </table>
@@ -48,18 +44,16 @@ export default function loadDailyInventoryView() {
         <button class="scroll-left">◀</button>
         <button class="scroll-right">▶</button>
       </div>
-
     </div>
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 
-  // ✅ THIS WAS MISSING
-  document.getElementById("addTodayBtn").onclick = openAddTodayInventoryModal;
+  document.getElementById("addTodayBtn").onclick =
+    openAddTodayInventoryModal;
 }
 
-/* ================= ADD TODAY INVENTORY MODAL ================= */
-
+/* ===== ADD TODAY INVENTORY ===== */
 function openAddTodayInventoryModal() {
   openModal(`
     <div class="modal-header">📦 Add Today’s Inventory</div>
@@ -68,7 +62,7 @@ function openAddTodayInventoryModal() {
     <input type="date" value="${new Date().toISOString().slice(0,10)}" disabled>
 
     <label>Location</label>
-    <input placeholder="(will be selectable later)" disabled>
+    <input placeholder="(select later)" disabled>
 
     <div style="margin-top:12px;font-weight:bold;">Inventory Items</div>
 
@@ -107,11 +101,10 @@ async function loadInventoryItemsForToday() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.item_name}</td>
-      <td>
-        <input type="number" min="0" value="0"
-          data-id="${item.item_id}"
-          data-cap="${item.capital}"
-          data-price="${item.selling_price}">
+      <td><input type="number" min="0" value="0"
+        data-id="${item.item_id}"
+        data-cap="${item.capital}"
+        data-price="${item.selling_price}">
       </td>
     `;
     tbody.appendChild(tr);
@@ -119,21 +112,21 @@ async function loadInventoryItemsForToday() {
 }
 
 async function saveTodayInventory() {
-  const rows = document.querySelectorAll("#dailyItemsBody input");
+  const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
 
-  rows.forEach(input => {
+  inputs.forEach(input => {
     const qty = Number(input.value);
     if (qty > 0) {
-      const capital = qty * Number(input.dataset.cap);
-      const selling = qty * Number(input.dataset.price);
+      const cap = qty * Number(input.dataset.cap);
+      const total = qty * Number(input.dataset.price);
 
       items.push({
         item_id: input.dataset.id,
         qty,
-        capital,
-        total: selling,
-        earnings: selling - capital
+        capital: cap,
+        total,
+        earnings: total - cap
       });
     }
   });
