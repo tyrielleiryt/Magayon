@@ -34,7 +34,7 @@ export default function loadInventoryItemsView() {
   loadInventoryItems();
 }
 
-/* ================= LOAD DATA ================= */
+/* ===== LOAD ===== */
 async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
@@ -42,7 +42,7 @@ async function loadInventoryItems() {
   renderTable();
 }
 
-/* ================= RENDER ================= */
+/* ===== RENDER ===== */
 function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
   tbody.innerHTML = "";
@@ -58,28 +58,26 @@ function renderTable() {
       <td>${item.selling_price}</td>
     `;
 
-    tr.addEventListener("click", () => {
+    tr.onclick = () => {
       document
         .querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selectedIndex = i;
-    });
+    };
 
     tbody.appendChild(tr);
   });
 }
 
-/* ================= ACTIONS ================= */
+/* ===== ACTIONS ===== */
 function bindActions() {
   document.getElementById("addItemBtn").onclick = openAddItemModal;
-  document.getElementById("editItemBtn").onclick = () =>
-    alert("Edit inventory item coming next");
-  document.getElementById("deleteItemBtn").onclick = () =>
-    alert("Delete inventory item coming next");
+  document.getElementById("editItemBtn").onclick = openEditItemModal;
+  document.getElementById("deleteItemBtn").onclick = openDeleteItemModal;
 }
 
-/* ================= ADD MODAL ================= */
+/* ===== ADD ===== */
 function openAddItemModal() {
   openModal(`
     <div class="modal-header">➕ Add inventory item</div>
@@ -105,22 +103,15 @@ function openAddItemModal() {
   document.getElementById("cancelAddItem").onclick = closeModal;
 
   document.getElementById("confirmAddItem").onclick = async () => {
-    const payload = {
-      action: "addInventoryItem",
-      item_name: document.getElementById("itemName").value.trim(),
-      description: document.getElementById("itemDesc").value.trim(),
-      capital: Number(document.getElementById("itemCapital").value),
-      selling_price: Number(document.getElementById("itemPrice").value)
-    };
-
-    if (!payload.item_name) {
-      alert("Item name is required");
-      return;
-    }
-
     await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        action: "addInventoryItem",
+        item_name: document.getElementById("itemName").value,
+        description: document.getElementById("itemDesc").value,
+        capital: Number(document.getElementById("itemCapital").value),
+        selling_price: Number(document.getElementById("itemPrice").value)
+      })
     });
 
     closeModal();
@@ -128,7 +119,87 @@ function openAddItemModal() {
   };
 }
 
-/* ================= MODAL CORE ================= */
+/* ===== EDIT ===== */
+function openEditItemModal() {
+  if (selectedIndex === null) return alert("Select an item first");
+
+  const item = inventoryItems[selectedIndex];
+
+  openModal(`
+    <div class="modal-header">✏ Edit inventory item</div>
+
+    <label>Item Name</label>
+    <input id="editName" value="${item.item_name}">
+
+    <label>Description</label>
+    <textarea id="editDesc">${item.description || ""}</textarea>
+
+    <label>Capital</label>
+    <input id="editCapital" type="number" value="${item.capital}">
+
+    <label>Selling Price</label>
+    <input id="editPrice" type="number" value="${item.selling_price}">
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="confirmEditItem">Confirm</button>
+      <button class="btn-back" id="cancelEditItem">Back</button>
+    </div>
+  `);
+
+  document.getElementById("cancelEditItem").onclick = closeModal;
+
+  document.getElementById("confirmEditItem").onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "editInventoryItem",
+        item_id: item.item_id,
+        item_name: document.getElementById("editName").value,
+        description: document.getElementById("editDesc").value,
+        capital: Number(document.getElementById("editCapital").value),
+        selling_price: Number(document.getElementById("editPrice").value)
+      })
+    });
+
+    closeModal();
+    loadInventoryItems();
+  };
+}
+
+/* ===== DELETE ===== */
+function openDeleteItemModal() {
+  if (selectedIndex === null) return alert("Select an item first");
+
+  const item = inventoryItems[selectedIndex];
+
+  openModal(`
+    <div class="modal-header danger">🗑 Delete inventory item</div>
+    <p>Are you sure you want to delete:</p>
+    <input value="${item.item_name}" disabled>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="confirmDeleteItem">Confirm</button>
+      <button class="btn-back" id="cancelDeleteItem">Back</button>
+    </div>
+  `);
+
+  document.getElementById("cancelDeleteItem").onclick = closeModal;
+
+  document.getElementById("confirmDeleteItem").onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "deleteInventoryItem",
+        item_id: item.item_id
+      })
+    });
+
+    closeModal();
+    loadInventoryItems();
+  };
+}
+
+/* ===== MODAL CORE ===== */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
 
