@@ -1,4 +1,5 @@
 import { bindDataBoxScroll } from "../admin.js";
+import { openModal, closeModal } from "./modal.js";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
@@ -66,8 +67,7 @@ function renderTable() {
       <td>${item.selling_price}</td>
     `;
     tr.onclick = () => {
-      document
-        .querySelectorAll("#inventoryTableBody tr")
+      document.querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selectedIndex = i;
@@ -78,10 +78,44 @@ function renderTable() {
 
 /* ===== ACTIONS ===== */
 function bindActions() {
-  document.getElementById("addItemBtn").onclick = () =>
-    openModal(`<div class="modal-header">➕ Add Inventory Item</div>`);
-  document.getElementById("editItemBtn").onclick = () =>
-    openModal(`<div class="modal-header">✏ Edit Inventory Item</div>`);
-  document.getElementById("deleteItemBtn").onclick = () =>
-    openModal(`<div class="modal-header danger">🗑 Delete Inventory Item</div>`);
+  document.getElementById("addItemBtn").onclick = openAddItemModal;
+}
+
+function openAddItemModal() {
+  openModal(`
+    <div class="modal-header">➕ Add Inventory Item</div>
+
+    <label>Item Name</label>
+    <input id="itemName">
+
+    <label>Description</label>
+    <textarea id="itemDesc"></textarea>
+
+    <label>Capital</label>
+    <input type="number" id="itemCap">
+
+    <label>Selling Price</label>
+    <input type="number" id="itemPrice">
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="saveItem">Save</button>
+      <button class="btn-back" id="cancelItem">Cancel</button>
+    </div>
+  `);
+
+  document.getElementById("cancelItem").onclick = closeModal;
+  document.getElementById("saveItem").onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "addInventoryItem",
+        item_name: itemName.value,
+        description: itemDesc.value,
+        capital: Number(itemCap.value),
+        selling_price: Number(itemPrice.value)
+      })
+    });
+    closeModal();
+    loadInventoryItems();
+  };
 }

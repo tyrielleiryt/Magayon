@@ -1,4 +1,5 @@
 import { bindDataBoxScroll } from "../admin.js";
+import { openModal, closeModal } from "./modal.js";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
@@ -11,8 +12,6 @@ export default function loadCategoriesView() {
     <button id="addBtn">+ Add Category</button>
     <button id="editBtn">Edit</button>
     <button id="deleteBtn">Delete</button>
-    <button id="upBtn">⬆</button>
-    <button id="downBtn">⬇</button>
   `;
 
   const contentBox = document.getElementById("contentBox");
@@ -66,8 +65,7 @@ function renderTable() {
       <td>—</td>
     `;
     tr.onclick = () => {
-      document
-        .querySelectorAll("#categoryTableBody tr")
+      document.querySelectorAll("#categoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selectedIndex = i;
@@ -79,30 +77,34 @@ function renderTable() {
 /* ===== ACTIONS ===== */
 function bindActions() {
   document.getElementById("addBtn").onclick = openAddModal;
-  document.getElementById("editBtn").onclick = openEditModal;
-  document.getElementById("deleteBtn").onclick = openDeleteModal;
 }
 
 function openAddModal() {
   openModal(`
     <div class="modal-header">➕ Add Category</div>
+
     <label>Name</label>
     <input id="catName">
+
     <label>Description</label>
     <textarea id="catDesc"></textarea>
+
     <div class="modal-actions">
-      <button class="btn-danger" onclick="closeModal()">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" id="saveCat">Save</button>
+      <button class="btn-back" id="cancelCat">Cancel</button>
     </div>
   `);
-}
 
-function openEditModal() {
-  if (selectedIndex === null) return alert("Select a category first");
-  openModal(`<div class="modal-header">✏ Edit Category</div>`);
-}
-
-function openDeleteModal() {
-  if (selectedIndex === null) return alert("Select a category first");
-  openModal(`<div class="modal-header danger">🗑 Delete Category</div>`);
+  document.getElementById("cancelCat").onclick = closeModal;
+  document.getElementById("saveCat").onclick = async () => {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        category_name: document.getElementById("catName").value,
+        description: document.getElementById("catDesc").value
+      })
+    });
+    closeModal();
+    loadCategories();
+  };
 }

@@ -4,7 +4,11 @@ export function ensureModal() {
   const overlay = document.createElement("div");
   overlay.id = "modalOverlay";
   overlay.className = "hidden";
-  overlay.innerHTML = `<div id="modalBox"></div>`;
+
+  overlay.innerHTML = `
+    <div id="modalBox"></div>
+  `;
+
   document.body.appendChild(overlay);
 }
 
@@ -15,6 +19,6 @@ export function openModal(html) {
 }
 
 export function closeModal() {
-  document.getElementById("modalOverlay")?.classList.add("hidden");
+  document.getElementById("modalOverlay").classList.add("hidden");
   document.getElementById("modalBox").innerHTML = "";
 }
