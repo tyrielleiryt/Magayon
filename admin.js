@@ -38,31 +38,37 @@ const contentBox = document.getElementById("contentBox");
 
 navButtons.forEach(btn => {
   btn.addEventListener("click", () => {
+    console.log("Clicked:", btn.dataset.view);
+
     navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
-    switch (btn.dataset.view) {
-      case "dashboard":
-        contentBox.innerHTML = `
-          <h2>Dashboard</h2>
-          <p>If you see this, JS is working.</p>
-        `;
-        break;
+    const view = btn.dataset.view;
 
-      case "categories":
-        loadCategoriesView();
-        break;
-
-      case "inventory":
-        loadInventoryItemsView();
-        break;
-
-      default:
-        contentBox.innerHTML = `<h2>Coming soon…</h2>`;
+    if (view === "dashboard") {
+      contentBox.innerHTML = `
+        <h2>Dashboard</h2>
+        <p>If you see this, JS is working.</p>
+      `;
+      return;
     }
+
+    if (view === "categories") {
+      console.log("Loading Categories View");
+      loadCategoriesView();
+      return;
+    }
+
+    if (view === "inventory") {
+      console.log("Loading Inventory Items View");
+      loadInventoryItemsView();
+      return;
+    }
+
+    contentBox.innerHTML = `<h2>Coming soon…</h2>`;
   });
 });
 
