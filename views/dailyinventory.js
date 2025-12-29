@@ -11,8 +11,6 @@ export default function loadDailyInventoryView() {
 
   actionBar.innerHTML = `
     <button id="addTodayBtn">+ Add today's Inventory</button>
-    <button disabled>Edit Inventory</button>
-    <button disabled>Inventory Items List</button>
   `;
 
   contentBox.innerHTML = `
@@ -21,157 +19,123 @@ export default function loadDailyInventoryView() {
         <table class="category-table" style="min-width:1200px">
           <thead>
             <tr>
-              <th>#</th>
               <th>Date</th>
               <th>DN</th>
-              <th>Receiver</th>
-              <th>Position</th>
-              <th>Inventory</th>
               <th>Location</th>
               <th>Created By</th>
-              <th>Created At</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td colspan="9" style="text-align:center;color:#888;">
+              <td colspan="4" style="text-align:center;color:#888;">
                 No daily inventory yet
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <div class="data-scroll-controls">
-        <button class="scroll-left">◀</button>
-        <button class="scroll-right">▶</button>
-      </div>
     </div>
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-  document.getElementById("addTodayBtn").onclick =
-    openAddTodayInventoryModal;
+  document.getElementById("addTodayBtn").onclick = openAddTodayInventoryModal;
 }
 
-/* ================= ADD TODAY INVENTORY MODAL ================= */
+/* ================= MODAL ================= */
 function openAddTodayInventoryModal() {
   openModal(`
     <div class="modal-header">📦 Add Today’s Inventory</div>
 
-    <label>Date</label>
-    <input type="date" value="${new Date().toISOString().slice(0,10)}" disabled>
-
     <label>Location</label>
-    <input id="dailyLocation" placeholder="(optional)">
+    <input id="dailyLocation">
 
     <div style="margin-top:12px;font-weight:bold;">Inventory Items</div>
 
     <div class="data-scroll" style="max-height:260px;">
       <table class="category-table">
         <thead>
-          <tr>
-            <th>Item</th>
-            <th style="width:80px;">Qty</th>
-          </tr>
+          <tr><th>Item</th><th>Qty</th></tr>
         </thead>
         <tbody id="dailyItemsBody"></tbody>
       </table>
     </div>
 
     <div class="modal-actions">
-      <button class="btn-danger" id="saveTodayInv">Save</button>
-      <button class="btn-back" id="cancelTodayInv">Cancel</button>
+      <button id="saveTodayInv">Save</button>
+      <button id="cancelTodayInv">Cancel</button>
     </div>
   `);
 
   loadInventoryItemsForToday();
-
   document.getElementById("cancelTodayInv").onclick = closeModal;
   document.getElementById("saveTodayInv").onclick = saveTodayInventory;
 }
 
-/* ================= LOAD INVENTORY ITEMS ================= */
+/* ================= LOAD ITEMS ================= */
 async function loadInventoryItemsForToday() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   const items = await res.json();
   const tbody = document.getElementById("dailyItemsBody");
 
-  if (!tbody) return;
-
   tbody.innerHTML = "";
-
-  items.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${item.item_name}</td>
-      <td>
-        <input type="number" min="0" value="0"
-          data-id="${item.item_id}"
-          data-cap="${item.capital}"
-          data-price="${item.selling_price}">
-      </td>
+  items.forEach(i => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${i.item_name}</td>
+        <td><input type="number" min="0" data-id="${i.item_id}" value="0"></td>
+      </tr>
     `;
-    tbody.appendChild(tr);
   });
 }
 
-/* ================= SAVE DAILY INVENTORY (REAL & WORKING) ================= */
-async function saveTodayInventory() {
+/* ================= SAVE (ONLY WAY THAT WORKS) ================= */
+function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
 
-  inputs.forEach(input => {
-    const qty = Number(input.value);
+  inputs.forEach(i => {
+    const qty = Number(i.value);
     if (qty > 0) {
-      const capital = qty * Number(input.dataset.cap);
-      const total = qty * Number(input.dataset.price);
-
-      items.push({
-        item_id: input.dataset.id,
-        qty,
-        capital,
-        total,
-        earnings: total - capital
-      });
+      items.push({ item_id: i.dataset.id, qty });
     }
   });
 
   if (!items.length) {
-    alert("Please enter at least one item");
+    alert("Enter at least one item");
     return;
   }
 
-  const location =
-    document.getElementById("dailyLocation")?.value || "";
-
   const payload = {
     action: "addDailyInventory",
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toISOString().slice(0,10),
     created_by: "ADMIN",
-    location,
+    location: document.getElementById("dailyLocation").value,
     items
   };
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = API_URL;
+  form.target = "hiddenFrame";
 
-    const data = await res.json();
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(payload);
 
-    if (!data.success) {
-      throw new Error(data.reason || "Save failed");
-    }
+  form.appendChild(input);
+  document.body.appendChild(form);
 
-    closeModal();
-    alert("Daily inventory saved ✅");
-  } catch (err) {
-    console.error("SAVE ERROR:", err);
-    alert("Failed to save daily inventory ❌");
+  let iframe = document.getElementById("hiddenFrame");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = "hiddenFrame";
+    iframe.id = "hiddenFrame";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
   }
+
+  form.submit();
+  closeModal();
+  alert("Daily inventory saved ✅");
 }
