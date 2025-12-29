@@ -51,14 +51,14 @@ function renderTable() {
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${cat.category_name}</td>
-        <td>${cat.description}</td>
-        <td>${cat.qty || 0}</td>
-      </tr>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${cat.category_name}</td>
+      <td>${cat.description}</td>
+      <td>${cat.qty || 0}</td>
     `;
+    tbody.appendChild(tr);
   });
 }
 
@@ -87,7 +87,7 @@ function openAddModal() {
   document.getElementById("saveCat").onclick = saveCategory;
 }
 
-/* ================= SAVE (CORS-SAFE GET) ================= */
+/* ================= SAVE (ONLY CORRECT WAY) ================= */
 function saveCategory() {
   const name = document.getElementById("catName").value.trim();
   const desc = document.getElementById("catDesc").value.trim();
@@ -103,11 +103,11 @@ function saveCategory() {
     description: desc
   });
 
-  // 🔑 CORS-SAFE: browser does not block this
+  // 🔥 CORS-SAFE, GUARANTEED TO HIT doGet
   new Image().src = API_URL + "?" + params.toString();
 
   closeModal();
 
-  // allow sheet to update
-  setTimeout(loadCategories, 600);
+  // wait for sheet write
+  setTimeout(loadCategories, 700);
 }
