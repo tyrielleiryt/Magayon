@@ -4,9 +4,7 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
-/* =========================================================
-   DEFAULT EXPORT (REQUIRED BY admin.js)
-========================================================= */
+/* ================= DEFAULT EXPORT ================= */
 export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
@@ -52,14 +50,10 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-
-  document.getElementById("addTodayBtn").onclick =
-    openAddTodayInventoryModal;
+  document.getElementById("addTodayBtn").onclick = openAddTodayInventoryModal;
 }
 
-/* =========================================================
-   ADD TODAY INVENTORY MODAL
-========================================================= */
+/* ================= MODAL ================= */
 function openAddTodayInventoryModal() {
   openModal(`
     <div class="modal-header">📦 Add Today’s Inventory</div>
@@ -96,16 +90,13 @@ function openAddTodayInventoryModal() {
   document.getElementById("saveTodayInv").onclick = saveTodayInventory;
 }
 
-/* =========================================================
-   LOAD INVENTORY ITEMS
-========================================================= */
+/* ================= LOAD ITEMS ================= */
 async function loadInventoryItemsForToday() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   const items = await res.json();
   const tbody = document.getElementById("dailyItemsBody");
 
   if (!tbody) return;
-
   tbody.innerHTML = "";
 
   items.forEach(item => {
@@ -123,9 +114,7 @@ async function loadInventoryItemsForToday() {
   });
 }
 
-/* =========================================================
-   SAVE DAILY INVENTORY — FINAL & STABLE
-========================================================= */
+/* ================= SAVE (FINAL & CORRECT) ================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
@@ -155,10 +144,9 @@ function saveTodayInventory() {
     action: "addDailyInventory",
     date: new Date().toISOString().slice(0, 10),
     created_by: "ADMIN",
-    items: encodeURIComponent(JSON.stringify(items))
+    items: JSON.stringify(items) // ✅ DO NOT encode
   });
 
-  // ✅ CORS-SAFE FIRE-AND-FORGET (NO CALLBACKS)
   new Image().src = API_URL + "?" + params.toString();
 
   closeModal();
