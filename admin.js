@@ -21,16 +21,21 @@ updateDateTime();
 setInterval(updateDateTime, 60000);
 
 /* ================= LOGOUT ================= */
-document.getElementById("logoutBtn")?.addEventListener("click", () => {
-  if (!confirm("Are you sure you want to logout?")) return;
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.replace("index.html");
-});
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    if (!confirm("Are you sure you want to logout?")) return;
+
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("index.html");
+  });
+}
 
 /* ================= SPA NAVIGATION ================= */
 import loadCategoriesView from "./views/categories.js";
-import loadInventoryItemsView from "./views/inventoryItems.js";
+import loadInventoryItemsView from "./views/inventoryitems.js";
 
 const navButtons = document.querySelectorAll(".nav-btn");
 const actionBar = document.getElementById("actionBar");
@@ -38,37 +43,39 @@ const contentBox = document.getElementById("contentBox");
 
 navButtons.forEach(btn => {
   btn.addEventListener("click", () => {
-    console.log("Clicked:", btn.dataset.view);
-
+    // sidebar state
     navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
+    // clear previous view
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
     const view = btn.dataset.view;
 
-    if (view === "dashboard") {
-      contentBox.innerHTML = `
-        <h2>Dashboard</h2>
-        <p>If you see this, JS is working.</p>
-      `;
-      return;
-    }
+    switch (view) {
+      case "dashboard":
+        contentBox.innerHTML = `
+          <h2>Dashboard</h2>
+          <p>If you see this, JS is working.</p>
+        `;
+        break;
 
-    if (view === "categories") {
-      console.log("Loading Categories View");
-      loadCategoriesView();
-      return;
-    }
+      case "categories":
+        loadCategoriesView();
+        break;
 
-    if (view === "inventory") {
-      console.log("Loading Inventory Items View");
-      loadInventoryItemsView();
-      return;
-    }
+      case "inventory":
+        loadInventoryItemsView();
+        break;
 
-    contentBox.innerHTML = `<h2>Coming soon…</h2>`;
+      case "products":
+        contentBox.innerHTML = `<h2>Products</h2><p>Coming next.</p>`;
+        break;
+
+      default:
+        contentBox.innerHTML = `<h2>Coming soon…</h2>`;
+    }
   });
 });
 
