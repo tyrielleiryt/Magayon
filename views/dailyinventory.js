@@ -90,7 +90,7 @@ function openAddTodayInventoryModal() {
   document.getElementById("saveTodayInv").onclick = saveTodayInventory;
 }
 
-/* ================= LOAD ITEMS ================= */
+/* ================= LOAD INVENTORY ITEMS ================= */
 async function loadInventoryItemsForToday() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   const items = await res.json();
@@ -114,7 +114,7 @@ async function loadInventoryItemsForToday() {
   });
 }
 
-/* ================= SAVE (FINAL & SAFE) ================= */
+/* ================= SAVE DAILY INVENTORY (POST – STABLE) ================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
@@ -143,25 +143,38 @@ function saveTodayInventory() {
   const location =
     document.getElementById("dailyLocation")?.value || "";
 
-  const params = new URLSearchParams({
+  /* ===== BUILD FORM (NO CORS, NO SIZE LIMIT) ===== */
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = API_URL;
+  form.target = "hiddenFrame";
+
+  const payloadInput = document.createElement("input");
+  payloadInput.type = "hidden";
+  payloadInput.name = "payload";
+  payloadInput.value = JSON.stringify({
     action: "addDailyInventory",
     date: new Date().toISOString().slice(0, 10),
     created_by: "ADMIN",
     location,
-    items: JSON.stringify(items)
+    items
   });
 
-  // CORS-safe request
-  const img = new Image();
+  form.appendChild(payloadInput);
+  document.body.appendChild(form);
 
-  img.onload = () => {
-    closeModal();
-    alert("Daily inventory saved ✅");
-  };
+  /* ===== HIDDEN IFRAME ===== */
+  let iframe = document.getElementById("hiddenFrame");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = "hiddenFrame";
+    iframe.id = "hiddenFrame";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
 
-  img.onerror = () => {
-    alert("Failed to save daily inventory ❌");
-  };
+  form.submit();
 
-  img.src = API_URL + "?" + params.toString();
+  closeModal();
+  alert("Daily inventory saved ✅");
 }
