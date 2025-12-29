@@ -5,29 +5,24 @@ let inventoryItems = [];
 let selectedIndex = null;
 
 export default function loadInventoryItemsView() {
-  const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
-  /* ===== ACTION BAR ===== */
-  actionBar.innerHTML = `
+  contentBox.innerHTML = `
     <div class="action-bar">
       <button id="addItemBtn">+ Add inventory item</button>
       <button id="editItemBtn">Edit</button>
       <button id="deleteItemBtn">Delete</button>
     </div>
-  `;
 
-  /* ===== CONTENT ===== */
-  contentBox.innerHTML = `
     <div class="view-body">
       <table class="category-table">
         <thead>
           <tr>
-            <th style="width:50px">#</th>
+            <th style="width:40px">#</th>
             <th>Item Name</th>
             <th>Description</th>
             <th style="width:120px">Capital</th>
-            <th style="width:120px">Selling Price</th>
+            <th style="width:140px">Selling Price</th>
           </tr>
         </thead>
         <tbody id="inventoryTableBody"></tbody>
@@ -35,20 +30,20 @@ export default function loadInventoryItemsView() {
     </div>
   `;
 
-  bindInventoryActions();
+  bindActions();
   loadInventoryItems();
 }
 
-/* ================= LOAD ================= */
+/* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
-  const res = await fetch(`${API_URL}?type=inventory`);
+  const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
   selectedIndex = null;
-  renderInventoryTable();
+  renderTable();
 }
 
-/* ================= TABLE ================= */
-function renderInventoryTable() {
+/* ================= RENDER ================= */
+function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
   tbody.innerHTML = "";
 
@@ -58,7 +53,7 @@ function renderInventoryTable() {
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${item.item_name}</td>
-      <td>${item.description}</td>
+      <td>${item.description || ""}</td>
       <td>${item.capital}</td>
       <td>${item.selling_price}</td>
     `;
@@ -67,7 +62,6 @@ function renderInventoryTable() {
       document
         .querySelectorAll("#inventoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
-
       tr.classList.add("selected");
       selectedIndex = i;
     });
@@ -77,34 +71,15 @@ function renderInventoryTable() {
 }
 
 /* ================= ACTIONS ================= */
-function bindInventoryActions() {
-  document.getElementById("addItemBtn")
-    .addEventListener("click", openAddItemModal);
+function bindActions() {
+  document.getElementById("addItemBtn").onclick = openAddItemModal;
+  document.getElementById("editItemBtn").onclick = () =>
+    alert("Edit inventory item coming next");
+  document.getElementById("deleteItemBtn").onclick = () =>
+    alert("Delete inventory item coming next");
 }
 
-/* ================= MODAL CORE ================= */
-function ensureModal() {
-  if (document.getElementById("modalOverlay")) return;
-
-  const modal = document.createElement("div");
-  modal.id = "modalOverlay";
-  modal.className = "hidden";
-  modal.innerHTML = `<div id="modalBox"></div>`;
-  document.body.appendChild(modal);
-}
-
-function openModal(html) {
-  ensureModal();
-  document.getElementById("modalBox").innerHTML = html;
-  document.getElementById("modalOverlay").classList.remove("hidden");
-}
-
-function closeModal() {
-  document.getElementById("modalOverlay").classList.add("hidden");
-  document.getElementById("modalBox").innerHTML = "";
-}
-
-/* ================= ADD INVENTORY ITEM ================= */
+/* ================= ADD MODAL ================= */
 function openAddItemModal() {
   openModal(`
     <div class="modal-header">➕ Add inventory item</div>
@@ -130,28 +105,47 @@ function openAddItemModal() {
   document.getElementById("cancelAddItem").onclick = closeModal;
 
   document.getElementById("confirmAddItem").onclick = async () => {
-    const name = document.getElementById("itemName").value.trim();
-    const desc = document.getElementById("itemDesc").value.trim();
-    const capital = Number(document.getElementById("itemCapital").value);
-    const price = Number(document.getElementById("itemPrice").value);
+    const payload = {
+      action: "addInventoryItem",
+      item_name: document.getElementById("itemName").value.trim(),
+      description: document.getElementById("itemDesc").value.trim(),
+      capital: Number(document.getElementById("itemCapital").value),
+      selling_price: Number(document.getElementById("itemPrice").value)
+    };
 
-    if (!name || !capital || !price) {
-      alert("Please complete all required fields.");
+    if (!payload.item_name) {
+      alert("Item name is required");
       return;
     }
 
     await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "addInventoryItem",
-        item_name: name,
-        description: desc,
-        capital,
-        selling_price: price
-      })
+      body: JSON.stringify(payload)
     });
 
     closeModal();
     loadInventoryItems();
   };
+}
+
+/* ================= MODAL CORE ================= */
+function ensureModal() {
+  if (document.getElementById("modalOverlay")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "modalOverlay";
+  modal.className = "hidden";
+  modal.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(modal);
+}
+
+function openModal(html) {
+  ensureModal();
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.add("hidden");
+  document.getElementById("modalBox").innerHTML = "";
 }
