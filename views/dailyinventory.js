@@ -1,20 +1,20 @@
+import { bindDataBoxScroll } from "../admin.js";
+
 export default function loadDailyInventoryView() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
   actionBar.innerHTML = `
-    <button id="addTodayBtn">+ Add today's Inventory</button>
-    <button id="editTodayBtn">+/- Edit Inventory Details</button>
-    <button id="itemsListBtn">Inventory Items List</button>
+    <button>+ Add today's Inventory</button>
+    <button>+/- Edit Inventory Details</button>
+    <button>Inventory Items List</button>
   `;
 
   contentBox.innerHTML = `
-    <div class="daily-scroll-wrapper">
+    <div class="data-box">
 
-      <button class="daily-scroll-btn" id="scrollLeft">◀</button>
-
-      <div class="daily-scrollable" id="dailyInventoryScroller">
-        <table class="category-table" style="min-width: 1200px;">
+      <div class="data-scroll">
+        <table class="category-table" style="min-width: 1200px">
           <thead>
             <tr>
               <th>#</th>
@@ -30,36 +30,21 @@ export default function loadDailyInventoryView() {
           </thead>
           <tbody>
             <tr>
-              <td>1</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
+              <td>1</td><td>—</td><td>—</td><td>—</td><td>—</td>
               <td><button>View</button></td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
+              <td>—</td><td>—</td><td>—</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <button class="daily-scroll-btn" id="scrollRight">▶</button>
+      <div class="data-scroll-controls">
+        <button class="scroll-left">◀</button>
+        <button class="scroll-right">▶</button>
+      </div>
 
     </div>
   `;
 
-  bindDailyScroll();
-}
-
-function bindDailyScroll() {
-  const scroller = document.getElementById("dailyInventoryScroller");
-
-  document.getElementById("scrollLeft").onclick = () => {
-    scroller.scrollLeft -= 300;
-  };
-
-  document.getElementById("scrollRight").onclick = () => {
-    scroller.scrollLeft += 300;
-  };
+  bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }

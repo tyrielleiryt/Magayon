@@ -1,8 +1,4 @@
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
-
-let inventoryItems = [];
-let selectedIndex = null;
+import { bindDataBoxScroll } from "../admin.js";
 
 export default function loadInventoryItemsView() {
   const contentBox = document.getElementById("contentBox");
@@ -14,225 +10,30 @@ export default function loadInventoryItemsView() {
       <button id="deleteItemBtn">Delete</button>
     </div>
 
-    <div class="view-body">
-      <table class="category-table">
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Item Name</th>
-            <th>Description</th>
-            <th style="width:120px">Capital</th>
-            <th style="width:140px">Selling Price</th>
-          </tr>
-        </thead>
-        <tbody id="inventoryTableBody"></tbody>
-      </table>
+    <div class="data-box">
+      <div class="data-scroll">
+        <table class="category-table" style="min-width: 900px">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item Name</th>
+              <th>Description</th>
+              <th>Capital</th>
+              <th>Selling Price</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="data-scroll-controls">
+        <button class="scroll-left">◀</button>
+        <button class="scroll-right">▶</button>
+      </div>
     </div>
   `;
 
   bindActions();
   loadInventoryItems();
-}
-
-/* ===== LOAD ===== */
-async function loadInventoryItems() {
-  const res = await fetch(API_URL + "?type=inventoryItems");
-  inventoryItems = await res.json();
-  selectedIndex = null;
-  renderTable();
-}
-
-/* ===== RENDER ===== */
-function renderTable() {
-  const tbody = document.getElementById("inventoryTableBody");
-  tbody.innerHTML = "";
-
-  inventoryItems.forEach((item, i) => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${item.item_name}</td>
-      <td>${item.description || ""}</td>
-      <td>${item.capital}</td>
-      <td>${item.selling_price}</td>
-    `;
-
-    tr.addEventListener("click", (e) => {
-      e.stopPropagation();
-
-      document
-        .querySelectorAll("#inventoryTableBody tr")
-        .forEach(r => r.classList.remove("selected"));
-
-      tr.classList.add("selected");
-      selectedIndex = i;
-    });
-
-    tbody.appendChild(tr);
-  });
-}
-
-/* ===== ACTIONS ===== */
-function bindActions() {
-  document.getElementById("addItemBtn").onclick = openAddItemModal;
-  document.getElementById("editItemBtn").onclick = openEditItemModal;
-  document.getElementById("deleteItemBtn").onclick = openDeleteItemModal;
-}
-
-/* ===== ADD ===== */
-function openAddItemModal() {
-  openModal(`
-    <div class="modal-header">➕ Add inventory item</div>
-
-    <label>Item Name</label>
-    <input id="itemName">
-
-    <label>Description</label>
-    <textarea id="itemDesc"></textarea>
-
-    <label>Capital</label>
-    <input id="itemCapital" type="number">
-
-    <label>Selling Price</label>
-    <input id="itemPrice" type="number">
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="confirmAddItem">Confirm</button>
-      <button class="btn-back" id="cancelAddItem">Back</button>
-    </div>
-  `);
-
-  document.getElementById("cancelAddItem").onclick = closeModal;
-
-  document.getElementById("confirmAddItem").onclick = async () => {
-    const payload = {
-      action: "addInventoryItem",
-      item_name: document.getElementById("itemName").value.trim(),
-      description: document.getElementById("itemDesc").value.trim(),
-      capital: Number(document.getElementById("itemCapital").value),
-      selling_price: Number(document.getElementById("itemPrice").value)
-    };
-
-    if (!payload.item_name) {
-      alert("Item name is required");
-      return;
-    }
-
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-
-    closeModal();
-    loadInventoryItems();
-  };
-}
-
-/* ===== EDIT ===== */
-function openEditItemModal() {
-  if (selectedIndex === null) {
-    alert("Select an item first");
-    return;
-  }
-
-  const item = inventoryItems[selectedIndex];
-
-  openModal(`
-    <div class="modal-header">✏ Edit inventory item</div>
-
-    <label>Item Name</label>
-    <input id="editName" value="${item.item_name}">
-
-    <label>Description</label>
-    <textarea id="editDesc">${item.description || ""}</textarea>
-
-    <label>Capital</label>
-    <input id="editCapital" type="number" value="${item.capital}">
-
-    <label>Selling Price</label>
-    <input id="editPrice" type="number" value="${item.selling_price}">
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="confirmEditItem">Confirm</button>
-      <button class="btn-back" id="cancelEditItem">Back</button>
-    </div>
-  `);
-
-  document.getElementById("cancelEditItem").onclick = closeModal;
-
-  document.getElementById("confirmEditItem").onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "editInventoryItem",
-        item_id: item.item_id,
-        item_name: document.getElementById("editName").value,
-        description: document.getElementById("editDesc").value,
-        capital: Number(document.getElementById("editCapital").value),
-        selling_price: Number(document.getElementById("editPrice").value)
-      })
-    });
-
-    closeModal();
-    loadInventoryItems();
-  };
-}
-
-/* ===== DELETE ===== */
-function openDeleteItemModal() {
-  if (selectedIndex === null) {
-    alert("Select an item first");
-    return;
-  }
-
-  const item = inventoryItems[selectedIndex];
-
-  openModal(`
-    <div class="modal-header danger">🗑 Delete inventory item</div>
-    <p>Are you sure you want to delete:</p>
-    <input value="${item.item_name}" disabled>
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="confirmDeleteItem">Confirm</button>
-      <button class="btn-back" id="cancelDeleteItem">Back</button>
-    </div>
-  `);
-
-  document.getElementById("cancelDeleteItem").onclick = closeModal;
-
-  document.getElementById("confirmDeleteItem").onclick = async () => {
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "deleteInventoryItem",
-        item_id: item.item_id
-      })
-    });
-
-    closeModal();
-    loadInventoryItems();
-  };
-}
-
-/* ===== MODAL CORE ===== */
-function ensureModal() {
-  if (document.getElementById("modalOverlay")) return;
-
-  const modal = document.createElement("div");
-  modal.id = "modalOverlay";
-  modal.className = "hidden";
-  modal.innerHTML = `<div id="modalBox"></div>`;
-  document.body.appendChild(modal);
-}
-
-function openModal(html) {
-  ensureModal();
-  document.getElementById("modalBox").innerHTML = html;
-  document.getElementById("modalOverlay").classList.remove("hidden");
-}
-
-function closeModal() {
-  document.getElementById("modalOverlay").classList.add("hidden");
-  document.getElementById("modalBox").innerHTML = "";
+  bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }

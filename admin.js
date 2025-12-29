@@ -71,5 +71,33 @@ navButtons.forEach(btn => {
   });
 });
 
+export function bindDataBoxScroll(box) {
+  const scrollArea = box.querySelector(".data-scroll");
+  const leftBtn = box.querySelector(".scroll-left");
+  const rightBtn = box.querySelector(".scroll-right");
+
+  if (!scrollArea || !leftBtn || !rightBtn) return;
+
+  leftBtn.onclick = () => {
+    scrollArea.scrollLeft -= 300;
+  };
+
+  rightBtn.onclick = () => {
+    scrollArea.scrollLeft += 300;
+  };
+}
+
 /* ================= LOAD DEFAULT ================= */
 document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
+
+function bindDataBoxScroll(container) {
+  const leftBtn = container.querySelector(".scroll-left");
+  const rightBtn = container.querySelector(".scroll-right");
+  const scrollArea = container.querySelector(".data-scroll");
+
+  if (!leftBtn || !rightBtn || !scrollArea) return;
+
+  leftBtn.onclick = () => scrollArea.scrollLeft -= 200;
+  rightBtn.onclick = () => scrollArea.scrollLeft += 200;
+}
+

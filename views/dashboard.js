@@ -1,6 +1,5 @@
-export default function () {
+export default function loadDashboardView() {
   document.getElementById("actionBar").innerHTML = "";
-
   document.getElementById("contentBox").innerHTML = `
     <h2>Dashboard</h2>
     <p>Charts and analytics will appear here.</p>
