@@ -27,7 +27,7 @@
     <button class="nav-btn" data-view="staff">Staff</button>
     <button class="nav-btn" data-view="inventory">Inventory</button>
 
-    <!-- ✅ NEW BUTTON -->
+    <!-- ✅ DAILY INVENTORY -->
     <button class="nav-btn" data-view="dailyInventory">
       Daily Inventory System
     </button>
@@ -35,8 +35,20 @@
 
   <main class="content">
     <div class="content-box">
+
+      <!-- ACTION BAR -->
       <div id="actionBar"></div>
-      <div id="contentBox"></div>
+
+      <!-- SCROLL CONTROLS -->
+      <div class="table-scroll-wrapper">
+        <button class="scroll-btn left" onclick="scrollTable(-300)">◀</button>
+
+        <!-- WHITE BOX -->
+        <div id="contentBox" class="scroll-area"></div>
+
+        <button class="scroll-btn right" onclick="scrollTable(300)">▶</button>
+      </div>
+
     </div>
   </main>
 

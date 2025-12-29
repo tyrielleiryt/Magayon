@@ -86,12 +86,12 @@ navButtons.forEach(btn => {
   });
 });
 
-/* ================= DAILY INVENTORY HEADER (TEMP UI) ================= */
+/* ================= DAILY INVENTORY (TEMP HEADER UI) ================= */
 function renderDailyInventoryHeader() {
   actionBar.innerHTML = `
-    <button>+ Add today's Inventory</button>
-    <button>+/- Edit Inventory Details</button>
-    <button>Inventory Items List</button>
+    <button id="addDailyBtn">+ Add Today’s Inventory</button>
+    <button id="editDailyBtn">Edit Inventory</button>
+    <button id="openItemsBtn">Inventory Items List</button>
   `;
 
   contentBox.innerHTML = `
@@ -106,6 +106,8 @@ function renderDailyInventoryHeader() {
             <th>Position</th>
             <th>Inventory</th>
             <th>Location</th>
+            <th>Created By</th>
+            <th>Created At</th>
           </tr>
         </thead>
         <tbody>
@@ -117,12 +119,22 @@ function renderDailyInventoryHeader() {
             <td>—</td>
             <td><button>View</button></td>
             <td>—</td>
+            <td>—</td>
+            <td>—</td>
           </tr>
         </tbody>
       </table>
     </div>
   `;
 }
+
+/* ================= HORIZONTAL SCROLL ================= */
+window.scrollTable = function (amount) {
+  const area = document.querySelector(".scroll-area");
+  if (area) {
+    area.scrollLeft += amount;
+  }
+};
 
 /* ================= LOAD DEFAULT VIEW ================= */
 document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
