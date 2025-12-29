@@ -337,3 +337,19 @@ body {
 .modal-actions .btn-back:hover {
   background: #ccc;
 }
+
+.qty-btn {
+  background: #2e3354;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.qty-btn:hover {
+  background: #3b4066;
+}
