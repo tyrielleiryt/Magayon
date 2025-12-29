@@ -5,7 +5,6 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
 let categories = [];
-let selectedIndex = null;
 
 /* ================= ENTRY ================= */
 export default function loadCategoriesView() {
@@ -52,14 +51,14 @@ function renderTable() {
   tbody.innerHTML = "";
 
   categories.forEach((cat, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${cat.category_name}</td>
-      <td>${cat.description}</td>
-      <td>${cat.qty || 0}</td>
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${cat.category_name}</td>
+        <td>${cat.description}</td>
+        <td>${cat.qty || 0}</td>
+      </tr>
     `;
-    tbody.appendChild(tr);
   });
 }
 
@@ -87,13 +86,14 @@ function openAddModal() {
   document.getElementById("cancelCat").onclick = closeModal;
 
   document.getElementById("saveCat").onclick = async () => {
+    const form = new FormData();
+    form.append("action", "addCategory");
+    form.append("category_name", catName.value.trim());
+    form.append("description", catDesc.value.trim());
+
     await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "addCategory", // 🔑 REQUIRED
-        category_name: catName.value.trim(),
-        description: catDesc.value.trim()
-      })
+      body: form
     });
 
     closeModal();

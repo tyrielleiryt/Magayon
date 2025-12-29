@@ -94,15 +94,16 @@ function openAddItemModal() {
   document.getElementById("cancelItem").onclick = closeModal;
 
   document.getElementById("saveItem").onclick = async () => {
+    const form = new FormData();
+    form.append("action", "addInventoryItem");
+    form.append("item_name", itemName.value.trim());
+    form.append("description", itemDesc.value.trim());
+    form.append("capital", itemCap.value);
+    form.append("selling_price", itemPrice.value);
+
     await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "addInventoryItem", // 🔑 REQUIRED
-        item_name: itemName.value.trim(),
-        description: itemDesc.value.trim(),
-        capital: Number(itemCap.value),
-        selling_price: Number(itemPrice.value)
-      })
+      body: form
     });
 
     closeModal();

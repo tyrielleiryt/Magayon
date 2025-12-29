@@ -4,19 +4,18 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzoh8yabZEaJBbqEbMtPOncsOSR6FClSUQzNEs0LRBNNhoyFih2L42s1d7ZW5Z2Ry7q/exec";
 
-/* ================= DEFAULT EXPORT ================= */
+/* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
-  const actionBar = document.getElementById("actionBar");
-  const contentBox = document.getElementById("contentBox");
-
-  actionBar.innerHTML = `
+  document.getElementById("actionBar").innerHTML = `
     <button id="addTodayBtn">+ Add today's Inventory</button>
   `;
+
+  const contentBox = document.getElementById("contentBox");
 
   contentBox.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
-        <table class="category-table" style="min-width:1200px">
+        <table class="category-table">
           <thead>
             <tr>
               <th>Date</th>
@@ -61,8 +60,8 @@ function openAddTodayInventoryModal() {
     </div>
 
     <div class="modal-actions">
-      <button id="saveTodayInv">Save</button>
-      <button id="cancelTodayInv">Cancel</button>
+      <button class="btn-danger" id="saveTodayInv">Save</button>
+      <button class="btn-back" id="cancelTodayInv">Cancel</button>
     </div>
   `);
 
@@ -88,16 +87,14 @@ async function loadInventoryItemsForToday() {
   });
 }
 
-/* ================= SAVE (ONLY WAY THAT WORKS) ================= */
+/* ================= SAVE (CORRECT) ================= */
 function saveTodayInventory() {
   const inputs = document.querySelectorAll("#dailyItemsBody input");
   const items = [];
 
   inputs.forEach(i => {
     const qty = Number(i.value);
-    if (qty > 0) {
-      items.push({ item_id: i.dataset.id, qty });
-    }
+    if (qty > 0) items.push({ item_id: i.dataset.id, qty });
   });
 
   if (!items.length) {
@@ -105,37 +102,18 @@ function saveTodayInventory() {
     return;
   }
 
-  const payload = {
-    action: "addDailyInventory",
-    date: new Date().toISOString().slice(0,10),
-    created_by: "ADMIN",
-    location: document.getElementById("dailyLocation").value,
-    items
-  };
+  const form = new FormData();
+  form.append("action", "addDailyInventory");
+  form.append("date", new Date().toISOString().slice(0,10));
+  form.append("created_by", "ADMIN");
+  form.append("location", dailyLocation.value);
+  form.append("items", JSON.stringify(items));
 
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = API_URL;
-  form.target = "hiddenFrame";
+  fetch(API_URL, {
+    method: "POST",
+    body: form
+  });
 
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "payload";
-  input.value = JSON.stringify(payload);
-
-  form.appendChild(input);
-  document.body.appendChild(form);
-
-  let iframe = document.getElementById("hiddenFrame");
-  if (!iframe) {
-    iframe = document.createElement("iframe");
-    iframe.name = "hiddenFrame";
-    iframe.id = "hiddenFrame";
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-  }
-
-  form.submit();
   closeModal();
   alert("Daily inventory saved ✅");
 }
