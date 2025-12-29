@@ -21,9 +21,7 @@ updateDateTime();
 setInterval(updateDateTime, 60000);
 
 /* ================= LOGOUT ================= */
-const logoutBtn = document.getElementById("logoutBtn");
-
-logoutBtn?.addEventListener("click", () => {
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
   if (!confirm("Are you sure you want to logout?")) return;
   localStorage.clear();
   sessionStorage.clear();
@@ -67,15 +65,11 @@ navButtons.forEach(btn => {
         loadDailyInventoryView();
         break;
 
-      case "products":
-        contentBox.innerHTML = `<h2>Products</h2><p>Coming next.</p>`;
-        break;
-
       default:
         contentBox.innerHTML = `<h2>Coming soon…</h2>`;
     }
   });
 });
 
-/* ================= DEFAULT VIEW ================= */
+/* ================= LOAD DEFAULT ================= */
 document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
