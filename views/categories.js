@@ -4,7 +4,6 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-
 let categories = [];
 let selected = null;
 
@@ -47,6 +46,9 @@ async function loadCategories() {
   categories = await res.json();
   selected = null;
   renderTable();
+
+  document.getElementById("editBtn").disabled = true;
+  document.getElementById("deleteBtn").disabled = true;
 }
 
 function renderTable() {
@@ -63,8 +65,10 @@ function renderTable() {
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#categoryTableBody tr")
+      document
+        .querySelectorAll("#categoryTableBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selected = c;
 
@@ -83,11 +87,14 @@ function bindActions() {
   document.getElementById("deleteBtn").onclick = deleteCategory;
 }
 
+/* ================= ADD ================= */
 function openAddModal() {
   openModal(`
     <div class="modal-header">Add Category</div>
-    <label>Name</label><input id="catName">
-    <label>Description</label><textarea id="catDesc"></textarea>
+    <label>Name</label>
+    <input id="catName">
+    <label>Description</label>
+    <textarea id="catDesc"></textarea>
     <div class="modal-actions">
       <button id="saveCat">Save</button>
       <button onclick="closeModal()">Cancel</button>
@@ -97,13 +104,16 @@ function openAddModal() {
   document.getElementById("saveCat").onclick = () => {
     new Image().src =
       API_URL +
-      `?action=addCategory&category_name=${encodeURIComponent(catName.value)}&description=${encodeURIComponent(catDesc.value)}`;
+      `?action=addCategory` +
+      `&category_name=${encodeURIComponent(catName.value)}` +
+      `&description=${encodeURIComponent(catDesc.value)}`;
 
     closeModal();
     setTimeout(loadCategories, 500);
   };
 }
 
+/* ================= EDIT ================= */
 function openEditModal() {
   if (!selected) return;
 
@@ -122,13 +132,17 @@ function openEditModal() {
   document.getElementById("saveEdit").onclick = () => {
     new Image().src =
       API_URL +
-      `?action=editCategory&rowIndex=${selected.rowIndex}&category_name=${encodeURIComponent(catName.value)}&description=${encodeURIComponent(catDesc.value)}`;
+      `?action=editCategory` +
+      `&rowIndex=${selected.rowIndex}` +
+      `&category_name=${encodeURIComponent(catName.value)}` +
+      `&description=${encodeURIComponent(catDesc.value)}`;
 
     closeModal();
     setTimeout(loadCategories, 500);
   };
 }
 
+/* ================= DELETE ================= */
 function deleteCategory() {
   if (!selected) return;
   if (!confirm("Delete this category?")) return;
