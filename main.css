@@ -19,13 +19,6 @@ body {
   align-items: center;
 }
 
-.top-bar .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: bold;
-}
-
 .logout-btn {
   background: #e06780;
   color: white;
@@ -60,10 +53,6 @@ body {
   border-radius: 4px;
 }
 
-.sidebar button:hover {
-  background: #4a4f77;
-}
-
 .sidebar .active {
   background: #f3c84b;
   color: black;
@@ -94,17 +83,14 @@ body {
   border-bottom: 1px solid #ccc;
 }
 
-.action-bar button {
-  background: #2e3354;
+.category-action-btn {
+  background: #2f3457;
   color: white;
   border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: bold;
   cursor: pointer;
-}
-
-.action-bar button:hover {
-  background: #3b4066;
 }
 
 /* ================= TABLE ================= */
@@ -115,26 +101,26 @@ body {
   font-size: 14px;
 }
 
-.category-table th,
-.category-table td {
-  border-bottom: 1px solid #ddd;
-  padding: 6px 10px;
-}
-
 .category-table th {
   background: #f3f3f3;
   font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  vertical-align: bottom;
+}
+
+.category-table td {
+  padding: 10px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid #ddd;
 }
 
 .category-table tbody tr:hover {
-  background: #f9f4dc;
+  background: #f7f3df;
 }
 
-.category-table tbody tr.selected {
-  background: #f3c84b;
-}
-
-/* ================= UNIVERSAL DATA SCROLL SYSTEM ================= */
+/* ================= DATA SCROLL ================= */
 .data-box {
   display: flex;
   flex-direction: column;
@@ -144,93 +130,118 @@ body {
 
 .data-scroll {
   flex: 1;
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow: auto;
 }
 
-/* Bottom scroll buttons */
-.data-scroll-controls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding: 6px;
-  border-top: 1px solid #ccc;
-  background: #fafafa;
-}
-
-.data-scroll-controls button {
+/* ================= VIEW / EDIT BUTTONS ================= */
+.btn-view {
   background: #2e3354;
   color: white;
   border: none;
-  padding: 4px 12px;
-  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 14px;
   cursor: pointer;
-  border-radius: 4px;
+  font-size: 13px;
+  margin: 0 4px;
 }
 
-.data-scroll-controls button:hover {
-  background: #3b4066;
-}
-
-/* ================= MODAL OVERLAY ================= */
+/* ================= MODAL ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 9999;
 }
 
-#modalOverlay.hidden {
-  display: none;
-}
-
-/* ================= MODAL BOX ================= */
 #modalBox {
-  background: #ffffff;
-  width: 420px;
+  background: white;
+  width: 440px;
   max-width: 90%;
   padding: 24px;
   border-radius: 14px;
   box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-  animation: modalFade 0.18s ease-out;
 }
 
-/* ================= MODAL HEADER ================= */
+/* ================= MODAL STRUCTURE ================= */
 .modal-header {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 16px;
 }
 
-.modal-header.danger {
-  color: #c0392b;
+.modal-section {
+  margin-top: 16px;
 }
 
-/* ================= MODAL FORM ================= */
-#modalBox label {
-  display: block;
-  margin-top: 12px;
+.section-title {
   font-size: 14px;
   font-weight: bold;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+/* ================= FORM GRID ================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid label {
+  font-weight: bold;
+  font-size: 13px;
 }
 
 #modalBox input,
-#modalBox textarea,
 #modalBox select {
   width: 100%;
   padding: 8px 10px;
   margin-top: 6px;
   border-radius: 6px;
   border: 1px solid #bbb;
-  font-size: 14px;
 }
 
-#modalBox textarea {
-  resize: none;
-  min-height: 80px;
+/* ================= INVENTORY MODAL ================= */
+.inventory-modal-box {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.inventory-table {
+  width: 100%;
+}
+
+.inventory-table th {
+  text-align: left;
+}
+
+.qty-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qty-btn {
+  background: #2e3354;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.qty-value {
+  width: 26px;
+  text-align: center;
+  font-weight: bold;
 }
 
 /* ================= MODAL ACTIONS ================= */
@@ -250,229 +261,10 @@ body {
   cursor: pointer;
 }
 
-.btn-danger:hover {
-  opacity: 0.9;
-}
-
 .btn-back {
   background: #ddd;
   border: none;
   padding: 8px 20px;
   border-radius: 20px;
   cursor: pointer;
-}
-
-.btn-back:hover {
-  background: #ccc;
-}
-
-/* ================= MODAL ANIMATION ================= */
-@keyframes modalFade {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* ================= CATEGORY ACTION BUTTONS ================= */
-.action-bar button,
-.category-action-btn {
-  background: #2f3457;
-  color: #fff;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
-  font-weight: bold;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.action-bar button:hover,
-.category-action-btn:hover {
-  background: #3b4066;
-}
-
-.action-bar button:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-/* ================= ICON STYLE ================= */
-.category-action-btn i {
-  font-size: 16px;
-}
-
-/* ================= MODAL CONFIRM BUTTON ================= */
-.modal-actions .btn-confirm {
-  background: #e06780;
-  color: white;
-  border: none;
-  padding: 10px 22px;
-  border-radius: 22px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.modal-actions .btn-confirm:hover {
-  opacity: 0.9;
-}
-
-/* ================= MODAL BACK BUTTON ================= */
-.modal-actions .btn-back {
-  background: #ddd;
-  color: #333;
-  border: none;
-  padding: 10px 22px;
-  border-radius: 22px;
-  cursor: pointer;
-}
-
-.modal-actions .btn-back:hover {
-  background: #ccc;
-}
-
-.qty-btn {
-  background: #2e3354;
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.qty-btn:hover {
-  background: #3b4066;
-}
-
-/* ================= DAILY INVENTORY MODAL ================= */
-
-.inventory-modal-box {
-  max-height: 260px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  margin-top: 6px;
-}
-
-.inventory-table {
-  min-width: unset;
-}
-
-.qty-col {
-  text-align: center;
-  white-space: nowrap;
-}
-
-.qty-value {
-  display: inline-block;
-  width: 32px;
-  text-align: center;
-  font-weight: bold;
-  margin: 0 6px;
-}
-
-.qty-btn {
-  background: #2e3354;
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.qty-btn:hover {
-  background: #3b4066;
-}
-
-/* ================= MODAL FORM GRID ================= */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* Stack on small screens */
-@media (max-width: 520px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ================= MODAL SECTIONS ================= */
-.modal-section {
-  margin-top: 16px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #333;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 4px;
-}
-
-/* ================= INVENTORY MODAL BOX ================= */
-.inventory-modal-box {
-  max-height: 260px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-/* ================= INVENTORY TABLE ================= */
-.inventory-table {
-  min-width: unset;
-}
-
-.inventory-table th,
-.inventory-table td {
-  text-align: left;
-  vertical-align: middle;
-}
-
-/* ================= QTY COLUMN ================= */
-.qty-header {
-  text-align: center;
-}
-
-.qty-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.qty-value {
-  width: 24px;
-  text-align: center;
-  font-weight: bold;
-}
-
-/* ================= VIEW BUTTON ================= */
-.btn-view {
-  background: #2e3354;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.btn-view:hover {
-  background: #3b4066;
 }
