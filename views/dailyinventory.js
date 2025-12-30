@@ -6,6 +6,7 @@ const API_URL =
 
 let inventoryItems = [];
 let quantities = {};
+let dailyInventoryCache = [];
 
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
@@ -44,12 +45,12 @@ export default function loadDailyInventoryView() {
 /* ================= LOAD LIST ================= */
 async function loadDailyInventory() {
   const res = await fetch(API_URL + "?type=dailyInventory");
-  const data = await res.json();
+  dailyInventoryCache = await res.json();
 
   const tbody = document.getElementById("dailyInventoryBody");
   tbody.innerHTML = "";
 
-  if (!data.length) {
+  if (!dailyInventoryCache.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align:center;color:#888;">
@@ -60,18 +61,92 @@ async function loadDailyInventory() {
     return;
   }
 
-  data.forEach((row, i) => {
+  dailyInventoryCache.forEach((row, i) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${row.date}</td>
       <td>${row.dn}</td>
-      <td><button class="btn-view">View</button></td>
+      <td>
+        <button class="btn-view" data-id="${row.daily_id}">
+          View
+        </button>
+      </td>
       <td>${row.location || ""}</td>
       <td>${row.created_by}</td>
     `;
     tbody.appendChild(tr);
   });
+
+  // bind view buttons
+  document.querySelectorAll(".btn-view").forEach(btn => {
+    btn.onclick = () => openViewModal(btn.dataset.id);
+  });
+}
+
+/* ================= VIEW MODAL ================= */
+async function openViewModal(dailyId) {
+  const header = dailyInventoryCache.find(d => d.daily_id === dailyId);
+  if (!header) return;
+
+  const res = await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+  );
+  const items = await res.json();
+
+  const rows = items.length
+    ? items
+        .map(
+          i => `
+        <tr>
+          <td>${i.item_name}</td>
+          <td style="text-align:center;">${i.qty}</td>
+        </tr>
+      `
+        )
+        .join("")
+    : `
+      <tr>
+        <td colspan="2" style="text-align:center;color:#888;">
+          No items
+        </td>
+      </tr>
+    `;
+
+  openModal(`
+    <div class="modal-header">📋 Daily Inventory Details</div>
+
+    <label>Date</label>
+    <input value="${header.date}" disabled>
+
+    <label>DN</label>
+    <input value="${header.dn}" disabled>
+
+    <label>Location</label>
+    <input value="${header.location || ""}" disabled>
+
+    <label>Created By</label>
+    <input value="${header.created_by}" disabled>
+
+    <label>Inventory</label>
+    <div class="inventory-modal-box">
+      <table class="category-table inventory-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th style="width:120px;">Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `);
 }
 
 /* ================= ADD TODAY MODAL ================= */
@@ -133,7 +208,6 @@ async function openAddTodayModal() {
     </div>
   `);
 
-  /* ===== Qty Controls ===== */
   document.querySelectorAll(".qty-btn").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
@@ -147,16 +221,12 @@ async function openAddTodayModal() {
     };
   });
 
-  /* ================= SAVE LOGIC ================= */
   document.getElementById("saveToday").onclick = () => {
     const items = [];
 
     Object.keys(quantities).forEach(id => {
       if (quantities[id] > 0) {
-        items.push({
-          item_id: id,
-          qty: quantities[id]
-        });
+        items.push({ item_id: id, qty: quantities[id] });
       }
     });
 
@@ -168,7 +238,6 @@ async function openAddTodayModal() {
     const location =
       document.getElementById("locationSelect")?.value || "";
 
-    // 🔑 CORS-safe save
     const img = new Image();
     img.src =
       API_URL +
@@ -178,8 +247,6 @@ async function openAddTodayModal() {
       `&items=${encodeURIComponent(JSON.stringify(items))}`;
 
     closeModal();
-
-    // refresh list after save
     setTimeout(loadDailyInventory, 700);
   };
 }
