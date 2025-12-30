@@ -5,23 +5,24 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
+  margin: 0;
 }
 
 body {
-  margin: 0;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
+  overflow: hidden; /* prevent page scroll */
 }
 
 /* ================= TOP BAR ================= */
 .top-bar {
+  height: 56px;
   background: #2f3457;
   color: white;
-  padding: 12px 20px;
+  padding: 0 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .logout-btn {
@@ -33,10 +34,10 @@ body {
   cursor: pointer;
 }
 
-/* ================= LAYOUT ================= */
+/* ================= APP LAYOUT ================= */
 .admin-layout {
-  display: flex;
   height: calc(100vh - 56px);
+  display: flex;
   overflow: hidden;
 }
 
@@ -45,6 +46,7 @@ body {
   width: 220px;
   background: #2e3354;
   padding: 10px;
+  flex-shrink: 0;
 }
 
 .sidebar button {
@@ -65,16 +67,16 @@ body {
   font-weight: bold;
 }
 
-/* ================= CONTENT ================= */
+/* ================= MAIN CONTENT ================= */
 .content {
   flex: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 0; /* CRITICAL */
 }
 
+/* ================= WHITE BOX ================= */
 .content-box {
   background: white;
   border: 1px solid #aaa;
@@ -82,8 +84,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 0; /* CRITICAL */
 }
 
 /* ================= ACTION BAR ================= */
@@ -93,32 +94,32 @@ body {
   padding-bottom: 8px;
   margin-bottom: 10px;
   border-bottom: 1px solid #ccc;
+  flex-shrink: 0;
 }
 
 .category-action-btn {
   background: #2f3457;
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
 }
 
-/* ================= DATA SCROLL ================= */
+/* ================= DATA SCROLL SYSTEM ================= */
 .data-box {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 0; /* CRITICAL */
 }
 
 .data-scroll {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  overflow-y: auto;  /* ✅ ONLY SCROLL HERE */
   overflow-x: auto;
+  min-height: 0;
 }
 
 /* ================= TABLE ================= */
@@ -134,7 +135,6 @@ body {
   font-weight: bold;
   text-align: center;
   padding: 10px;
-  vertical-align: bottom;
 }
 
 .category-table td {
@@ -151,9 +151,9 @@ body {
 .category-table thead th {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 3;
   background: #f3f3f3;
-  box-shadow: 0 1px 0 #ddd;
+  box-shadow: inset 0 -1px 0 #ddd;
 }
 
 /* ================= BUTTONS ================= */
@@ -168,28 +168,31 @@ body {
   margin: 0 4px;
 }
 
-/* ================= MODAL ================= */
+/* ================= MODAL OVERLAY ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  display: none; /* ✅ DEFAULT HIDDEN */
-  justify-content: center;
+  display: none; /* DEFAULT HIDDEN */
   align-items: center;
+  justify-content: center;
   z-index: 9999;
 }
 
-#modalOverlay.hidden {
-  display: none;
+#modalOverlay.active {
+  display: flex;
 }
 
+/* ================= MODAL BOX ================= */
 #modalBox {
   background: white;
   width: 440px;
   max-width: 90%;
+  max-height: 90vh;
   padding: 24px;
   border-radius: 14px;
   box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  overflow-y: auto;
 }
 
 /* ================= MODAL STRUCTURE ================= */
@@ -217,6 +220,11 @@ body {
   gap: 16px;
 }
 
+#modalBox label {
+  font-weight: bold;
+  font-size: 13px;
+}
+
 #modalBox input,
 #modalBox select {
   width: 100%;
@@ -225,7 +233,7 @@ body {
   border: 1px solid #bbb;
 }
 
-/* ================= INVENTORY MODAL ================= */
+/* ================= INVENTORY TABLE IN MODAL ================= */
 .inventory-modal-box {
   max-height: 260px;
   overflow-y: auto;
@@ -233,7 +241,18 @@ body {
   border-radius: 6px;
 }
 
-/* ================= QTY ================= */
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inventory-table th {
+  text-align: left;
+  background: #f3f3f3;
+  padding: 8px;
+}
+
+/* ================= QTY CONTROLS ================= */
 .qty-col {
   display: flex;
   align-items: center;
