@@ -68,10 +68,11 @@ body {
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: 100%;
+  height: calc(100vh - 120px); /* 🔒 LOCK HEIGHT */
   padding: 12px;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 🔒 PREVENT PAGE SPILL */
 }
 
 /* ================= ACTION BAR ================= */
@@ -91,6 +92,21 @@ body {
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
+}
+
+/* ================= DATA SCROLL ================= */
+.data-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.data-scroll {
+  flex: 1;
+  overflow-y: auto; /* ✅ INTERNAL SCROLL */
+  overflow-x: auto;
+  scrollbar-gutter: stable;
 }
 
 /* ================= TABLE ================= */
@@ -120,17 +136,13 @@ body {
   background: #f7f3df;
 }
 
-/* ================= DATA SCROLL ================= */
-.data-box {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-}
-
-.data-scroll {
-  flex: 1;
-  overflow: auto;
+/* ================= STICKY TABLE HEADER ================= */
+.category-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f3f3f3;
+  box-shadow: 0 1px 0 #ddd;
 }
 
 /* ================= VIEW / EDIT BUTTONS ================= */
@@ -221,6 +233,7 @@ body {
   text-align: left;
 }
 
+/* ================= QTY CONTROLS ================= */
 .qty-col {
   display: flex;
   align-items: center;
