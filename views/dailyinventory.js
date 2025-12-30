@@ -74,7 +74,7 @@ async function loadDailyInventory() {
   });
 }
 
-/* ================= ADD TODAY MODAL ================= */
+/* ================= ADD TODAY MODAL (UI ONLY) ================= */
 async function openAddTodayModal() {
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -89,14 +89,14 @@ async function openAddTodayModal() {
   const rows = inventoryItems
     .map(
       item => `
-      <div class="qty-row">
-        <span class="item-name">${item.item_name}</span>
-        <div class="qty-controls">
+      <tr>
+        <td>${item.item_name}</td>
+        <td class="qty-col">
           <button class="qty-btn" data-id="${item.item_id}" data-op="-">−</button>
-          <span id="qty-${item.item_id}">0</span>
+          <span id="qty-${item.item_id}" class="qty-value">0</span>
           <button class="qty-btn" data-id="${item.item_id}" data-op="+">+</button>
-        </div>
-      </div>
+        </td>
+      </tr>
     `
     )
     .join("");
@@ -108,10 +108,23 @@ async function openAddTodayModal() {
     <input value="${today}" disabled>
 
     <label>Location</label>
-    <input id="locationInput" placeholder="(optional)">
+    <select id="locationSelect">
+      <option value="">-- Select location --</option>
+    </select>
 
-    <div class="inventory-list">
-      ${rows}
+    <label>Inventory</label>
+    <div class="inventory-modal-box">
+      <table class="category-table inventory-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th style="width:140px;">Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
     </div>
 
     <div class="modal-actions">
@@ -133,8 +146,7 @@ async function openAddTodayModal() {
     };
   });
 
-  // SAVE LOGIC COMES NEXT STEP
   document.getElementById("saveToday").onclick = () => {
-    alert("UI OK ✅ Next step: save logic");
+    alert("UI approved ✅ Next: save logic");
   };
 }
