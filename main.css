@@ -79,7 +79,8 @@ body {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 🔒 */
+  overflow: hidden;
+  min-height: 0; /* ✅ REQUIRED */
 }
 
 /* ================= ACTION BAR ================= */
@@ -107,15 +108,14 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* 🔑 REQUIRED */
+  min-height: 0; /* ✅ REQUIRED */
 }
 
 .data-scroll {
   flex: 1;
-  min-height: 0; /* 🔑 REQUIRED */
-  overflow-y: auto;
+  min-height: 0;          /* ✅ REQUIRED */
+  overflow-y: auto;       /* ✅ SHOW SCROLLBAR */
   overflow-x: auto;
-  scrollbar-gutter: stable;
 }
 
 /* ================= TABLE ================= */
