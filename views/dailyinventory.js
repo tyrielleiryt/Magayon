@@ -11,7 +11,9 @@ let dailyInventoryCache = [];
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="addTodayBtn" class="category-action-btn">+ Add today's Inventory</button>
+    <button id="addTodayBtn" class="category-action-btn">
+      + Add today's Inventory
+    </button>
   `;
 
   document.getElementById("addTodayBtn").onclick = openAddTodayModal;
@@ -69,7 +71,7 @@ async function loadDailyInventory() {
       <td>${row.dn}</td>
       <td>
         <button class="btn-view" data-id="${row.daily_id}">View</button>
-        <button class="btn-edit" data-id="${row.daily_id}">Edit</button>
+        <button class="btn-view" data-id="${row.daily_id}" data-edit="1">Edit</button>
       </td>
       <td>${row.location || ""}</td>
       <td>${row.created_by}</td>
@@ -78,11 +80,11 @@ async function loadDailyInventory() {
   });
 
   document.querySelectorAll(".btn-view").forEach(btn => {
-    btn.onclick = () => openViewModal(btn.dataset.id);
-  });
-
-  document.querySelectorAll(".btn-edit").forEach(btn => {
-    btn.onclick = () => openEditDailyModal(btn.dataset.id);
+    if (btn.dataset.edit) {
+      btn.onclick = () => openEditDailyModal(btn.dataset.id);
+    } else {
+      btn.onclick = () => openViewModal(btn.dataset.id);
+    }
   });
 }
 
@@ -108,26 +110,29 @@ async function openViewModal(dailyId) {
   openModal(`
     <div class="modal-header">📋 Daily Inventory Details</div>
 
-    <label>Date</label>
-    <input value="${header.date}" disabled>
+    <div class="modal-section">
+      <div class="form-grid">
+        <div>
+          <label>Date</label>
+          <input value="${header.date}" disabled>
+        </div>
+        <div>
+          <label>Location</label>
+          <input value="${header.location || ""}" disabled>
+        </div>
+      </div>
+    </div>
 
-    <label>DN</label>
-    <input value="${header.dn}" disabled>
-
-    <label>Location</label>
-    <input value="${header.location || ""}" disabled>
-
-    <label>Created By</label>
-    <input value="${header.created_by}" disabled>
-
-    <label>Inventory</label>
-    <div class="inventory-modal-box">
-      <table class="category-table inventory-table">
-        <thead>
-          <tr><th>Item</th><th style="width:120px;">Qty</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="modal-section">
+      <div class="section-title">Inventory</div>
+      <div class="inventory-modal-box">
+        <table class="category-table inventory-table">
+          <thead>
+            <tr><th>Item</th><th style="width:120px;">Qty</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -150,43 +155,47 @@ async function openEditDailyModal(dailyId) {
   const existingItems = await itemsRes.json();
 
   quantities = {};
-  existingItems.forEach(i => {
-    quantities[i.item_id] = i.qty;
-  });
+  existingItems.forEach(i => (quantities[i.item_id] = i.qty));
 
-  const rows = inventoryItems.map(item => {
-    const qty = quantities[item.item_id] || 0;
-    return `
-      <tr>
-        <td>${item.item_name}</td>
-        <td class="qty-col">
-          <button class="qty-btn" data-id="${item.item_id}" data-op="-">−</button>
-          <span id="qty-${item.item_id}" class="qty-value">${qty}</span>
-          <button class="qty-btn" data-id="${item.item_id}" data-op="+">+</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
+  const rows = inventoryItems.map(item => `
+    <tr>
+      <td>${item.item_name}</td>
+      <td class="qty-col">
+        <button class="qty-btn" data-id="${item.item_id}" data-op="-">−</button>
+        <span id="qty-${item.item_id}" class="qty-value">${quantities[item.item_id] || 0}</span>
+        <button class="qty-btn" data-id="${item.item_id}" data-op="+">+</button>
+      </td>
+    </tr>
+  `).join("");
 
   openModal(`
     <div class="modal-header">✏️ Edit Daily Inventory</div>
 
-    <label>Date</label>
-    <input value="${header.date}" disabled>
+    <div class="modal-section">
+      <div class="form-grid">
+        <div>
+          <label>Date</label>
+          <input value="${header.date}" disabled>
+        </div>
+        <div>
+          <label>Location</label>
+          <select id="locationSelect">
+            <option value="">-- Select location --</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    <label>Location</label>
-    <select id="locationSelect">
-      <option value="">-- Select location --</option>
-    </select>
-
-    <label>Inventory</label>
-    <div class="inventory-modal-box">
-      <table class="category-table inventory-table">
-        <thead>
-          <tr><th>Item</th><th style="width:140px;">Qty</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="modal-section">
+      <div class="section-title">Inventory</div>
+      <div class="inventory-modal-box">
+        <table class="category-table inventory-table">
+          <thead>
+            <tr><th>Item</th><th style="width:140px;">Qty</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -195,41 +204,9 @@ async function openEditDailyModal(dailyId) {
     </div>
   `);
 
-  document.querySelectorAll(".qty-btn").forEach(btn => {
-    btn.onclick = () => {
-      const id = btn.dataset.id;
-      const op = btn.dataset.op;
-      quantities[id] = quantities[id] || 0;
-      if (op === "+" && quantities[id] < 999) quantities[id]++;
-      if (op === "-" && quantities[id] > 0) quantities[id]--;
-      document.getElementById(`qty-${id}`).textContent = quantities[id];
-    };
-  });
+  bindQtyButtons();
 
-  document.getElementById("saveEditDaily").onclick = () => {
-    const items = Object.keys(quantities)
-      .filter(id => quantities[id] > 0)
-      .map(id => ({ item_id: id, qty: quantities[id] }));
-
-    if (!items.length) {
-      alert("Inventory cannot be empty");
-      return;
-    }
-
-    const location =
-      document.getElementById("locationSelect")?.value || "";
-
-    const img = new Image();
-    img.src =
-      API_URL +
-      `?action=editDailyInventory` +
-      `&daily_id=${dailyId}` +
-      `&location=${encodeURIComponent(location)}` +
-      `&items=${encodeURIComponent(JSON.stringify(items))}`;
-
-    closeModal();
-    setTimeout(loadDailyInventory, 700);
-  };
+  document.getElementById("saveEditDaily").onclick = () => saveDaily(dailyId);
 }
 
 /* ================= ADD TODAY MODAL ================= */
@@ -258,22 +235,31 @@ async function openAddTodayModal() {
   openModal(`
     <div class="modal-header">📦 Add Today's Inventory</div>
 
-    <label>Date</label>
-    <input value="${today}" disabled>
+    <div class="modal-section">
+      <div class="form-grid">
+        <div>
+          <label>Date</label>
+          <input value="${today}" disabled>
+        </div>
+        <div>
+          <label>Location</label>
+          <select id="locationSelect">
+            <option value="">-- Select location --</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    <label>Location</label>
-    <select id="locationSelect">
-      <option value="">-- Select location --</option>
-    </select>
-
-    <label>Inventory</label>
-    <div class="inventory-modal-box">
-      <table class="category-table inventory-table">
-        <thead>
-          <tr><th>Item</th><th style="width:140px;">Qty</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="modal-section">
+      <div class="section-title">Inventory</div>
+      <div class="inventory-modal-box">
+        <table class="category-table inventory-table">
+          <thead>
+            <tr><th>Item</th><th style="width:140px;">Qty</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -282,39 +268,49 @@ async function openAddTodayModal() {
     </div>
   `);
 
+  bindQtyButtons();
+
+  document.getElementById("saveToday").onclick = () => saveDaily();
+}
+
+/* ================= QTY HANDLER ================= */
+function bindQtyButtons() {
   document.querySelectorAll(".qty-btn").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const op = btn.dataset.op;
+
       quantities[id] = quantities[id] || 0;
       if (op === "+" && quantities[id] < 999) quantities[id]++;
       if (op === "-" && quantities[id] > 0) quantities[id]--;
+
       document.getElementById(`qty-${id}`).textContent = quantities[id];
     };
   });
+}
 
-  document.getElementById("saveToday").onclick = () => {
-    const items = Object.keys(quantities)
-      .filter(id => quantities[id] > 0)
-      .map(id => ({ item_id: id, qty: quantities[id] }));
+/* ================= SAVE ================= */
+function saveDaily(editId = null) {
+  const items = Object.keys(quantities)
+    .filter(id => quantities[id] > 0)
+    .map(id => ({ item_id: id, qty: quantities[id] }));
 
-    if (!items.length) {
-      alert("Please enter at least one inventory quantity");
-      return;
-    }
+  if (!items.length) {
+    alert("Please enter at least one inventory quantity");
+    return;
+  }
 
-    const location =
-      document.getElementById("locationSelect")?.value || "";
+  const location = document.getElementById("locationSelect")?.value || "";
 
-    const img = new Image();
-    img.src =
-      API_URL +
-      `?action=addDailyInventory` +
-      `&location=${encodeURIComponent(location)}` +
-      `&created_by=ADMIN` +
-      `&items=${encodeURIComponent(JSON.stringify(items))}`;
+  const img = new Image();
+  img.src =
+    API_URL +
+    `?action=${editId ? "editDailyInventory" : "addDailyInventory"}` +
+    (editId ? `&daily_id=${editId}` : "") +
+    `&location=${encodeURIComponent(location)}` +
+    `&created_by=ADMIN` +
+    `&items=${encodeURIComponent(JSON.stringify(items))}`;
 
-    closeModal();
-    setTimeout(loadDailyInventory, 700);
-  };
+  closeModal();
+  setTimeout(loadDailyInventory, 700);
 }

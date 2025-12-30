@@ -396,3 +396,83 @@ body {
 .qty-btn:hover {
   background: #3b4066;
 }
+
+/* ================= MODAL FORM GRID ================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Stack on small screens */
+@media (max-width: 520px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= MODAL SECTIONS ================= */
+.modal-section {
+  margin-top: 16px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+/* ================= INVENTORY MODAL BOX ================= */
+.inventory-modal-box {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* ================= INVENTORY TABLE ================= */
+.inventory-table {
+  min-width: unset;
+}
+
+.inventory-table th,
+.inventory-table td {
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* ================= QTY COLUMN ================= */
+.qty-header {
+  text-align: center;
+}
+
+.qty-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qty-value {
+  width: 24px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ================= VIEW BUTTON ================= */
+.btn-view {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-view:hover {
+  background: #3b4066;
+}
