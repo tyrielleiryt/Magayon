@@ -74,7 +74,7 @@ async function loadDailyInventory() {
   });
 }
 
-/* ================= ADD TODAY MODAL (UI ONLY) ================= */
+/* ================= ADD TODAY MODAL ================= */
 async function openAddTodayModal() {
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -133,6 +133,7 @@ async function openAddTodayModal() {
     </div>
   `);
 
+  /* ===== Qty Controls ===== */
   document.querySelectorAll(".qty-btn").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
@@ -146,7 +147,39 @@ async function openAddTodayModal() {
     };
   });
 
+  /* ================= SAVE LOGIC ================= */
   document.getElementById("saveToday").onclick = () => {
-    alert("UI approved ✅ Next: save logic");
+    const items = [];
+
+    Object.keys(quantities).forEach(id => {
+      if (quantities[id] > 0) {
+        items.push({
+          item_id: id,
+          qty: quantities[id]
+        });
+      }
+    });
+
+    if (!items.length) {
+      alert("Please enter at least one inventory quantity");
+      return;
+    }
+
+    const location =
+      document.getElementById("locationSelect")?.value || "";
+
+    // 🔑 CORS-safe save
+    const img = new Image();
+    img.src =
+      API_URL +
+      `?action=addDailyInventory` +
+      `&location=${encodeURIComponent(location)}` +
+      `&created_by=ADMIN` +
+      `&items=${encodeURIComponent(JSON.stringify(items))}`;
+
+    closeModal();
+
+    // refresh list after save
+    setTimeout(loadDailyInventory, 700);
   };
 }
