@@ -3,6 +3,11 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden; /* 🔒 prevent page scroll */
+}
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -32,6 +37,7 @@ body {
 .admin-layout {
   display: flex;
   height: calc(100vh - 56px);
+  overflow: hidden; /* 🔒 */
 }
 
 /* ================= SIDEBAR ================= */
@@ -63,16 +69,17 @@ body {
 .content {
   flex: 1;
   padding: 16px;
+  overflow: hidden; /* 🔒 */
 }
 
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: calc(100vh - 120px); /* 🔒 LOCK HEIGHT */
+  height: calc(100vh - 120px);
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 🔒 PREVENT PAGE SPILL */
+  overflow: hidden; /* 🔒 */
 }
 
 /* ================= ACTION BAR ================= */
@@ -100,11 +107,13 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0; /* 🔑 REQUIRED */
 }
 
 .data-scroll {
   flex: 1;
-  overflow-y: auto; /* ✅ INTERNAL SCROLL */
+  min-height: 0; /* 🔑 REQUIRED */
+  overflow-y: auto;
   overflow-x: auto;
   scrollbar-gutter: stable;
 }
