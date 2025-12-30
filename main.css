@@ -3,14 +3,12 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  height: 100%;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
 }
-
-/* ❗ DO NOT lock html/body overflow — breaks modals */
-/* html, body { overflow: hidden; }  ❌ REMOVE */
 
 /* ================= TOP BAR ================= */
 .top-bar {
@@ -66,17 +64,16 @@ body {
 .content {
   flex: 1;
   padding: 16px;
-  overflow: hidden;
 }
 
+/* ⚠️ DO NOT hide overflow here */
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: calc(100vh - 120px);
+  height: 100%;
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /* ================= ACTION BAR ================= */
@@ -98,17 +95,21 @@ body {
   cursor: pointer;
 }
 
-/* ================= DATA SCROLL ================= */
+.category-action-btn:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+/* ================= DATA SCROLL (ONLY SCROLLER) ================= */
 .data-box {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .data-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto;   /* ✅ ONLY scroll here */
   overflow-x: auto;
 }
 
@@ -125,9 +126,6 @@ body {
   font-weight: bold;
   text-align: center;
   padding: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 
 .category-table td {
@@ -138,6 +136,14 @@ body {
 
 .category-table tbody tr:hover {
   background: #f7f3df;
+}
+
+/* Sticky header */
+.category-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f3f3f3;
+  z-index: 2;
 }
 
 /* ================= VIEW / EDIT BUTTONS ================= */
@@ -158,18 +164,16 @@ body {
   inset: 0;
   background: rgba(0,0,0,0.6);
 
-  display: none;                 /* 🔑 hidden by default */
+  display: none;
   align-items: center;
   justify-content: center;
 
   z-index: 9999;
-  pointer-events: none;          /* 🔑 do not block clicks */
 }
 
-/* When modal is OPEN */
+/* JS toggles this */
 #modalOverlay.show {
   display: flex;
-  pointer-events: auto;          /* 🔑 allow interaction */
 }
 
 /* ================= MODAL BOX ================= */
@@ -200,6 +204,7 @@ body {
   font-weight: bold;
   border-bottom: 1px solid #ddd;
   margin-bottom: 8px;
+  padding-bottom: 4px;
 }
 
 /* ================= FORM GRID ================= */
@@ -210,8 +215,8 @@ body {
 }
 
 #modalBox label {
-  font-weight: bold;
   font-size: 13px;
+  font-weight: bold;
 }
 
 #modalBox input,
@@ -234,8 +239,8 @@ body {
 /* ================= QTY CONTROLS ================= */
 .qty-col {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
