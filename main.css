@@ -157,15 +157,19 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  display: none;               /* default hidden */
+
+  display: none;                 /* 🔑 hidden by default */
   align-items: center;
   justify-content: center;
+
   z-index: 9999;
+  pointer-events: none;          /* 🔑 do not block clicks */
 }
 
-/* Your existing JS toggles display → KEEP THIS */
+/* When modal is OPEN */
 #modalOverlay.show {
   display: flex;
+  pointer-events: auto;          /* 🔑 allow interaction */
 }
 
 /* ================= MODAL BOX ================= */
