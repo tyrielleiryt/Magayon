@@ -4,7 +4,8 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= ENTRY ================= */
+let productsCache = [];
+
 export default function loadProductsView() {
   document.getElementById("actionBar").innerHTML = `
     <button id="addProductBtn" class="category-action-btn">
@@ -14,7 +15,8 @@ export default function loadProductsView() {
 
   document.getElementById("addProductBtn").onclick = openAddProductModal;
 
-  document.getElementById("contentBox").innerHTML = `
+  const contentBox = document.getElementById("contentBox");
+  contentBox.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
         <table class="category-table product-table">
@@ -22,39 +24,75 @@ export default function loadProductsView() {
             <tr>
               <th>#</th>
               <th>Product Name</th>
-              <th>Category</th>
+              <th>Category ID</th>
               <th>Price</th>
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="productsBody">
-            <tr>
-              <td colspan="5" style="color:#888;text-align:center;">
-                No products yet
-              </td>
-            </tr>
-          </tbody>
+          <tbody id="productsBody"></tbody>
         </table>
       </div>
     </div>
   `;
 
-  bindDataBoxScroll(document.querySelector(".data-box"));
+  bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  loadProducts();
 }
 
-/* ================= ADD PRODUCT MODAL ================= */
+/* ================= LOAD PRODUCTS ================= */
+async function loadProducts() {
+  const res = await fetch(API_URL + "?type=products");
+  productsCache = await res.json();
+
+  const tbody = document.getElementById("productsBody");
+  tbody.innerHTML = "";
+
+  if (!productsCache.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="color:#888;text-align:center;">
+          No products yet
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  productsCache.forEach((p, i) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.product_name}</td>
+        <td>${p.category_id}</td>
+        <td>${p.price}</td>
+        <td>
+          <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
+          <button class="btn-delete" onclick="deleteProduct(${i})">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
   openModal(`
     <div class="modal-header">Add Product</div>
 
+    <label>Product Code</label>
+    <input id="productCode">
+
     <label>Product Name</label>
     <input id="productName">
 
-    <label>Category</label>
+    <label>Category ID</label>
     <input id="productCategory">
 
     <label>Price</label>
-    <input type="number" id="productPrice">
+    <input id="productPrice" type="number">
+
+    <label>Image URL</label>
+    <input id="productImage">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -63,8 +101,35 @@ function openAddProductModal() {
   `);
 }
 
-/* ================= SAVE (UI ONLY FOR NOW) ================= */
+/* ================= SAVE PRODUCT ================= */
 window.saveProduct = () => {
-  alert("Product saved (backend not wired yet)");
+  const code = document.getElementById("productCode").value.trim();
+  const name = document.getElementById("productName").value.trim();
+  const categoryId = document.getElementById("productCategory").value.trim();
+  const price = document.getElementById("productPrice").value;
+  const image = document.getElementById("productImage").value.trim();
+
+  if (!name) return alert("Product name required");
+
+  new Image().src =
+    API_URL +
+    `?action=addProduct` +
+    `&product_code=${encodeURIComponent(code)}` +
+    `&product_name=${encodeURIComponent(name)}` +
+    `&category_id=${encodeURIComponent(categoryId)}` +
+    `&price=${encodeURIComponent(price)}` +
+    `&image_url=${encodeURIComponent(image)}` +
+    `&active=true`;
+
   closeModal();
+  setTimeout(loadProducts, 600);
+};
+
+/* ================= PLACEHOLDERS ================= */
+window.editProduct = i => {
+  alert("Edit product — next step");
+};
+
+window.deleteProduct = i => {
+  alert("Delete product — next step");
 };
