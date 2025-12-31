@@ -32,9 +32,12 @@ export default async function loadProductsView() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Product Code</th>
               <th>Product Name</th>
               <th>Category</th>
+              <th>Description</th>
               <th>Price</th>
+              <th>Image</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -61,7 +64,7 @@ async function loadProducts() {
   if (!productsCache.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="color:#888;text-align:center;">
+        <td colspan="8" style="color:#888;text-align:center;">
           No products yet
         </td>
       </tr>
@@ -75,9 +78,18 @@ async function loadProducts() {
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
+        <td>${p.product_code || ""}</td>
         <td>${p.product_name}</td>
         <td>${cat ? cat.category_name : p.category_id}</td>
+        <td>${p.description || ""}</td>
         <td>${Number(p.price).toFixed(2)}</td>
+        <td>
+          ${
+            p.image_url
+              ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">`
+              : "-"
+          }
+        </td>
         <td>
           <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
           <button class="btn-delete" onclick="deleteProduct(${i})">Delete</button>
@@ -92,9 +104,7 @@ function openAddProductModal() {
   uploadedImageUrl = "";
 
   const categoryOptions = categoriesCache
-    .map(
-      c => `<option value="${c.category_id}">${c.category_name}</option>`
-    )
+    .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
     .join("");
 
   openModal(`
@@ -112,12 +122,16 @@ function openAddProductModal() {
       ${categoryOptions}
     </select>
 
+    <label>Description</label>
+    <textarea id="productDescription"></textarea>
+
     <label>Price</label>
     <input id="productPrice" type="number" step="0.01">
 
     <label>Image</label>
     <input type="file" id="imageInput" accept="image/*">
-    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
+    <img id="imagePreview"
+         style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -165,6 +179,7 @@ window.saveProduct = () => {
   const code = document.getElementById("productCode").value.trim();
   const name = document.getElementById("productName").value.trim();
   const categoryId = document.getElementById("productCategory").value;
+  const description = document.getElementById("productDescription").value.trim();
   const price = document.getElementById("productPrice").value;
 
   if (!name) return alert("Product name required");
@@ -176,6 +191,7 @@ window.saveProduct = () => {
     `&product_code=${encodeURIComponent(code)}` +
     `&product_name=${encodeURIComponent(name)}` +
     `&category_id=${encodeURIComponent(categoryId)}` +
+    `&description=${encodeURIComponent(description)}` +
     `&price=${encodeURIComponent(price)}` +
     `&image_url=${encodeURIComponent(uploadedImageUrl)}` +
     `&active=true`;
