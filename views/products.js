@@ -5,8 +5,16 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 let productsCache = [];
+let categoriesCache = [];
 
-export default function loadProductsView() {
+/* ================= LOAD CATEGORIES ================= */
+async function loadCategories() {
+  const res = await fetch(API_URL + "?type=categories");
+  categoriesCache = await res.json();
+}
+
+/* ================= ENTRY ================= */
+export default async function loadProductsView() {
   document.getElementById("actionBar").innerHTML = `
     <button id="addProductBtn" class="category-action-btn">
       + Add Product
@@ -24,7 +32,7 @@ export default function loadProductsView() {
             <tr>
               <th>#</th>
               <th>Product Name</th>
-              <th>Category ID</th>
+              <th>Category</th>
               <th>Price</th>
               <th>Actions</th>
             </tr>
@@ -36,6 +44,8 @@ export default function loadProductsView() {
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
+
+  await loadCategories();   // ✅ REQUIRED
   loadProducts();
 }
 
@@ -59,12 +69,14 @@ async function loadProducts() {
   }
 
   productsCache.forEach((p, i) => {
+    const cat = categoriesCache.find(c => c.category_id === p.category_id);
+
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${p.product_name}</td>
-        <td>${p.category_id}</td>
-        <td>${p.price}</td>
+        <td>${cat ? cat.category_name : p.category_id}</td>
+        <td>${Number(p.price).toFixed(2)}</td>
         <td>
           <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
           <button class="btn-delete" onclick="deleteProduct(${i})">Delete</button>
@@ -76,6 +88,12 @@ async function loadProducts() {
 
 /* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
+  const categoryOptions = categoriesCache
+    .map(
+      c => `<option value="${c.category_id}">${c.category_name}</option>`
+    )
+    .join("");
+
   openModal(`
     <div class="modal-header">Add Product</div>
 
@@ -85,11 +103,14 @@ function openAddProductModal() {
     <label>Product Name</label>
     <input id="productName">
 
-    <label>Category ID</label>
-    <input id="productCategory">
+    <label>Category</label>
+    <select id="productCategory">
+      <option value="">-- Select Category --</option>
+      ${categoryOptions}
+    </select>
 
     <label>Price</label>
-    <input id="productPrice" type="number">
+    <input id="productPrice" type="number" step="0.01">
 
     <label>Image URL</label>
     <input id="productImage">
@@ -105,11 +126,12 @@ function openAddProductModal() {
 window.saveProduct = () => {
   const code = document.getElementById("productCode").value.trim();
   const name = document.getElementById("productName").value.trim();
-  const categoryId = document.getElementById("productCategory").value.trim();
+  const categoryId = document.getElementById("productCategory").value;
   const price = document.getElementById("productPrice").value;
   const image = document.getElementById("productImage").value.trim();
 
   if (!name) return alert("Product name required");
+  if (!categoryId) return alert("Please select a category");
 
   new Image().src =
     API_URL +
