@@ -5,7 +5,6 @@
 
 html, body {
   margin: 0;
-  height: 100%;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
 }
@@ -66,7 +65,7 @@ html, body {
   padding: 16px;
 }
 
-/* ORIGINAL BEHAVIOR – DO NOT HIDE OVERFLOW */
+/* DO NOT hide overflow here */
 .content-box {
   background: white;
   border: 1px solid #aaa;
@@ -95,7 +94,7 @@ html, body {
   cursor: pointer;
 }
 
-/* ================= DATA SCROLL (SAFE VERSION) ================= */
+/* ================= DATA SCROLL (ONLY SCROLLER) ================= */
 .data-box {
   flex: 1;
   display: flex;
@@ -104,7 +103,7 @@ html, body {
 
 .data-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto;   /* ✅ scroll here */
   overflow-x: auto;
 }
 
@@ -145,29 +144,36 @@ html, body {
   margin: 0 4px;
 }
 
-/* ================= MODAL OVERLAY ================= */
+/* ================= MODAL OVERLAY (CRITICAL) ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  display: flex;
+
+  display: flex;              /* MUST be flex */
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+
+  z-index: 99999;             /* ABOVE EVERYTHING */
 }
 
+/* modal.js toggles this */
 #modalOverlay.hidden {
   display: none;
 }
 
-/* ================= MODAL BOX (ORIGINAL LOOK) ================= */
+/* ================= MODAL BOX ================= */
 #modalBox {
   background: #ffffff;
   width: 420px;
   max-width: 90%;
+  max-height: 90vh;
+
   padding: 24px;
   border-radius: 14px;
   box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+
+  overflow-y: auto;           /* internal scroll if needed */
 }
 
 /* ================= MODAL HEADER ================= */
