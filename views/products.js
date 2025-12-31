@@ -2,12 +2,12 @@ import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
 /* ================= URLs ================= */
-const API_URL =
+const API_GET_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ⚠️ REPLACE THIS WITH YOUR OWN googleusercontent URL */
+/* 🔴 REPLACE WITH YOUR ACTUAL googleusercontent URL */
 const UPLOAD_URL =
-  "https://script.googleusercontent.com/macros/echo?user_content_key=PASTE_YOURS_HERE";
+  "https://script.googleusercontent.com/macros/echo";
 
 /* ================= STATE ================= */
 let productsCache = [];
@@ -16,7 +16,7 @@ let uploadedImageUrl = "";
 
 /* ================= LOAD CATEGORIES ================= */
 async function loadCategories() {
-  const res = await fetch(API_URL + "?type=categories");
+  const res = await fetch(API_GET_URL + "?type=categories");
   categoriesCache = await res.json();
 }
 
@@ -61,7 +61,7 @@ export default async function loadProductsView() {
 
 /* ================= LOAD PRODUCTS ================= */
 async function loadProducts() {
-  const res = await fetch(API_URL + "?type=products");
+  const res = await fetch(API_GET_URL + "?type=products");
   productsCache = await res.json();
 
   const tbody = document.getElementById("productsBody");
@@ -90,22 +90,18 @@ async function loadProducts() {
         <td>${p.description || ""}</td>
         <td>${Number(p.price).toFixed(2)}</td>
         <td>
-          ${
-            p.image_url
-              ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">`
-              : "-"
-          }
+          ${p.image_url ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">` : "-"}
         </td>
         <td>
-          <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
-          <button class="btn-delete" onclick="deleteProduct(${i})">Delete</button>
+          <button class="btn-edit">Edit</button>
+          <button class="btn-delete">Delete</button>
         </td>
       </tr>
     `;
   });
 }
 
-/* ================= ADD PRODUCT MODAL ================= */
+/* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
   uploadedImageUrl = "";
 
@@ -136,8 +132,7 @@ function openAddProductModal() {
 
     <label>Image</label>
     <input type="file" id="imageInput" accept="image/*">
-    <img id="imagePreview"
-         style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
+    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -148,21 +143,17 @@ function openAddProductModal() {
   document.getElementById("imageInput").onchange = uploadImage;
 }
 
-/* ================= IMAGE UPLOAD (✅ FINAL & WORKING) ================= */
+/* ================= IMAGE UPLOAD (WORKING) ================= */
 async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-
   reader.onload = async () => {
     const base64 = reader.result.split(",")[1];
 
     const res = await fetch(UPLOAD_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": file.type
-      },
       body: base64
     });
 
@@ -196,7 +187,7 @@ window.saveProduct = () => {
   if (!categoryId) return alert("Please select a category");
 
   new Image().src =
-    API_URL +
+    API_GET_URL +
     `?action=addProduct` +
     `&product_code=${encodeURIComponent(code)}` +
     `&product_name=${encodeURIComponent(name)}` +
@@ -209,7 +200,3 @@ window.saveProduct = () => {
   closeModal();
   setTimeout(loadProducts, 600);
 };
-
-/* ================= PLACEHOLDERS ================= */
-window.editProduct = () => alert("Edit product — next step");
-window.deleteProduct = () => alert("Delete product — next step");
