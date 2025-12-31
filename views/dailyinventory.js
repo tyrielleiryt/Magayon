@@ -7,6 +7,7 @@ const API_URL =
 let inventoryItems = [];
 let quantities = {};
 let dailyInventoryCache = [];
+let editDailyId = null; // 🔑 TRACK EDIT MODE
 
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
@@ -16,7 +17,7 @@ export default function loadDailyInventoryView() {
     </button>
   `;
 
-  document.getElementById("addTodayBtn").onclick = openAddTodayModal;
+  document.getElementById("addTodayBtn").onclick = () => openAddEditModal();
 
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
@@ -64,8 +65,8 @@ async function loadDailyInventory() {
         <td>${row.date}</td>
         <td>${row.dn}</td>
         <td>
-          <button class="btn-view" onclick="view('${row.daily_id}')">View</button>
-          <button class="btn-view" onclick="edit('${row.daily_id}')">Edit</button>
+          <button class="btn-view" onclick="viewDaily('${row.daily_id}')">View</button>
+          <button class="btn-view" onclick="editDaily('${row.daily_id}')">Edit</button>
         </td>
         <td>${row.location || ""}</td>
         <td>${row.created_by}</td>
@@ -75,9 +76,11 @@ async function loadDailyInventory() {
 }
 
 /* ================= VIEW ================= */
-window.view = async dailyId => {
+window.viewDaily = async dailyId => {
   const header = dailyInventoryCache.find(d => d.daily_id === dailyId);
-  const res = await fetch(API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`);
+  const res = await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+  );
   const items = await res.json();
 
   openModal(`
@@ -95,7 +98,10 @@ window.view = async dailyId => {
       <div class="inventory-modal-box">
         <table class="inventory-table">
           ${items.map(i => `
-            <tr><td>${i.item_name}</td><td style="text-align:center">${i.qty}</td></tr>
+            <tr>
+              <td>${i.item_name}</td>
+              <td style="text-align:center">${i.qty}</td>
+            </tr>
           `).join("")}
         </table>
       </div>
@@ -107,23 +113,52 @@ window.view = async dailyId => {
   `);
 };
 
-/* ================= EDIT / ADD ================= */
-window.edit = openAddTodayModal;
+/* ================= EDIT ================= */
+window.editDaily = async dailyId => {
+  editDailyId = dailyId;
 
-/* ================= ADD TODAY ================= */
-async function openAddTodayModal() {
-  const today = new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
+  const header = dailyInventoryCache.find(d => d.daily_id === dailyId);
 
   inventoryItems = await (await fetch(API_URL + "?type=inventoryItems")).json();
+  const existing = await (await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+  )).json();
+
   quantities = {};
+  existing.forEach(i => (quantities[i.item_id] = i.qty));
+
+  openAddEditModal(header);
+};
+
+/* ================= ADD / EDIT MODAL ================= */
+async function openAddEditModal(header = null) {
+  const today = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
+  if (!inventoryItems.length) {
+    inventoryItems = await (await fetch(API_URL + "?type=inventoryItems")).json();
+  }
 
   openModal(`
-    <div class="modal-header">Add Today's Inventory</div>
+    <div class="modal-header">
+      ${editDailyId ? "Edit Daily Inventory" : "Add Today's Inventory"}
+    </div>
 
     <div class="modal-section">
       <div class="form-grid">
-        <div><label>Date</label><input value="${today}" disabled></div>
-        <div><label>Location</label><select id="locationSelect"></select></div>
+        <div>
+          <label>Date</label>
+          <input value="${header ? header.date : today}" disabled>
+        </div>
+        <div>
+          <label>Location</label>
+          <select id="locationSelect">
+            <option value="">-- Select location --</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -136,7 +171,7 @@ async function openAddTodayModal() {
               <td>${i.item_name}</td>
               <td class="qty-col">
                 <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
-                <span id="q-${i.item_id}" class="qty-value">0</span>
+                <span id="q-${i.item_id}" class="qty-value">${quantities[i.item_id] || 0}</span>
                 <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
               </td>
             </tr>
@@ -146,10 +181,14 @@ async function openAddTodayModal() {
     </div>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="save()">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" onclick="saveDaily()">Save</button>
+      <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
   `);
+
+  if (header?.location) {
+    document.getElementById("locationSelect").value = header.location;
+  }
 }
 
 /* ================= HELPERS ================= */
@@ -158,17 +197,40 @@ window.chg = (id, d) => {
   document.getElementById(`q-${id}`).textContent = quantities[id];
 };
 
-window.save = () => {
-  const items = Object.entries(quantities)
-    .filter(([,q]) => q > 0)
-    .map(([id,qty]) => ({ item_id:id, qty }));
-
-  if (!items.length) return alert("No inventory entered");
-
-  new Image().src =
-    API_URL +
-    `?action=addDailyInventory&items=${encodeURIComponent(JSON.stringify(items))}`;
-
+window.cancelDaily = () => {
+  editDailyId = null;
+  quantities = {};
   closeModal();
-  setTimeout(loadDailyInventory, 600);
+};
+
+/* ================= SAVE (ADD OR EDIT) ================= */
+window.saveDaily = () => {
+  const items = Object.entries(quantities)
+    .filter(([, q]) => q > 0)
+    .map(([item_id, qty]) => ({ item_id, qty }));
+
+  if (!items.length) {
+    alert("No inventory entered");
+    return;
+  }
+
+  const location = document.getElementById("locationSelect")?.value || "";
+
+  let url =
+    API_URL +
+    `?action=${editDailyId ? "editDailyInventory" : "addDailyInventory"}` +
+    `&location=${encodeURIComponent(location)}` +
+    `&created_by=ADMIN` +
+    `&items=${encodeURIComponent(JSON.stringify(items))}`;
+
+  // 🔑 THIS LINE PREVENTS NEW RECORD CREATION
+  if (editDailyId) {
+    url += `&daily_id=${editDailyId}`;
+  }
+
+  new Image().src = url;
+
+  editDailyId = null;
+  closeModal();
+  setTimeout(loadDailyInventory, 700);
 };
