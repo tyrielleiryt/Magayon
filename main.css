@@ -249,3 +249,12 @@ html, body {
   text-align: center;
   font-weight: bold;
 }
+
+.product-table tbody tr {
+  cursor: pointer;
+}
+
+.product-table tbody tr.selected {
+  background: #f3c84b;
+  font-weight: bold;
+}
