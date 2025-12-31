@@ -32,6 +32,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 import loadCategoriesView from "./views/categories.js";
 import loadInventoryItemsView from "./views/inventoryitems.js";
 import loadDailyInventoryView from "./views/dailyinventory.js";
+import loadProductsView from "./views/products.js"; // ✅ ADD THIS
 
 const navButtons = document.querySelectorAll(".nav-btn");
 const actionBar = document.getElementById("actionBar");
@@ -52,15 +53,23 @@ navButtons.forEach(btn => {
           <p>If you see this, JS is working.</p>
         `;
         break;
+
       case "categories":
         loadCategoriesView();
         break;
+
       case "inventory":
         loadInventoryItemsView();
         break;
+
       case "dailyInventory":
         loadDailyInventoryView();
         break;
+
+      case "products":                 // ✅ ADD THIS
+        loadProductsView();
+        break;
+
       default:
         contentBox.innerHTML = `<h2>Coming soon…</h2>`;
     }
