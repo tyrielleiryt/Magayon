@@ -142,19 +142,26 @@ function openAddProductModal() {
   document.getElementById("imageInput").onchange = uploadImage;
 }
 
-/* ================= IMAGE UPLOAD ================= */
+/* ================= IMAGE UPLOAD (✅ FIXED) ================= */
 async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
+
   reader.onload = async () => {
     const base64 = reader.result.split(",")[1];
 
+    const body =
+      `file=${encodeURIComponent(base64)}` +
+      `&type=${encodeURIComponent(file.type)}`;
+
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": file.type },
-      body: base64
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
     });
 
     const data = await res.json();
