@@ -7,7 +7,7 @@ const API_GET_URL =
 
 /* 🔴 REPLACE WITH YOUR ACTUAL googleusercontent URL */
 const UPLOAD_URL =
-  "https://script.googleusercontent.com/macros/echo";
+  "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiYvhqVLo7bFZkb5xSNUOtP08zqeGAADLqX4bpGYAs4Lg9kjNcM1i1U5-vT-zC_yaRvdShr2g_6kRfTPL_E8PPnAHrYJdIu3emJt8nainRx1BUzTXrHnd2wG3Qs1EIxgdR3rNshL5qX9SBLUoDLPX6un1DE-4BYkfkG-gMMLzlDXS-82k8qWBdPsUkJfuYYfcVH55l8EFAsjlWDxLvCwybYSbEpiAZCFybPlIgIE2KK3M2HCzn0W7dyJCUaJclDrwOrINn4WpMCMKa_PjBv5y2qSItigLHk0dhCXTF93WWbHMLuvjc&lib=MJrHeO5UOtvZjUj-Ywv-pGGXl3gJVnX-m";
 
 /* ================= STATE ================= */
 let productsCache = [];
