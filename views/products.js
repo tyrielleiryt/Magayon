@@ -6,6 +6,7 @@ const API_URL =
 
 let productsCache = [];
 let categoriesCache = [];
+let uploadedImageUrl = "";
 
 /* ================= LOAD CATEGORIES ================= */
 async function loadCategories() {
@@ -45,7 +46,7 @@ export default async function loadProductsView() {
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 
-  await loadCategories();   // ✅ REQUIRED
+  await loadCategories();
   loadProducts();
 }
 
@@ -88,6 +89,8 @@ async function loadProducts() {
 
 /* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
+  uploadedImageUrl = "";
+
   const categoryOptions = categoriesCache
     .map(
       c => `<option value="${c.category_id}">${c.category_name}</option>`
@@ -112,14 +115,49 @@ function openAddProductModal() {
     <label>Price</label>
     <input id="productPrice" type="number" step="0.01">
 
-    <label>Image URL</label>
-    <input id="productImage">
+    <label>Image</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
+
+  document.getElementById("imageInput").onchange = uploadImage;
+}
+
+/* ================= IMAGE UPLOAD ================= */
+async function uploadImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result.split(",")[1];
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: base64
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Image upload failed");
+      return;
+    }
+
+    uploadedImageUrl = data.image_url;
+
+    const img = document.getElementById("imagePreview");
+    img.src = uploadedImageUrl;
+    img.style.display = "block";
+  };
+
+  reader.readAsDataURL(file);
 }
 
 /* ================= SAVE PRODUCT ================= */
@@ -128,7 +166,6 @@ window.saveProduct = () => {
   const name = document.getElementById("productName").value.trim();
   const categoryId = document.getElementById("productCategory").value;
   const price = document.getElementById("productPrice").value;
-  const image = document.getElementById("productImage").value.trim();
 
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
@@ -140,7 +177,7 @@ window.saveProduct = () => {
     `&product_name=${encodeURIComponent(name)}` +
     `&category_id=${encodeURIComponent(categoryId)}` +
     `&price=${encodeURIComponent(price)}` +
-    `&image_url=${encodeURIComponent(image)}` +
+    `&image_url=${encodeURIComponent(uploadedImageUrl)}` +
     `&active=true`;
 
   closeModal();
