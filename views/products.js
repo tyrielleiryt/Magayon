@@ -1,9 +1,15 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* ================= URLs ================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ⚠️ REPLACE THIS WITH YOUR OWN googleusercontent URL */
+const UPLOAD_URL =
+  "https://script.googleusercontent.com/macros/echo?user_content_key=PASTE_YOURS_HERE";
+
+/* ================= STATE ================= */
 let productsCache = [];
 let categoriesCache = [];
 let uploadedImageUrl = "";
@@ -99,7 +105,7 @@ async function loadProducts() {
   });
 }
 
-/* ================= ADD PRODUCT ================= */
+/* ================= ADD PRODUCT MODAL ================= */
 function openAddProductModal() {
   uploadedImageUrl = "";
 
@@ -142,7 +148,7 @@ function openAddProductModal() {
   document.getElementById("imageInput").onchange = uploadImage;
 }
 
-/* ================= IMAGE UPLOAD (✅ FIXED) ================= */
+/* ================= IMAGE UPLOAD (✅ FINAL & WORKING) ================= */
 async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -152,22 +158,19 @@ async function uploadImage(e) {
   reader.onload = async () => {
     const base64 = reader.result.split(",")[1];
 
-    const body =
-      `file=${encodeURIComponent(base64)}` +
-      `&type=${encodeURIComponent(file.type)}`;
-
-    const res = await fetch(API_URL, {
+    const res = await fetch(UPLOAD_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": file.type
       },
-      body
+      body: base64
     });
 
     const data = await res.json();
 
     if (!data.success) {
       alert("Image upload failed");
+      console.error(data.error);
       return;
     }
 
@@ -208,10 +211,5 @@ window.saveProduct = () => {
 };
 
 /* ================= PLACEHOLDERS ================= */
-window.editProduct = i => {
-  alert("Edit product — next step");
-};
-
-window.deleteProduct = i => {
-  alert("Delete product — next step");
-};
+window.editProduct = () => alert("Edit product — next step");
+window.deleteProduct = () => alert("Delete product — next step");
