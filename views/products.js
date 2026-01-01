@@ -158,13 +158,13 @@ async function uploadImage(e) {
   const reader = new FileReader();
 
   reader.onload = async () => {
-    const base64 = reader.result.split(",")[1];
-
     try {
-      const res = await fetch(UPLOAD_URL, {
+      const base64 = reader.result.split(",")[1];
+
+      const res = await fetch(API_GET_URL, {
         method: "POST",
         headers: {
-          "Content-Type": file.type
+          "Content-Type": "text/plain"
         },
         body: base64
       });
