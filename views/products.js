@@ -65,7 +65,7 @@ async function loadProducts() {
   if (!productsCache.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align:center;color:#888">
+        <td colspan="8" style="text-align:center;color:#888;">
           No products yet
         </td>
       </tr>
@@ -87,7 +87,18 @@ async function loadProducts() {
         <td>
           ${
             p.image_url
-              ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">`
+              ? `<img
+                   src="${p.image_url}"
+                   style="
+                     height:40px;
+                     width:40px;
+                     object-fit:cover;
+                     border-radius:6px;
+                     border:1px solid #ddd;
+                     cursor:pointer;
+                   "
+                   onclick="window.open('${p.image_url}', '_blank')"
+                 >`
               : "-"
           }
         </td>
@@ -129,7 +140,14 @@ function openAddProductModal() {
 
     <label>Image URL</label>
     <input id="productImageUrl" placeholder="https://drive.google.com/uc?id=...">
-    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
+    <img id="imagePreview"
+         style="
+           margin-top:10px;
+           max-width:100%;
+           display:none;
+           border-radius:6px;
+           border:1px solid #ddd;
+         ">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -137,11 +155,29 @@ function openAddProductModal() {
     </div>
   `);
 
-  document.getElementById("productImageUrl").oninput = e => {
-    const img = document.getElementById("imagePreview");
-    img.src = e.target.value;
-    img.style.display = e.target.value ? "block" : "none";
-  };
+  /* ===== SAFE IMAGE PREVIEW ===== */
+  const imageInput = document.getElementById("productImageUrl");
+  const previewImg = document.getElementById("imagePreview");
+
+  imageInput.addEventListener("input", e => {
+    const url = e.target.value.trim();
+
+    if (!url) {
+      previewImg.style.display = "none";
+      previewImg.src = "";
+      return;
+    }
+
+    previewImg.onload = () => {
+      previewImg.style.display = "block";
+    };
+
+    previewImg.onerror = () => {
+      previewImg.style.display = "none";
+    };
+
+    previewImg.src = url;
+  });
 }
 
 /* ================= SAVE PRODUCT ================= */
