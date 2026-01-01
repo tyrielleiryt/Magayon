@@ -94,11 +94,11 @@ async function loadProducts() {
                      width:40px;
                      object-fit:cover;
                      border-radius:6px;
-                     border:1px solid #ddd;
+                     border:1px solid #ccc;
                      cursor:pointer;
                    "
                    onclick="window.open('${p.image_url}', '_blank')"
-                 >`
+                 />`
               : "-"
           }
         </td>
@@ -140,13 +140,15 @@ function openAddProductModal() {
 
     <label>Image URL</label>
     <input id="productImageUrl" placeholder="https://drive.google.com/uc?id=...">
+
     <img id="imagePreview"
          style="
            margin-top:10px;
            max-width:100%;
+           max-height:200px;
            display:none;
            border-radius:6px;
-           border:1px solid #ddd;
+           border:1px solid #ccc;
          ">
 
     <div class="modal-actions">
@@ -155,28 +157,29 @@ function openAddProductModal() {
     </div>
   `);
 
-  /* ===== SAFE IMAGE PREVIEW ===== */
-  const imageInput = document.getElementById("productImageUrl");
-  const previewImg = document.getElementById("imagePreview");
+  /* ===== LIVE PREVIEW (FIXED) ===== */
+  const input = document.getElementById("productImageUrl");
+  const preview = document.getElementById("imagePreview");
 
-  imageInput.addEventListener("input", e => {
-    const url = e.target.value.trim();
+  input.addEventListener("input", () => {
+    const url = input.value.trim();
 
     if (!url) {
-      previewImg.style.display = "none";
-      previewImg.src = "";
+      preview.style.display = "none";
+      preview.src = "";
       return;
     }
 
-    previewImg.onload = () => {
-      previewImg.style.display = "block";
+    const testImg = new Image();
+    testImg.onload = () => {
+      preview.src = url;
+      preview.style.display = "block";
+    };
+    testImg.onerror = () => {
+      preview.style.display = "none";
     };
 
-    previewImg.onerror = () => {
-      previewImg.style.display = "none";
-    };
-
-    previewImg.src = url;
+    testImg.src = url;
   });
 }
 
