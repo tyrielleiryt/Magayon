@@ -1,13 +1,9 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
-/* ================= URLs ================= */
-const API_GET_URL =
+/* ================= API URL ================= */
+const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
-
-/* 🔴 REPLACE WITH YOUR ACTUAL googleusercontent URL */
-const UPLOAD_URL =
-  "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLjsflMCaBM-BKlNAc2T0FiiWCLbohao1EbirSKvF6boGC6AaTcrVRaeISFVNwD1N7FsAxvW-UwOS_SVHCkECvLUWaV4Mdo33zq6qyBvnR0JE7RzqoHotsMUUpmHTFF761aKSBt9DoYRA4KPosOwKDoWPg6qN3JfsgdqU8UxbVurhnAJ6D2ReOo6Wrpo6a0FzRykFydQy-liN4oZkTkH3K-ymmNOndnWUqsv_luIPGN2jCQo4T3cTKCryr2HqCkJfDIDyHqRYlCHwrMZ8C-TfXWJgGQHYw&lib=MJrHeO5UOtvZjUj-Ywv-pGGXl3gJVnX-m";
 
 /* ================= STATE ================= */
 let productsCache = [];
@@ -16,7 +12,7 @@ let uploadedImageUrl = "";
 
 /* ================= LOAD CATEGORIES ================= */
 async function loadCategories() {
-  const res = await fetch(API_GET_URL + "?type=categories");
+  const res = await fetch(API_URL + "?type=categories");
   categoriesCache = await res.json();
 }
 
@@ -61,7 +57,7 @@ export default async function loadProductsView() {
 
 /* ================= LOAD PRODUCTS ================= */
 async function loadProducts() {
-  const res = await fetch(API_GET_URL + "?type=products");
+  const res = await fetch(API_URL + "?type=products");
   productsCache = await res.json();
 
   const tbody = document.getElementById("productsBody");
@@ -90,7 +86,11 @@ async function loadProducts() {
         <td>${p.description || ""}</td>
         <td>${Number(p.price).toFixed(2)}</td>
         <td>
-          ${p.image_url ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">` : "-"}
+          ${
+            p.image_url
+              ? `<img src="${p.image_url}" style="height:40px;border-radius:6px;">`
+              : "-"
+          }
         </td>
         <td>
           <button class="btn-edit">Edit</button>
@@ -101,7 +101,7 @@ async function loadProducts() {
   });
 }
 
-/* ================= ADD PRODUCT ================= */
+/* ================= ADD PRODUCT MODAL ================= */
 function openAddProductModal() {
   uploadedImageUrl = "";
 
@@ -132,7 +132,10 @@ function openAddProductModal() {
 
     <label>Image</label>
     <input type="file" id="imageInput" accept="image/*">
-    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
+    <img
+      id="imagePreview"
+      style="margin-top:10px;max-width:100%;display:none;border-radius:6px;"
+    >
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -143,18 +146,18 @@ function openAddProductModal() {
   document.getElementById("imageInput").onchange = uploadImage;
 }
 
-/* ================= IMAGE UPLOAD (WORKING) ================= */
+/* ================= IMAGE UPLOAD (FINAL & WORKING) ================= */
 async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const base64 = reader.result.split(",")[1];
+  const formData = new FormData();
+  formData.append("file", file);
 
-    const res = await fetch(UPLOAD_URL, {
+  try {
+    const res = await fetch(API_URL, {
       method: "POST",
-      body: base64
+      body: formData
     });
 
     const data = await res.json();
@@ -170,9 +173,11 @@ async function uploadImage(e) {
     const img = document.getElementById("imagePreview");
     img.src = uploadedImageUrl;
     img.style.display = "block";
-  };
 
-  reader.readAsDataURL(file);
+  } catch (err) {
+    alert("Upload error");
+    console.error(err);
+  }
 }
 
 /* ================= SAVE PRODUCT ================= */
@@ -186,8 +191,9 @@ window.saveProduct = () => {
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
 
+  // GET request used to bypass CORS (intentional)
   new Image().src =
-    API_GET_URL +
+    API_URL +
     `?action=addProduct` +
     `&product_code=${encodeURIComponent(code)}` +
     `&product_name=${encodeURIComponent(name)}` +
@@ -200,3 +206,7 @@ window.saveProduct = () => {
   closeModal();
   setTimeout(loadProducts, 600);
 };
+
+/* ================= PLACEHOLDERS ================= */
+window.editProduct = () => alert("Edit product — next step");
+window.deleteProduct = () => alert("Delete product — next step");
