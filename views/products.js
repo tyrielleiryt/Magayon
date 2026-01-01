@@ -1,20 +1,13 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
-/* ================= URLs ================= */
-
-// GET / ADD PRODUCT (JSON)
+/* ================= API ================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
-
-// 🔴 POST IMAGE UPLOAD (googleusercontent URL ONLY)
-const UPLOAD_URL =
-  "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgbj-4SCbTpGgcBPUY9ylZXh-clicaeS8DA4CihicRSwKDNigUqQXYlkWi4Dkr1iKMHsYRmAvfK8hqOJDrLwOQ0jU-E2F1bApTnp-mWD1K_15f9zg3bOnEoSqfpBq6_1FkgsvQMgqM5pGAZ2X6hUe1h0y1wC1tbjf_kdt61dCcv0fuIjEJbZ_EBRSOWu4pO9nI_QvtjVruGnEMz0oq6Yb7Td315bIlF45u4jUJre666Vlp3VMZV9gzc9qqbrOiqpjYf6qC8A_4T07xNMaj3BK-F7tpvtg&lib=MJrHeO5UOtvZjUj-Ywv-pGGXl3gJVnX-m";
 
 /* ================= STATE ================= */
 let productsCache = [];
 let categoriesCache = [];
-let uploadedImageUrl = "";
 
 /* ================= LOAD CATEGORIES ================= */
 async function loadCategories() {
@@ -72,7 +65,7 @@ async function loadProducts() {
   if (!productsCache.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align:center;color:#888;">
+        <td colspan="8" style="text-align:center;color:#888">
           No products yet
         </td>
       </tr>
@@ -109,8 +102,6 @@ async function loadProducts() {
 
 /* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
-  uploadedImageUrl = "";
-
   const categoryOptions = categoriesCache
     .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
     .join("");
@@ -136,10 +127,9 @@ function openAddProductModal() {
     <label>Price</label>
     <input id="productPrice" type="number" step="0.01">
 
-    <label>Image</label>
-    <input type="file" id="imageInput" accept="image/*">
-    <img id="imagePreview"
-         style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
+    <label>Image URL</label>
+    <input id="productImageUrl" placeholder="https://drive.google.com/uc?id=...">
+    <img id="imagePreview" style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -147,49 +137,11 @@ function openAddProductModal() {
     </div>
   `);
 
-  document.getElementById("imageInput").onchange = uploadImage;
-}
-
-/* ================= IMAGE UPLOAD (FINAL) ================= */
-async function uploadImage(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = async () => {
-    try {
-      const base64 = reader.result.split(",")[1];
-
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain"
-        },
-        body: base64
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        alert("Image upload failed");
-        console.error(data.error);
-        return;
-      }
-
-      uploadedImageUrl = data.image_url;
-
-      const img = document.getElementById("imagePreview");
-      img.src = uploadedImageUrl;
-      img.style.display = "block";
-
-    } catch (err) {
-      alert("Upload error");
-      console.error(err);
-    }
+  document.getElementById("productImageUrl").oninput = e => {
+    const img = document.getElementById("imagePreview");
+    img.src = e.target.value;
+    img.style.display = e.target.value ? "block" : "none";
   };
-
-  reader.readAsDataURL(file);
 }
 
 /* ================= SAVE PRODUCT ================= */
@@ -199,6 +151,7 @@ window.saveProduct = () => {
   const categoryId = document.getElementById("productCategory").value;
   const description = document.getElementById("productDescription").value.trim();
   const price = document.getElementById("productPrice").value;
+  const imageUrl = document.getElementById("productImageUrl").value.trim();
 
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
@@ -211,7 +164,7 @@ window.saveProduct = () => {
     `&category_id=${encodeURIComponent(categoryId)}` +
     `&description=${encodeURIComponent(description)}` +
     `&price=${encodeURIComponent(price)}` +
-    `&image_url=${encodeURIComponent(uploadedImageUrl)}` +
+    `&image_url=${encodeURIComponent(imageUrl)}` +
     `&active=true`;
 
   closeModal();
