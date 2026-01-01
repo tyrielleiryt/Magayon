@@ -155,33 +155,41 @@ async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+  const reader = new FileReader();
 
-  try {
-    const res = await fetch(UPLOAD_URL, {
-      method: "POST",
-      body: formData
-    });
+  reader.onload = async () => {
+    const base64 = reader.result.split(",")[1];
 
-    const data = await res.json();
+    try {
+      const res = await fetch(UPLOAD_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type
+        },
+        body: base64
+      });
 
-    if (!data.success) {
-      alert("Image upload failed");
-      console.error(data.error);
-      return;
+      const data = await res.json();
+
+      if (!data.success) {
+        alert("Image upload failed");
+        console.error(data.error);
+        return;
+      }
+
+      uploadedImageUrl = data.image_url;
+
+      const img = document.getElementById("imagePreview");
+      img.src = uploadedImageUrl;
+      img.style.display = "block";
+
+    } catch (err) {
+      alert("Upload error");
+      console.error(err);
     }
+  };
 
-    uploadedImageUrl = data.image_url;
-
-    const img = document.getElementById("imagePreview");
-    img.src = uploadedImageUrl;
-    img.style.display = "block";
-
-  } catch (err) {
-    alert("Upload error");
-    console.error(err);
-  }
+  reader.readAsDataURL(file);
 }
 
 /* ================= SAVE PRODUCT ================= */
