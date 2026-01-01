@@ -161,7 +161,7 @@ async function uploadImage(e) {
     try {
       const base64 = reader.result.split(",")[1];
 
-      const res = await fetch(API_GET_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "text/plain"
