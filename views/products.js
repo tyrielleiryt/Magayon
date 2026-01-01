@@ -9,7 +9,7 @@ const API_URL =
 
 // 🔴 POST IMAGE UPLOAD (googleusercontent URL ONLY)
 const UPLOAD_URL =
-  "https://script.googleusercontent.com/macros/echo?user_content_key=PASTE_YOUR_KEY_HERE";
+  "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgbj-4SCbTpGgcBPUY9ylZXh-clicaeS8DA4CihicRSwKDNigUqQXYlkWi4Dkr1iKMHsYRmAvfK8hqOJDrLwOQ0jU-E2F1bApTnp-mWD1K_15f9zg3bOnEoSqfpBq6_1FkgsvQMgqM5pGAZ2X6hUe1h0y1wC1tbjf_kdt61dCcv0fuIjEJbZ_EBRSOWu4pO9nI_QvtjVruGnEMz0oq6Yb7Td315bIlF45u4jUJre666Vlp3VMZV9gzc9qqbrOiqpjYf6qC8A_4T07xNMaj3BK-F7tpvtg&lib=MJrHeO5UOtvZjUj-Ywv-pGGXl3gJVnX-m";
 
 /* ================= STATE ================= */
 let productsCache = [];
