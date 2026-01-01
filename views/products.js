@@ -1,9 +1,15 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
-/* ================= API URL ================= */
+/* ================= URLs ================= */
+
+// GET / ADD PRODUCT (JSON)
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
+// 🔴 POST IMAGE UPLOAD (googleusercontent URL ONLY)
+const UPLOAD_URL =
+  "https://script.googleusercontent.com/macros/echo?user_content_key=PASTE_YOUR_KEY_HERE";
 
 /* ================= STATE ================= */
 let productsCache = [];
@@ -66,7 +72,7 @@ async function loadProducts() {
   if (!productsCache.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="color:#888;text-align:center;">
+        <td colspan="8" style="text-align:center;color:#888;">
           No products yet
         </td>
       </tr>
@@ -101,7 +107,7 @@ async function loadProducts() {
   });
 }
 
-/* ================= ADD PRODUCT MODAL ================= */
+/* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
   uploadedImageUrl = "";
 
@@ -132,10 +138,8 @@ function openAddProductModal() {
 
     <label>Image</label>
     <input type="file" id="imageInput" accept="image/*">
-    <img
-      id="imagePreview"
-      style="margin-top:10px;max-width:100%;display:none;border-radius:6px;"
-    >
+    <img id="imagePreview"
+         style="margin-top:10px;max-width:100%;display:none;border-radius:6px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -146,7 +150,7 @@ function openAddProductModal() {
   document.getElementById("imageInput").onchange = uploadImage;
 }
 
-/* ================= IMAGE UPLOAD (FINAL & WORKING) ================= */
+/* ================= IMAGE UPLOAD (FINAL) ================= */
 async function uploadImage(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -155,7 +159,7 @@ async function uploadImage(e) {
   formData.append("file", file);
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(UPLOAD_URL, {
       method: "POST",
       body: formData
     });
@@ -191,7 +195,6 @@ window.saveProduct = () => {
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
 
-  // GET request used to bypass CORS (intentional)
   new Image().src =
     API_URL +
     `?action=addProduct` +
@@ -206,7 +209,3 @@ window.saveProduct = () => {
   closeModal();
   setTimeout(loadProducts, 600);
 };
-
-/* ================= PLACEHOLDERS ================= */
-window.editProduct = () => alert("Edit product — next step");
-window.deleteProduct = () => alert("Delete product — next step");
