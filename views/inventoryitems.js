@@ -177,6 +177,12 @@ function openAddItemModal() {
     <label>Description</label>
     <textarea id="itemDesc"></textarea>
 
+    <label>Quantity per Serving</label>
+    <input type="number" id="itemQtyServing">
+
+    <label>Unit (e.g. g, ml, pcs)</label>
+    <input id="itemUnit">
+
     <label>Capital</label>
     <input type="number" id="itemCap">
 
@@ -196,7 +202,9 @@ function openAddItemModal() {
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
       `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}`;
+      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
+      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
+      `&unit=${encodeURIComponent(itemUnit.value)}`;
 
     closeModal();
     setTimeout(loadInventoryItems, 500);
@@ -215,6 +223,12 @@ function openEditItemModal() {
 
     <label>Description</label>
     <textarea id="itemDesc">${selected.description || ""}</textarea>
+
+    <label>Quantity per Serving</label>
+    <input type="number" id="itemQtyServing" value="${selected.quantity_per_serving || ""}">
+
+    <label>Unit (e.g. g, ml, pcs)</label>
+    <input id="itemUnit" value="${selected.unit || ""}">
 
     <label>Capital</label>
     <input type="number" id="itemCap" value="${selected.capital}">
@@ -236,7 +250,9 @@ function openEditItemModal() {
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
       `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}`;
+      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
+      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
+      `&unit=${encodeURIComponent(itemUnit.value)}`;
 
     closeModal();
     setTimeout(loadInventoryItems, 500);
