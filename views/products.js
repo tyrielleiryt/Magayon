@@ -9,33 +9,54 @@ const API_URL =
 let productsCache = [];
 let categoriesCache = [];
 
+/* ================= JSONP ================= */
+function jsonp(url, callbackName) {
+  return new Promise(resolve => {
+    window[callbackName] = data => resolve(data);
+    const s = document.createElement("script");
+    s.src = `${url}&callback=${callbackName}`;
+    document.body.appendChild(s);
+  });
+}
+
 /* ================= HELPERS ================= */
 function normalizeDriveImageUrl(url) {
   if (!url) return "";
   if (url.includes("drive.google.com/uc?id=")) return url;
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/uc?id=${match[1]}` : "";
+
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return "";
+
+  return `https://drive.google.com/uc?id=${m[1]}`;
 }
 
-/* ================= LOAD CATEGORIES ================= */
+/* ================= LOADERS ================= */
 async function loadCategories() {
-  const res = await fetch(API_URL + "?type=categories");
-  categoriesCache = await res.json();
+  categoriesCache = await jsonp(
+    API_URL + "?type=categories",
+    "cbCategories"
+  );
+}
+
+async function loadProducts() {
+  productsCache = await jsonp(
+    API_URL + "?type=products",
+    "cbProducts"
+  );
+  renderProducts();
 }
 
 /* ================= ENTRY ================= */
 export default async function loadProductsView() {
-  document.getElementById("actionBar").innerHTML = `
-    <button id="addProductBtn" class="category-action-btn">+ Add Product</button>
-  `;
+  document.getElementById("actionBar").innerHTML =
+    `<button class="category-action-btn" id="addProductBtn">+ Add Product</button>`;
 
   document.getElementById("addProductBtn").onclick = openAddProductModal;
 
-  const contentBox = document.getElementById("contentBox");
-  contentBox.innerHTML = `
+  document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
-        <table class="category-table product-table">
+        <table class="category-table">
           <thead>
             <tr>
               <th>#</th>
@@ -53,18 +74,26 @@ export default async function loadProductsView() {
     </div>
   `;
 
-  bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  bindDataBoxScroll(document.querySelector(".data-box"));
+
   await loadCategories();
-  loadProducts();
+  await loadProducts();
 }
 
-/* ================= LOAD PRODUCTS ================= */
-async function loadProducts() {
-  const res = await fetch(API_URL + "?type=products");
-  productsCache = await res.json();
-
+/* ================= RENDER ================= */
+function renderProducts() {
   const tbody = document.getElementById("productsBody");
   tbody.innerHTML = "";
+
+  if (!productsCache.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;color:#888">
+          No products yet
+        </td>
+      </tr>`;
+    return;
+  }
 
   productsCache.forEach((p, i) => {
     const cat = categoriesCache.find(c => c.category_id === p.category_id);
@@ -78,14 +107,10 @@ async function loadProducts() {
         <td>${cat ? cat.category_name : "-"}</td>
         <td>${Number(p.price).toFixed(2)}</td>
         <td>
-          ${
-            img
-              ? `<a href="${img}" target="_blank" class="btn-preview">👁 Preview</a>`
-              : `<span style="color:#aaa">No image</span>`
-          }
+          ${img ? `<a href="${img}" target="_blank" class="btn-preview">👁 Preview</a>` : "—"}
         </td>
         <td>
-          <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
+          <button class="btn-edit">Edit</button>
         </td>
       </tr>
     `;
@@ -94,90 +119,70 @@ async function loadProducts() {
 
 /* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
-  openProductModal("Add Product", {}, saveProduct);
-}
-
-/* ================= EDIT PRODUCT ================= */
-window.editProduct = index => {
-  openProductModal("Edit Product", productsCache[index], updateProduct);
-};
-
-/* ================= MODAL SHARED ================= */
-function openProductModal(title, p, onSave) {
-  const options = categoriesCache
-    .map(c =>
-      `<option value="${c.category_id}" ${c.category_id === p.category_id ? "selected" : ""}>
-        ${c.category_name}
-      </option>`
-    ).join("");
+  const categoryOptions = categoriesCache
+    .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
+    .join("");
 
   openModal(`
-    <div class="modal-header">${title}</div>
+    <div class="modal-header">Add Product</div>
 
-    <label>Code</label>
-    <input id="code" value="${p.product_code || ""}">
+    <label>Product Code</label>
+    <input id="productCode">
 
-    <label>Name</label>
-    <input id="name" value="${p.product_name || ""}">
+    <label>Product Name</label>
+    <input id="productName">
 
     <label>Category</label>
-    <select id="category">${options}</select>
-
-    <label>Description</label>
-    <textarea id="desc">${p.description || ""}</textarea>
+    <select id="productCategory">
+      <option value="">-- Select --</option>
+      ${categoryOptions}
+    </select>
 
     <label>Price</label>
-    <input id="price" type="number" step="0.01" value="${p.price || 0}">
+    <input id="productPrice" type="number">
 
     <label>Image URL</label>
-    <input id="image" value="${p.image_url || ""}">
+    <input id="productImageUrl" placeholder="Paste Google Drive image link">
 
-    <button id="previewBtn" class="btn-preview" style="display:none">👁 Preview Image</button>
+    <button id="previewBtn" class="btn-preview" style="display:none">
+      👁 Preview Image
+    </button>
 
     <div class="modal-actions">
-      <button class="btn-danger" id="saveBtn">Save</button>
+      <button class="btn-danger" onclick="saveProduct()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
-  const imgInput = document.getElementById("image");
-  const previewBtn = document.getElementById("previewBtn");
+  const input = document.getElementById("productImageUrl");
+  const btn = document.getElementById("previewBtn");
 
-  const refresh = () => {
-    const url = normalizeDriveImageUrl(imgInput.value);
-    if (!url) return (previewBtn.style.display = "none");
-    previewBtn.style.display = "inline-flex";
-    previewBtn.onclick = () => window.open(url, "_blank");
+  input.oninput = () => {
+    const url = normalizeDriveImageUrl(input.value.trim());
+    if (!url) {
+      btn.style.display = "none";
+      return;
+    }
+    btn.style.display = "inline-flex";
+    btn.onclick = () => window.open(url, "_blank");
   };
-
-  imgInput.addEventListener("input", refresh);
-  refresh();
-
-  document.getElementById("saveBtn").onclick = () => onSave(p?.rowIndex);
 }
 
 /* ================= SAVE ================= */
-function saveProduct() {
-  submitProduct("addProduct");
-}
+window.saveProduct = () => {
+  const img = normalizeDriveImageUrl(
+    document.getElementById("productImageUrl").value.trim()
+  );
 
-function updateProduct(rowIndex) {
-  submitProduct("editProduct", rowIndex);
-}
+  new Image().src =
+    API_URL +
+    `?action=addProduct` +
+    `&product_code=${encodeURIComponent(document.getElementById("productCode").value)}` +
+    `&product_name=${encodeURIComponent(document.getElementById("productName").value)}` +
+    `&category_id=${encodeURIComponent(document.getElementById("productCategory").value)}` +
+    `&price=${encodeURIComponent(document.getElementById("productPrice").value)}` +
+    `&image_url=${encodeURIComponent(img)}`;
 
-function submitProduct(action, rowIndex) {
-  const params = new URLSearchParams({
-    action,
-    rowIndex,
-    product_code: document.getElementById("code").value,
-    product_name: document.getElementById("name").value,
-    category_id: document.getElementById("category").value,
-    description: document.getElementById("desc").value,
-    price: document.getElementById("price").value,
-    image_url: normalizeDriveImageUrl(document.getElementById("image").value)
-  });
-
-  new Image().src = `${API_URL}?${params.toString()}`;
   closeModal();
   setTimeout(loadProducts, 500);
-}
+};
