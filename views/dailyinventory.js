@@ -58,20 +58,25 @@ export default function loadDailyInventoryView() {
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <input id="searchDate" placeholder="Search date (e.g. December)" />
-    <input id="searchLocation" placeholder="Search location" />
-    <button id="addTodayBtn" class="category-action-btn">+ Add Today's Inventory</button>
+    <input id="searchDateInput" placeholder="Search date (e.g. December)" />
+    <input id="searchLocationInput" placeholder="Search location" />
+    <button id="addTodayBtn" class="category-action-btn">
+      + Add Today's Inventory
+    </button>
   `;
 
   document.getElementById("addTodayBtn").onclick = () => openAddEditModal();
 
-  searchDate.oninput = e => {
+  const dateInput = document.getElementById("searchDateInput");
+  const locationInput = document.getElementById("searchLocationInput");
+
+  dateInput.oninput = e => {
     searchDate = e.target.value.toLowerCase();
     currentPage = 1;
     renderTable();
   };
 
-  searchLocation.oninput = e => {
+  locationInput.oninput = e => {
     searchLocation = e.target.value.toLowerCase();
     currentPage = 1;
     renderTable();
@@ -171,7 +176,9 @@ async function openAddEditModal(header = null) {
   }
 
   openModal(`
-    <div class="modal-header">${editDailyId ? "Edit" : "Add"} Daily Inventory</div>
+    <div class="modal-header">
+      ${editDailyId ? "Edit Daily Inventory" : "Add Today's Inventory"}
+    </div>
 
     <label>Date</label>
     <input value="${header ? formatDate(header.date) : formatDate(new Date())}" disabled>
@@ -179,26 +186,45 @@ async function openAddEditModal(header = null) {
     <label>Location</label>
     <input id="locationSelect" value="${header?.location || ""}">
 
-    <table class="inventory-table">
-      ${inventoryItems.map(i => `
-        <tr>
-          <td>${i.item_name}</td>
-          <td>
-            <button onclick="chg('${i.item_id}',-1)">−</button>
-            <span id="q-${i.item_id}">${quantities[i.item_id] || 0}</span>
-            <button onclick="chg('${i.item_id}',1)">+</button>
+    <div style="margin:16px 0;font-weight:bold;border-bottom:1px solid #ddd">
+      📦 Inventory Items
+    </div>
 
-            <div style="font-size:12px">
-              Total: <b><span id="t-${i.item_id}">0</span></b><br>
-              Capital: ₱<b><span id="c-${i.item_id}">0.00</span></b>
-            </div>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
+    <div class="inventory-modal-box" style="max-height:280px;overflow:auto">
+      <table class="inventory-table" style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f3f3f3">
+            <th style="text-align:left;padding:6px">Item</th>
+            <th style="text-align:center">Qty</th>
+            <th style="text-align:center">Total</th>
+            <th style="text-align:right">Capital</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${inventoryItems.map(i => `
+            <tr>
+              <td>${i.item_name}</td>
+              <td style="text-align:center">
+                <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
+                <span id="q-${i.item_id}" style="margin:0 6px">
+                  ${quantities[i.item_id] || 0}
+                </span>
+                <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
+              </td>
+              <td style="text-align:center">
+                <span id="t-${i.item_id}">0</span>
+              </td>
+              <td style="text-align:right">
+                ₱<span id="c-${i.item_id}">0.00</span>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="saveDaily()">Save</button>
+      <button class="btn-danger" onclick="saveDaily()">Save Inventory</button>
       <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
   `);
