@@ -5,21 +5,17 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 /* ================= STATE ================= */
-let dailyInventoryCache = [];
-let dailyItemsCache = [];
+let dailyHeaders = [];
 let inventoryItems = [];
 let quantities = {};
 let editDailyId = null;
 
 let currentPage = 1;
 const PAGE_SIZE = 10;
-let searchDate = "";
-let searchLocation = "";
 
 /* ================= HELPERS ================= */
 function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric"
@@ -29,30 +25,7 @@ function formatDate(dateStr) {
 function isToday(dateStr) {
   const d = new Date(dateStr);
   const t = new Date();
-  return (
-    d.getFullYear() === t.getFullYear() &&
-    d.getMonth() === t.getMonth() &&
-    d.getDate() === t.getDate()
-  );
-}
-
-/* 🔢 Compute totals PER DAILY INVENTORY */
-function getTotalsByInventoryId(id) {
-  const rows = dailyItemsCache.filter(r => r.inventory_id === id);
-
-  let capital = 0;
-  let earnings = 0;
-
-  rows.forEach(r => {
-    capital += Number(r.capital) || 0;
-    earnings += Number(r.earnings) || 0;
-  });
-
-  return {
-    capital,
-    earnings,
-    profit: earnings - capital
-  };
+  return d.toDateString() === t.toDateString();
 }
 
 /* ================= ENTRY ================= */
@@ -77,7 +50,6 @@ export default function loadDailyInventoryView() {
           <tbody id="dailyInventoryBody"></tbody>
         </table>
       </div>
-      <div id="pagination" style="padding:10px;text-align:center;"></div>
     </div>
   `;
 
@@ -88,126 +60,89 @@ export default function loadDailyInventoryView() {
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <input id="searchDateInput" placeholder="Search date (e.g. December)" />
-    <input id="searchLocationInput" placeholder="Search location" />
-
     <button class="category-action-btn" id="addTodayBtn">
       + Add Today's Inventory
     </button>
-
-    <button class="category-action-btn" id="exportExcelBtn">
-      ⬇ Export Excel
-    </button>
-
-    <button class="category-action-btn" id="exportPdfBtn">
-      📄 Export PDF
-    </button>
   `;
 
-  searchDateInput.oninput = e => {
-    searchDate = e.target.value.toLowerCase();
-    currentPage = 1;
-    renderTable();
-  };
-
-  searchLocationInput.oninput = e => {
-    searchLocation = e.target.value.toLowerCase();
-    currentPage = 1;
-    renderTable();
-  };
-
   addTodayBtn.onclick = () => openAddEditModal();
-  exportExcelBtn.onclick = exportToExcel;
-  exportPdfBtn.onclick = () => window.print();
 }
 
 /* ================= LOAD ================= */
 async function loadDailyInventory() {
-  const [headers, items] = await Promise.all([
-    fetch(API_URL + "?type=dailyInventory").then(r => r.json()),
-    fetch(API_URL + "?type=dailyInventoryItems").then(r => r.json())
-  ]);
-
-  dailyInventoryCache = headers;
-  dailyItemsCache = items;
+  dailyHeaders = await fetch(
+    API_URL + "?type=dailyInventory"
+  ).then(r => r.json());
 
   renderTable();
 }
 
 /* ================= TABLE ================= */
-function renderTable() {
+async function renderTable() {
   const tbody = document.getElementById("dailyInventoryBody");
-  const pagination = document.getElementById("pagination");
-
   tbody.innerHTML = "";
-  pagination.innerHTML = "";
 
-  const filtered = dailyInventoryCache.filter(r =>
-    formatDate(r.date).toLowerCase().includes(searchDate) &&
-    (r.location || "").toLowerCase().includes(searchLocation)
-  );
-
-  if (!filtered.length) {
+  if (!dailyHeaders.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align:center;color:#888">
-          No daily inventory found
+          No daily inventory yet
         </td>
       </tr>`;
     return;
   }
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const start = (currentPage - 1) * PAGE_SIZE;
+  for (let i = 0; i < dailyHeaders.length; i++) {
+    const h = dailyHeaders[i];
+    const canEdit = isToday(h.date);
 
-  filtered.slice(start, start + PAGE_SIZE).forEach((r, i) => {
-    const canEdit = isToday(r.date);
-    const t = getTotalsByInventoryId(r.daily_id);
+    const items = await fetch(
+      API_URL + `?type=dailyInventoryItems&daily_id=${h.daily_id}`
+    ).then(r => r.json());
+
+    let capital = 0;
+    let earnings = 0;
+
+    items.forEach(it => {
+      capital += Number(it.capital) || 0;
+      earnings += Number(it.earnings) || 0;
+    });
+
+    const profit = earnings - capital;
 
     tbody.innerHTML += `
       <tr>
-        <td>${start + i + 1}</td>
-        <td>${formatDate(r.date)}</td>
-        <td>${r.dn}</td>
-
+        <td>${i + 1}</td>
+        <td>${formatDate(h.date)}</td>
+        <td>${h.dn}</td>
         <td>
-          <button class="btn-view" onclick="viewDaily('${r.daily_id}')">View</button>
+          <button class="btn-view" onclick="viewDaily('${h.daily_id}')">View</button>
           <button class="btn-edit" ${!canEdit ? "disabled" : ""}
-            onclick="editDaily('${r.daily_id}')">Edit</button>
-          <button class="btn-delete" ${!canEdit ? "disabled" : ""}
-            onclick="deleteDaily('${r.daily_id}')">Delete</button>
+            onclick="editDaily('${h.daily_id}')">Edit</button>
         </td>
-
-        <td>₱${t.capital.toFixed(2)}</td>
-        <td>₱${t.earnings.toFixed(2)}</td>
-        <td style="font-weight:bold;color:${t.profit >= 0 ? "#1b8f3c" : "#c0392b"}">
-          ₱${t.profit.toFixed(2)}
+        <td>₱${capital.toFixed(2)}</td>
+        <td>₱${earnings.toFixed(2)}</td>
+        <td style="font-weight:bold;color:${profit >= 0 ? "#1b8f3c" : "#c0392b"}">
+          ₱${profit.toFixed(2)}
         </td>
       </tr>
     `;
-  });
-
-  for (let i = 1; i <= totalPages; i++) {
-    const b = document.createElement("button");
-    b.textContent = i;
-    b.className = "btn-view";
-    if (i === currentPage) b.style.background = "#f3c84b";
-    b.onclick = () => {
-      currentPage = i;
-      renderTable();
-    };
-    pagination.appendChild(b);
   }
 }
 
 /* ================= VIEW ================= */
 window.viewDaily = async id => {
-  const header = dailyInventoryCache.find(d => d.daily_id === id);
-  const items = dailyItemsCache.filter(i => i.inventory_id === id);
+  const header = dailyHeaders.find(d => d.daily_id === id);
+  const items = await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${id}`
+  ).then(r => r.json());
 
-  const inventory = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+  const inventory = await fetch(
+    API_URL + "?type=inventoryItems"
+  ).then(r => r.json());
+
   const map = {};
-  inventory.forEach(i => map[i.item_id] = i.item_name);
+  inventory.forEach(i => (map[i.item_id] = i.item_name));
 
   openModal(`
     <div class="modal-header">Daily Inventory</div>
@@ -230,10 +165,10 @@ window.viewDaily = async id => {
       <tbody>
         ${items.map(i => `
           <tr>
-            <td>${map[i.item_id] || "Unknown Item"}</td>
+            <td>${map[i.item_id]}</td>
             <td>${i.qty}</td>
             <td>${i.total}</td>
-            <td>₱${Number(i.earnings).toFixed(2)}</td>
+            <td>₱${Number(i.capital).toFixed(2)}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -245,18 +180,99 @@ window.viewDaily = async id => {
   `);
 };
 
-/* ================= EXPORT ================= */
-function exportToExcel() {
-  let csv = "Date,DN,Capital,Earnings,Profit,Location\n";
+/* ================= EDIT ================= */
+window.editDaily = async id => {
+  editDailyId = id;
+  quantities = {};
 
-  dailyInventoryCache.forEach(r => {
-    const t = getTotalsByInventoryId(r.daily_id);
-    csv += `"${formatDate(r.date)}","${r.dn}",${t.capital},${t.earnings},${t.profit},"${r.location || ""}"\n`;
+  inventoryItems = await fetch(
+    API_URL + "?type=inventoryItems"
+  ).then(r => r.json());
+
+  const existing = await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${id}`
+  ).then(r => r.json());
+
+  existing.forEach(i => {
+    quantities[i.item_id] = i.qty;
   });
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "daily_inventory.csv";
-  a.click();
+  openAddEditModal();
+};
+
+/* ================= ADD / EDIT MODAL ================= */
+async function openAddEditModal() {
+  if (!inventoryItems.length) {
+    inventoryItems = await fetch(
+      API_URL + "?type=inventoryItems"
+    ).then(r => r.json());
+  }
+
+  openModal(`
+    <div class="modal-header">
+      ${editDailyId ? "Edit Daily Inventory" : "Add Today's Inventory"}
+    </div>
+
+    <table class="inventory-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${inventoryItems.map(i => `
+          <tr>
+            <td>${i.item_name}</td>
+            <td>
+              <button onclick="chg('${i.item_id}',-1)">−</button>
+              <span id="q-${i.item_id}">${quantities[i.item_id] || 0}</span>
+              <button onclick="chg('${i.item_id}',1)">+</button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="saveDaily()">Save</button>
+      <button class="btn-back" onclick="cancelDaily()">Cancel</button>
+    </div>
+  `);
 }
+
+/* ================= QTY ================= */
+window.chg = (id, d) => {
+  quantities[id] = Math.max(0, (quantities[id] || 0) + d);
+  document.getElementById(`q-${id}`).textContent = quantities[id];
+};
+
+/* ================= SAVE ================= */
+window.saveDaily = () => {
+  const items = Object.entries(quantities)
+    .filter(([, q]) => q > 0)
+    .map(([id, qty]) => ({ item_id: id, qty }));
+
+  if (!items.length) return alert("No inventory entered");
+
+  let url =
+    API_URL +
+    `?action=${editDailyId ? "editDailyInventory" : "addDailyInventory"}` +
+    `&created_by=ADMIN` +
+    `&items=${encodeURIComponent(JSON.stringify(items))}`;
+
+  if (editDailyId) url += `&daily_id=${editDailyId}`;
+
+  new Image().src = url;
+
+  editDailyId = null;
+  quantities = {};
+  closeModal();
+  setTimeout(loadDailyInventory, 700);
+};
+
+window.cancelDaily = () => {
+  editDailyId = null;
+  quantities = {};
+  closeModal();
+};
