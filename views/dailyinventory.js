@@ -320,32 +320,41 @@ async function openAddEditModal(header = null) {
 /* ================= CALCULATIONS ================= */
 window.chg = (id, d) => {
   quantities[id] = Math.max(0, (quantities[id] || 0) + d);
+
   const item = inventoryItems.find(i => i.item_id === id);
   if (!item) return;
 
   const qty = quantities[id];
-  const total = qty * (Number(item.quantity_per_serving) || 0);
-  const capital = total * (Number(item.capital) || 0);
+
+  // ✅ CORRECT calculations
+  const totalQty = qty * Number(item.quantity_per_serving || 0);
+  const totalCapital = qty * Number(item.capital || 0);
+  const totalEarnings = qty * Number(item.selling_price || 0);
 
   document.getElementById(`q-${id}`).textContent = qty;
-  document.getElementById(`t-${id}`).textContent = total;
-  document.getElementById(`c-${id}`).textContent = capital.toFixed(2);
+  document.getElementById(`t-${id}`).textContent = totalQty;
+  document.getElementById(`c-${id}`).textContent = totalCapital.toFixed(2);
 };
 
 /* ================= SAVE ================= */
 window.saveDaily = () => {
-  const items = Object.entries(quantities)
-    .filter(([, q]) => q > 0)
-    .map(([id, qty]) => {
-      const i = inventoryItems.find(x => x.item_id === id);
-      const total = qty * (Number(i.quantity_per_serving) || 0);
-      return {
-        item_id: id,
-        qty,
-        total,
-        earnings: total * (Number(i.capital) || 0)
-      };
-    });
+const items = Object.entries(quantities)
+  .filter(([, qty]) => qty > 0)
+  .map(([id, qty]) => {
+    const item = inventoryItems.find(i => i.item_id === id);
+
+    const totalQty = qty * Number(item.quantity_per_serving || 0);
+    const capital = qty * Number(item.capital || 0);
+    const earnings = qty * Number(item.selling_price || 0);
+
+    return {
+      item_id: id,
+      qty,
+      total: totalQty,     // goes to Daily_Inventory_Items.total
+      capital,             // goes to Daily_Inventory_Items.capital
+      earnings             // goes to Daily_Inventory_Items.earnings
+    };
+  });
 
   if (!items.length) return alert("No inventory entered");
 
