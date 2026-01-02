@@ -28,67 +28,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
   window.location.replace("index.html");
 });
 
-/* ================= SPA NAVIGATION ================= */
-import loadCategoriesView from "./views/categories.js";
-import loadInventoryItemsView from "./views/inventoryitems.js";
-import loadDailyInventoryView from "./views/dailyinventory.js";
-import loadProductsView from "./views/products.js"; // ✅ ADD THIS
-
-const navButtons = document.querySelectorAll(".nav-btn");
-const actionBar = document.getElementById("actionBar");
-const contentBox = document.getElementById("contentBox");
-
-navButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    navButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    actionBar.innerHTML = "";
-    contentBox.innerHTML = "";
-
-    switch (btn.dataset.view) {
-      case "dashboard":
-        contentBox.innerHTML = `
-          <h2>Dashboard</h2>
-          <p>If you see this, JS is working.</p>
-        `;
-        break;
-
-      case "categories":
-        loadCategoriesView();
-        break;
-
-      case "inventory":
-        loadInventoryItemsView();
-        break;
-
-      case "dailyInventory":
-        loadDailyInventoryView();
-        break;
-
-      case "products":                 // ✅ ADD THIS
-        loadProductsView();
-        break;
-
-      default:
-        contentBox.innerHTML = `<h2>Coming soon…</h2>`;
-    }
-  });
-});
-
-/* ================= GLOBAL SCROLL HELPER ================= */
-export function bindDataBoxScroll(container) {
-  const scrollArea = container.querySelector(".data-scroll");
-  const leftBtn = container.querySelector(".scroll-left");
-  const rightBtn = container.querySelector(".scroll-right");
-
-  if (!scrollArea || !leftBtn || !rightBtn) return;
-
-  leftBtn.onclick = () => (scrollArea.scrollLeft -= 300);
-  rightBtn.onclick = () => (scrollArea.scrollLeft += 300);
-}
-
-/* ================= GLOBAL MODAL CORE ================= */
+/* ================= MODAL CORE ================= */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
 
@@ -106,9 +46,88 @@ window.openModal = function (html) {
 };
 
 window.closeModal = function () {
-  document.getElementById("modalOverlay").classList.add("hidden");
+  const overlay = document.getElementById("modalOverlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
   document.getElementById("modalBox").innerHTML = "";
 };
 
-/* ================= LOAD DEFAULT ================= */
-document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
+/* ================= GLOBAL SCROLL HELPER ================= */
+export function bindDataBoxScroll(container) {
+  if (!container) return;
+
+  const scrollArea = container.querySelector(".data-scroll");
+  if (!scrollArea) return;
+
+  // keep scroll INSIDE content box
+  scrollArea.style.overflowY = "auto";
+  scrollArea.style.maxHeight = "100%";
+}
+
+/* ================= SPA VIEWS ================= */
+import loadCategoriesView from "./views/categories.js";
+import loadInventoryItemsView from "./views/inventoryitems.js";
+import loadDailyInventoryView from "./views/dailyinventory.js";
+import loadProductsView from "./views/products.js";
+
+/* ================= SPA NAVIGATION ================= */
+const navButtons = document.querySelectorAll(".nav-btn");
+
+function clearView() {
+  const actionBar = document.getElementById("actionBar");
+  const contentBox = document.getElementById("contentBox");
+
+  if (!actionBar || !contentBox) {
+    console.error("Missing #actionBar or #contentBox in DOM");
+    return false;
+  }
+
+  actionBar.innerHTML = "";
+  contentBox.innerHTML = "";
+  return true;
+}
+
+navButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    navButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    if (!clearView()) return;
+
+    const view = btn.dataset.view;
+
+    switch (view) {
+      case "dashboard":
+        document.getElementById("contentBox").innerHTML = `
+          <h2>Dashboard</h2>
+          <p>If you see this, JS routing works.</p>
+        `;
+        break;
+
+      case "categories":
+        await loadCategoriesView();
+        break;
+
+      case "inventory":
+        await loadInventoryItemsView();
+        break;
+
+      case "dailyInventory":
+        await loadDailyInventoryView();
+        break;
+
+      case "products":
+        await loadProductsView();
+        break;
+
+      default:
+        document.getElementById("contentBox").innerHTML =
+          "<h2>Coming soon…</h2>";
+    }
+  });
+});
+
+/* ================= LOAD DEFAULT VIEW ================= */
+document
+  .querySelector('.nav-btn[data-view="dashboard"]')
+  ?.click();
