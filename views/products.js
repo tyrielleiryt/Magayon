@@ -12,6 +12,8 @@ let selected = null;
 
 /* ================= ENTRY ================= */
 export default async function loadProductsView() {
+  console.log("Products view loaded");
+
   await loadCategories();
   renderActionBar();
   renderTableLayout();
@@ -20,22 +22,24 @@ export default async function loadProductsView() {
 
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
-  document.getElementById("actionBar").innerHTML = `
+  const actionBar = document.getElementById("actionBar");
+
+  actionBar.innerHTML = `
     <button id="addBtn" class="category-action-btn">➕ Add Product</button>
     <button id="editBtn" class="category-action-btn" disabled>✏️ Edit</button>
     <button id="deleteBtn" class="category-action-btn" disabled>🗑️ Delete</button>
   `;
 
-  addBtn.onclick = openAddModal;
-  editBtn.onclick = openEditModal;
-  deleteBtn.onclick = openDeleteModal;
+  document.getElementById("addBtn").onclick = openAddModal;
+  document.getElementById("editBtn").onclick = openEditModal;
+  document.getElementById("deleteBtn").onclick = openDeleteModal;
 }
 
 /* ================= TABLE ================= */
 function renderTableLayout() {
-  const box = document.getElementById("contentBox");
+  const contentBox = document.getElementById("contentBox");
 
-  box.innerHTML = `
+  contentBox.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
         <table class="category-table product-table">
@@ -57,24 +61,41 @@ function renderTableLayout() {
     </div>
   `;
 
-  bindDataBoxScroll(box.querySelector(".data-box"));
+  bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }
 
-/* ================= LOAD ================= */
+/* ================= LOAD DATA ================= */
 async function loadCategories() {
-  categories = await (await fetch(API_URL + "?type=categories")).json();
+  const res = await fetch(API_URL + "?type=categories");
+  categories = await res.json();
 }
 
 async function loadProducts() {
-  products = await (await fetch(API_URL + "?type=products")).json();
+  const res = await fetch(API_URL + "?type=products");
+  products = await res.json();
+
   selected = null;
-  editBtn.disabled = deleteBtn.disabled = true;
+  document.getElementById("editBtn").disabled = true;
+  document.getElementById("deleteBtn").disabled = true;
+
   renderTable();
 }
 
+/* ================= RENDER TABLE ================= */
 function renderTable() {
-  const body = document.getElementById("productBody");
-  body.innerHTML = "";
+  const tbody = document.getElementById("productBody");
+  tbody.innerHTML = "";
+
+  if (!products.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center;color:#888">
+          No products found
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   products.forEach((p, i) => {
     const cat = categories.find(c => c.category_id === p.category_id);
@@ -82,28 +103,32 @@ function renderTable() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${p.product_code}</td>
+      <td>${p.product_code || ""}</td>
       <td>${p.product_name}</td>
-      <td>${cat?.category_name || ""}</td>
-      <td>${p.price}</td>
-      <td>${p.quantity_per_serving}</td>
-      <td>${p.unit}</td>
+      <td>${cat ? cat.category_name : ""}</td>
+      <td>${Number(p.price).toFixed(2)}</td>
+      <td>${p.quantity_per_serving || "-"}</td>
+      <td>${p.unit || "-"}</td>
       <td>${p.image_url ? "✔" : "-"}</td>
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#productBody tr")
+      document
+        .querySelectorAll("#productBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selected = p;
-      editBtn.disabled = deleteBtn.disabled = false;
+
+      document.getElementById("editBtn").disabled = false;
+      document.getElementById("deleteBtn").disabled = false;
     };
 
-    body.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-/* ================= ADD / EDIT MODAL ================= */
+/* ================= MODALS ================= */
 function openAddModal() {
   openProductModal();
 }
@@ -114,38 +139,43 @@ function openEditModal() {
 }
 
 function openProductModal(p = {}) {
-  const catOptions = categories.map(c =>
-    `<option value="${c.category_id}" ${p.category_id === c.category_id ? "selected" : ""}>
-      ${c.category_name}
-    </option>`
-  ).join("");
+  const catOptions = categories
+    .map(
+      c => `
+      <option value="${c.category_id}" ${
+        p.category_id === c.category_id ? "selected" : ""
+      }>
+        ${c.category_name}
+      </option>`
+    )
+    .join("");
 
   openModal(`
     <div class="modal-header">${p.rowIndex ? "Edit" : "Add"} Product</div>
 
     <label>Product Code</label>
-    <input id="code" value="${p.product_code || ""}">
+    <input id="productCode" value="${p.product_code || ""}">
 
     <label>Product Name</label>
-    <input id="name" value="${p.product_name || ""}">
+    <input id="productName" value="${p.product_name || ""}">
 
     <label>Category</label>
-    <select id="category">${catOptions}</select>
+    <select id="productCategory">${catOptions}</select>
 
     <label>Description</label>
-    <textarea id="desc">${p.description || ""}</textarea>
+    <textarea id="productDesc">${p.description || ""}</textarea>
 
     <label>Price</label>
-    <input type="number" id="price" value="${p.price || ""}">
+    <input type="number" id="productPrice" value="${p.price || ""}">
 
     <label>Quantity per Serving</label>
     <input type="number" id="qtyServing" value="${p.quantity_per_serving || ""}">
 
-    <label>Unit (e.g. g, ml, pcs)</label>
+    <label>Unit (g, ml, pcs)</label>
     <input id="unit" value="${p.unit || ""}">
 
     <label>Image URL</label>
-    <input id="img" value="${p.image_url || ""}">
+    <input id="imageUrl" value="${p.image_url || ""}">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct(${p.rowIndex || 0})">Save</button>
@@ -160,14 +190,14 @@ window.saveProduct = rowIndex => {
     API_URL +
     `?action=${rowIndex ? "editProduct" : "addProduct"}` +
     (rowIndex ? `&rowIndex=${rowIndex}` : "") +
-    `&product_code=${encodeURIComponent(code.value)}` +
-    `&product_name=${encodeURIComponent(name.value)}` +
-    `&category_id=${category.value}` +
-    `&description=${encodeURIComponent(desc.value)}` +
-    `&price=${price.value}` +
-    `&quantity_per_serving=${qtyServing.value}` +
+    `&product_code=${encodeURIComponent(productCode.value)}` +
+    `&product_name=${encodeURIComponent(productName.value)}` +
+    `&category_id=${encodeURIComponent(productCategory.value)}` +
+    `&description=${encodeURIComponent(productDesc.value)}` +
+    `&price=${encodeURIComponent(productPrice.value)}` +
+    `&quantity_per_serving=${encodeURIComponent(qtyServing.value)}` +
     `&unit=${encodeURIComponent(unit.value)}` +
-    `&image_url=${encodeURIComponent(img.value)}`;
+    `&image_url=${encodeURIComponent(imageUrl.value)}`;
 
   new Image().src = url;
   closeModal();
