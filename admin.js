@@ -28,54 +28,106 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
   window.location.replace("index.html");
 });
 
-/* ================= JSONP HELPER (🔥 FIXES CORS) ================= */
-export function jsonp(url) {
-  return new Promise((resolve, reject) => {
-    const cb = "cb_" + Math.random().toString(36).slice(2);
-    window[cb] = data => {
-      delete window[cb];
-      script.remove();
-      resolve(data);
-    };
+/* ================= MODAL CORE ================= */
+function ensureModal() {
+  if (document.getElementById("modalOverlay")) return;
 
-    const script = document.createElement("script");
-    script.src = `${url}&callback=${cb}`;
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
+  const overlay = document.createElement("div");
+  overlay.id = "modalOverlay";
+  overlay.className = "hidden";
+  overlay.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(overlay);
 }
 
-/* ================= SPA NAV ================= */
+window.openModal = function (html) {
+  ensureModal();
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+};
+
+window.closeModal = function () {
+  const overlay = document.getElementById("modalOverlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  document.getElementById("modalBox").innerHTML = "";
+};
+
+/* ================= GLOBAL SCROLL HELPER ================= */
+export function bindDataBoxScroll(container) {
+  if (!container) return;
+
+  const scrollArea = container.querySelector(".data-scroll");
+  if (!scrollArea) return;
+
+  // keep scroll INSIDE content box
+  scrollArea.style.overflowY = "auto";
+  scrollArea.style.maxHeight = "100%";
+}
+
+/* ================= SPA VIEWS ================= */
 import loadCategoriesView from "./views/categories.js";
 import loadInventoryItemsView from "./views/inventoryitems.js";
 import loadDailyInventoryView from "./views/dailyinventory.js";
 import loadProductsView from "./views/products.js";
 
+/* ================= SPA NAVIGATION ================= */
 const navButtons = document.querySelectorAll(".nav-btn");
-const actionBar = document.getElementById("actionBar");
-const contentBox = document.getElementById("contentBox");
+
+function clearView() {
+  const actionBar = document.getElementById("actionBar");
+  const contentBox = document.getElementById("contentBox");
+
+  if (!actionBar || !contentBox) {
+    console.error("Missing #actionBar or #contentBox in DOM");
+    return false;
+  }
+
+  actionBar.innerHTML = "";
+  contentBox.innerHTML = "";
+  return true;
+}
 
 navButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", async () => {
     navButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
-    actionBar.innerHTML = "";
-    contentBox.innerHTML = "";
+    if (!clearView()) return;
 
-    switch (btn.dataset.view) {
-      case "categories": loadCategoriesView(); break;
-      case "inventory": loadInventoryItemsView(); break;
-      case "dailyInventory": loadDailyInventoryView(); break;
-      case "products": loadProductsView(); break;
+    const view = btn.dataset.view;
+
+    switch (view) {
+      case "dashboard":
+        document.getElementById("contentBox").innerHTML = `
+          <h2>Dashboard</h2>
+          <p>If you see this, JS routing works.</p>
+        `;
+        break;
+
+      case "categories":
+        await loadCategoriesView();
+        break;
+
+      case "inventory":
+        await loadInventoryItemsView();
+        break;
+
+      case "dailyInventory":
+        await loadDailyInventoryView();
+        break;
+
+      case "products":
+        await loadProductsView();
+        break;
+
       default:
-        contentBox.innerHTML = `<h2>Dashboard</h2>`;
+        document.getElementById("contentBox").innerHTML =
+          "<h2>Coming soon…</h2>";
     }
   });
 });
 
-/* ================= SCROLL HELPER ================= */
-export function bindDataBoxScroll(container) {
-  const scrollArea = container.querySelector(".data-scroll");
-  if (!scrollArea) return;
-}
+/* ================= LOAD DEFAULT VIEW ================= */
+document
+  .querySelector('.nav-btn[data-view="dashboard"]')
+  ?.click();
