@@ -29,6 +29,7 @@ function renderActionBar() {
       type="text"
       id="inventorySearch"
       placeholder="Search inventory..."
+      style="padding:8px;border-radius:6px;border:1px solid #bbb"
     />
 
     <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
@@ -43,6 +44,7 @@ function renderActionBar() {
   document.getElementById("inventorySearch").oninput = e => {
     searchQuery = e.target.value.toLowerCase();
     currentPage = 1;
+    clearSelection();
     renderTable();
   };
 }
@@ -67,7 +69,7 @@ function renderTableLayout() {
           <tbody id="inventoryTableBody"></tbody>
         </table>
       </div>
-      <div id="pagination" class="pagination"></div>
+      <div id="pagination" style="padding-top:10px;text-align:center;"></div>
     </div>
   `;
 
@@ -79,11 +81,17 @@ async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
 
-  selected = null;
-  document.getElementById("editItemBtn").disabled = true;
-  document.getElementById("deleteItemBtn").disabled = true;
-
+  clearSelection();
   renderTable();
+}
+
+/* ================= HELPERS ================= */
+function clearSelection() {
+  selected = null;
+  const editBtn = document.getElementById("editItemBtn");
+  const delBtn = document.getElementById("deleteItemBtn");
+  if (editBtn) editBtn.disabled = true;
+  if (delBtn) delBtn.disabled = true;
 }
 
 /* ================= RENDER TABLE ================= */
@@ -95,10 +103,9 @@ function renderTable() {
   pagination.innerHTML = "";
 
   const filtered = inventoryItems.filter(item =>
-    (
-      item.item_name +
-      item.description
-    ).toLowerCase().includes(searchQuery)
+    `${item.item_name} ${item.description || ""}`
+      .toLowerCase()
+      .includes(searchQuery)
   );
 
   if (!filtered.length) {
@@ -142,15 +149,19 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
-  /* Pagination buttons */
+  /* Pagination */
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
-    if (i === currentPage) btn.classList.add("active-page");
+    btn.className = "btn-view";
+    if (i === currentPage) btn.style.background = "#f3c84b";
+
     btn.onclick = () => {
       currentPage = i;
+      clearSelection();
       renderTable();
     };
+
     pagination.appendChild(btn);
   }
 }
@@ -239,10 +250,7 @@ function openDeleteItemModal() {
   openModal(`
     <div class="modal-header danger">🗑️ Delete Inventory Item</div>
 
-    <p>
-      Are you sure you want to delete
-      <b>${selected.item_name}</b>?
-    </p>
+    <p>Are you sure you want to delete <b>${selected.item_name}</b>?</p>
 
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
