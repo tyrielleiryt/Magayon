@@ -4,20 +4,20 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ================= STATE ================= */
 let inventoryItems = [];
 let quantities = {};
 let dailyInventoryCache = [];
-let editDailyId = null; // 🔑 TRACK EDIT MODE
+let editDailyId = null;
+
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let searchDate = "";
+let searchLocation = "";
 
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
-  document.getElementById("actionBar").innerHTML = `
-    <button id="addTodayBtn" class="category-action-btn">
-      + Add today's Inventory
-    </button>
-  `;
-
-  document.getElementById("addTodayBtn").onclick = () => openAddEditModal();
+  renderActionBar();
 
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
@@ -36,6 +36,7 @@ export default function loadDailyInventoryView() {
           <tbody id="dailyInventoryBody"></tbody>
         </table>
       </div>
+      <div id="pagination" style="padding-top:10px;text-align:center;"></div>
     </div>
   `;
 
@@ -43,25 +44,80 @@ export default function loadDailyInventoryView() {
   loadDailyInventory();
 }
 
-/* ================= LOAD LIST ================= */
+/* ================= ACTION BAR ================= */
+function renderActionBar() {
+  document.getElementById("actionBar").innerHTML = `
+    <input
+      id="searchDate"
+      placeholder="Search date..."
+      style="padding:8px;border-radius:6px;border:1px solid #bbb"
+    />
+    <input
+      id="searchLocation"
+      placeholder="Search location..."
+      style="padding:8px;border-radius:6px;border:1px solid #bbb"
+    />
+
+    <button id="addTodayBtn" class="category-action-btn">
+      + Add today's Inventory
+    </button>
+  `;
+
+  document.getElementById("addTodayBtn").onclick = () => openAddEditModal();
+
+  document.getElementById("searchDate").oninput = e => {
+    searchDate = e.target.value.toLowerCase();
+    currentPage = 1;
+    renderTable();
+  };
+
+  document.getElementById("searchLocation").oninput = e => {
+    searchLocation = e.target.value.toLowerCase();
+    currentPage = 1;
+    renderTable();
+  };
+}
+
+/* ================= LOAD ================= */
 async function loadDailyInventory() {
   const res = await fetch(API_URL + "?type=dailyInventory");
   dailyInventoryCache = await res.json();
+  renderTable();
+}
 
+/* ================= RENDER TABLE ================= */
+function renderTable() {
   const tbody = document.getElementById("dailyInventoryBody");
-  tbody.innerHTML = "";
+  const pagination = document.getElementById("pagination");
 
-  if (!dailyInventoryCache.length) {
+  tbody.innerHTML = "";
+  pagination.innerHTML = "";
+
+  const filtered = dailyInventoryCache.filter(row => {
+    const dateMatch = row.date.toLowerCase().includes(searchDate);
+    const locMatch = (row.location || "").toLowerCase().includes(searchLocation);
+    return dateMatch && locMatch;
+  });
+
+  if (!filtered.length) {
     tbody.innerHTML = `
-      <tr><td colspan="6" style="color:#888;">No daily inventory yet</td></tr>
+      <tr>
+        <td colspan="6" style="color:#888;text-align:center">
+          No daily inventory found
+        </td>
+      </tr>
     `;
     return;
   }
 
-  dailyInventoryCache.forEach((row, i) => {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+  pageItems.forEach((row, i) => {
     tbody.innerHTML += `
       <tr>
-        <td>${i + 1}</td>
+        <td>${start + i + 1}</td>
         <td>${row.date}</td>
         <td>${row.dn}</td>
         <td>
@@ -73,6 +129,21 @@ async function loadDailyInventory() {
       </tr>
     `;
   });
+
+  /* Pagination buttons */
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.className = "btn-view";
+    if (i === currentPage) btn.style.background = "#f3c84b";
+
+    btn.onclick = () => {
+      currentPage = i;
+      renderTable();
+    };
+
+    pagination.appendChild(btn);
+  }
 }
 
 /* ================= VIEW ================= */
@@ -86,25 +157,25 @@ window.viewDaily = async dailyId => {
   openModal(`
     <div class="modal-header">Daily Inventory</div>
 
-    <div class="modal-section">
-      <div class="form-grid">
-        <div><label>Date</label><input value="${header.date}" disabled></div>
-        <div><label>Location</label><input value="${header.location || ""}" disabled></div>
-      </div>
-    </div>
+    <label>Date</label>
+    <input value="${header.date}" disabled>
 
-    <div class="modal-section">
-      <div class="section-title">Inventory</div>
-      <div class="inventory-modal-box">
-        <table class="inventory-table">
-          ${items.map(i => `
-            <tr>
-              <td>${i.item_name}</td>
-              <td style="text-align:center">${i.qty}</td>
-            </tr>
-          `).join("")}
-        </table>
-      </div>
+    <label>Location</label>
+    <input value="${header.location || ""}" disabled>
+
+    <div class="inventory-modal-box">
+      <table class="inventory-table">
+        ${items
+          .map(
+            i => `
+          <tr>
+            <td>${i.item_name}</td>
+            <td style="text-align:center">${i.qty}</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </table>
     </div>
 
     <div class="modal-actions">
@@ -147,37 +218,29 @@ async function openAddEditModal(header = null) {
       ${editDailyId ? "Edit Daily Inventory" : "Add Today's Inventory"}
     </div>
 
-    <div class="modal-section">
-      <div class="form-grid">
-        <div>
-          <label>Date</label>
-          <input value="${header ? header.date : today}" disabled>
-        </div>
-        <div>
-          <label>Location</label>
-          <select id="locationSelect">
-            <option value="">-- Select location --</option>
-          </select>
-        </div>
-      </div>
-    </div>
+    <label>Date</label>
+    <input value="${header ? header.date : today}" disabled>
 
-    <div class="modal-section">
-      <div class="section-title">Inventory</div>
-      <div class="inventory-modal-box">
-        <table class="inventory-table">
-          ${inventoryItems.map(i => `
-            <tr>
-              <td>${i.item_name}</td>
-              <td class="qty-col">
-                <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
-                <span id="q-${i.item_id}" class="qty-value">${quantities[i.item_id] || 0}</span>
-                <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
-              </td>
-            </tr>
-          `).join("")}
-        </table>
-      </div>
+    <label>Location</label>
+    <input id="locationSelect" value="${header?.location || ""}">
+
+    <div class="inventory-modal-box">
+      <table class="inventory-table">
+        ${inventoryItems
+          .map(
+            i => `
+          <tr>
+            <td>${i.item_name}</td>
+            <td class="qty-col">
+              <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
+              <span id="q-${i.item_id}" class="qty-value">${quantities[i.item_id] || 0}</span>
+              <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
+            </td>
+          </tr>
+        `
+          )
+          .join("")}
+      </table>
     </div>
 
     <div class="modal-actions">
@@ -185,10 +248,6 @@ async function openAddEditModal(header = null) {
       <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
   `);
-
-  if (header?.location) {
-    document.getElementById("locationSelect").value = header.location;
-  }
 }
 
 /* ================= HELPERS ================= */
@@ -203,7 +262,7 @@ window.cancelDaily = () => {
   closeModal();
 };
 
-/* ================= SAVE (ADD OR EDIT) ================= */
+/* ================= SAVE ================= */
 window.saveDaily = () => {
   const items = Object.entries(quantities)
     .filter(([, q]) => q > 0)
@@ -214,7 +273,7 @@ window.saveDaily = () => {
     return;
   }
 
-  const location = document.getElementById("locationSelect")?.value || "";
+  const location = document.getElementById("locationSelect").value || "";
 
   let url =
     API_URL +
@@ -223,7 +282,6 @@ window.saveDaily = () => {
     `&created_by=ADMIN` +
     `&items=${encodeURIComponent(JSON.stringify(items))}`;
 
-  // 🔑 THIS LINE PREVENTS NEW RECORD CREATION
   if (editDailyId) {
     url += `&daily_id=${editDailyId}`;
   }
