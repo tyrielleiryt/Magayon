@@ -12,13 +12,9 @@ let categoriesCache = [];
 /* ================= HELPERS ================= */
 function normalizeDriveImageUrl(url) {
   if (!url) return "";
-
   if (url.includes("drive.google.com/uc?id=")) return url;
-
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (!match) return "";
-
-  return `https://drive.google.com/uc?id=${match[1]}`;
+  return match ? `https://drive.google.com/uc?id=${match[1]}` : "";
 }
 
 /* ================= LOAD CATEGORIES ================= */
@@ -30,9 +26,7 @@ async function loadCategories() {
 /* ================= ENTRY ================= */
 export default async function loadProductsView() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="addProductBtn" class="category-action-btn">
-      + Add Product
-    </button>
+    <button id="addProductBtn" class="category-action-btn">+ Add Product</button>
   `;
 
   document.getElementById("addProductBtn").onclick = openAddProductModal;
@@ -45,10 +39,9 @@ export default async function loadProductsView() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Product Code</th>
-              <th>Product Name</th>
+              <th>Code</th>
+              <th>Name</th>
               <th>Category</th>
-              <th>Description</th>
               <th>Price</th>
               <th>Image</th>
               <th>Actions</th>
@@ -61,7 +54,6 @@ export default async function loadProductsView() {
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
-
   await loadCategories();
   loadProducts();
 }
@@ -74,134 +66,118 @@ async function loadProducts() {
   const tbody = document.getElementById("productsBody");
   tbody.innerHTML = "";
 
-  if (!productsCache.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align:center;color:#888">
-          No products yet
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
   productsCache.forEach((p, i) => {
     const cat = categoriesCache.find(c => c.category_id === p.category_id);
-    const imgUrl = normalizeDriveImageUrl(p.image_url);
+    const img = normalizeDriveImageUrl(p.image_url);
 
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
-        <td>${p.product_code || ""}</td>
+        <td>${p.product_code}</td>
         <td>${p.product_name}</td>
-        <td>${cat ? cat.category_name : p.category_id}</td>
-        <td>${p.description || ""}</td>
+        <td>${cat ? cat.category_name : "-"}</td>
         <td>${Number(p.price).toFixed(2)}</td>
         <td>
           ${
-            imgUrl
-              ? `<a href="${imgUrl}" target="_blank" class="btn-preview">
-                   👁 Preview
-                 </a>`
+            img
+              ? `<a href="${img}" target="_blank" class="btn-preview">👁 Preview</a>`
               : `<span style="color:#aaa">No image</span>`
           }
         </td>
         <td>
-          <button class="btn-edit">Edit</button>
-          <button class="btn-delete">Delete</button>
+          <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
         </td>
       </tr>
     `;
   });
 }
 
-/* ================= ADD PRODUCT MODAL ================= */
+/* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
-  const categoryOptions = categoriesCache
-    .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
-    .join("");
+  openProductModal("Add Product", {}, saveProduct);
+}
+
+/* ================= EDIT PRODUCT ================= */
+window.editProduct = index => {
+  openProductModal("Edit Product", productsCache[index], updateProduct);
+};
+
+/* ================= MODAL SHARED ================= */
+function openProductModal(title, p, onSave) {
+  const options = categoriesCache
+    .map(c =>
+      `<option value="${c.category_id}" ${c.category_id === p.category_id ? "selected" : ""}>
+        ${c.category_name}
+      </option>`
+    ).join("");
 
   openModal(`
-    <div class="modal-header">Add Product</div>
+    <div class="modal-header">${title}</div>
 
-    <label>Product Code</label>
-    <input id="productCode">
+    <label>Code</label>
+    <input id="code" value="${p.product_code || ""}">
 
-    <label>Product Name</label>
-    <input id="productName">
+    <label>Name</label>
+    <input id="name" value="${p.product_name || ""}">
 
     <label>Category</label>
-    <select id="productCategory">
-      <option value="">-- Select Category --</option>
-      ${categoryOptions}
-    </select>
+    <select id="category">${options}</select>
 
     <label>Description</label>
-    <textarea id="productDescription"></textarea>
+    <textarea id="desc">${p.description || ""}</textarea>
 
     <label>Price</label>
-    <input id="productPrice" type="number" step="0.01">
+    <input id="price" type="number" step="0.01" value="${p.price || 0}">
 
-    <label>Image URL (Google Drive)</label>
-    <input id="productImageUrl" placeholder="Paste Google Drive link">
+    <label>Image URL</label>
+    <input id="image" value="${p.image_url || ""}">
 
-    <button
-      id="previewImageBtn"
-      class="btn-preview"
-      style="margin-top:10px;display:none;"
-      type="button"
-    >
-      👁 Preview Image
-    </button>
+    <button id="previewBtn" class="btn-preview" style="display:none">👁 Preview Image</button>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="saveProduct()">Save</button>
+      <button class="btn-danger" id="saveBtn">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
-  const input = document.getElementById("productImageUrl");
-  const previewBtn = document.getElementById("previewImageBtn");
+  const imgInput = document.getElementById("image");
+  const previewBtn = document.getElementById("previewBtn");
 
-  input.addEventListener("input", () => {
-    const normalized = normalizeDriveImageUrl(input.value.trim());
-
-    if (!normalized) {
-      previewBtn.style.display = "none";
-      previewBtn.onclick = null;
-      return;
-    }
-
+  const refresh = () => {
+    const url = normalizeDriveImageUrl(imgInput.value);
+    if (!url) return (previewBtn.style.display = "none");
     previewBtn.style.display = "inline-flex";
-    previewBtn.onclick = () => window.open(normalized, "_blank");
-  });
+    previewBtn.onclick = () => window.open(url, "_blank");
+  };
+
+  imgInput.addEventListener("input", refresh);
+  refresh();
+
+  document.getElementById("saveBtn").onclick = () => onSave(p?.rowIndex);
 }
 
-/* ================= SAVE PRODUCT ================= */
-window.saveProduct = () => {
-  const code = document.getElementById("productCode").value.trim();
-  const name = document.getElementById("productName").value.trim();
-  const categoryId = document.getElementById("productCategory").value;
-  const description = document.getElementById("productDescription").value.trim();
-  const price = document.getElementById("productPrice").value;
-  const imageUrl = normalizeDriveImageUrl(
-    document.getElementById("productImageUrl").value.trim()
-  );
+/* ================= SAVE ================= */
+function saveProduct() {
+  submitProduct("addProduct");
+}
 
-  if (!name) return alert("Product name required");
-  if (!categoryId) return alert("Please select a category");
+function updateProduct(rowIndex) {
+  submitProduct("editProduct", rowIndex);
+}
 
-  new Image().src =
-    API_URL +
-    `?action=addProduct` +
-    `&product_code=${encodeURIComponent(code)}` +
-    `&product_name=${encodeURIComponent(name)}` +
-    `&category_id=${encodeURIComponent(categoryId)}` +
-    `&description=${encodeURIComponent(description)}` +
-    `&price=${encodeURIComponent(price)}` +
-    `&image_url=${encodeURIComponent(imageUrl)}` +
-    `&active=true`;
+function submitProduct(action, rowIndex) {
+  const params = new URLSearchParams({
+    action,
+    rowIndex,
+    product_code: document.getElementById("code").value,
+    product_name: document.getElementById("name").value,
+    category_id: document.getElementById("category").value,
+    description: document.getElementById("desc").value,
+    price: document.getElementById("price").value,
+    image_url: normalizeDriveImageUrl(document.getElementById("image").value)
+  });
 
+  new Image().src = `${API_URL}?${params.toString()}`;
   closeModal();
-  setTimeout(loadProducts, 600);
-};
+  setTimeout(loadProducts, 500);
+}
