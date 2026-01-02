@@ -1,11 +1,17 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* ================= API ================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ================= STATE ================= */
 let inventoryItems = [];
 let selected = null;
+
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let searchQuery = "";
 
 /* ================= ENTRY ================= */
 export default function loadInventoryItemsView() {
@@ -14,22 +20,34 @@ export default function loadInventoryItemsView() {
   loadInventoryItems();
 }
 
-/* ================= UI ================= */
+/* ================= ACTION BAR ================= */
 function renderActionBar() {
   const actionBar = document.getElementById("actionBar");
 
   actionBar.innerHTML = `
-    <button id="addItemBtn" class="category-action-btn">➕ Add Inventory Item</button>
-    <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit Item</button>
-    <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete Item</button>
+    <input
+      type="text"
+      id="inventorySearch"
+      placeholder="Search inventory..."
+    />
+
+    <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
+    <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
+    <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
   `;
 
-  // 🔑 RE-BIND EVERY TIME
   document.getElementById("addItemBtn").onclick = openAddItemModal;
   document.getElementById("editItemBtn").onclick = openEditItemModal;
   document.getElementById("deleteItemBtn").onclick = openDeleteItemModal;
+
+  document.getElementById("inventorySearch").oninput = e => {
+    searchQuery = e.target.value.toLowerCase();
+    currentPage = 1;
+    renderTable();
+  };
 }
 
+/* ================= TABLE LAYOUT ================= */
 function renderTableLayout() {
   const contentBox = document.getElementById("contentBox");
 
@@ -49,32 +67,60 @@ function renderTableLayout() {
           <tbody id="inventoryTableBody"></tbody>
         </table>
       </div>
+      <div id="pagination" class="pagination"></div>
     </div>
   `;
 
   bindDataBoxScroll(contentBox.querySelector(".data-box"));
 }
 
-/* ================= DATA ================= */
+/* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
-  selected = null;
-  renderTable();
 
+  selected = null;
   document.getElementById("editItemBtn").disabled = true;
   document.getElementById("deleteItemBtn").disabled = true;
+
+  renderTable();
 }
 
+/* ================= RENDER TABLE ================= */
 function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
-  tbody.innerHTML = "";
+  const pagination = document.getElementById("pagination");
 
-  inventoryItems.forEach((item, i) => {
+  tbody.innerHTML = "";
+  pagination.innerHTML = "";
+
+  const filtered = inventoryItems.filter(item =>
+    (
+      item.item_name +
+      item.description
+    ).toLowerCase().includes(searchQuery)
+  );
+
+  if (!filtered.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:#888">
+          No inventory items found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+  pageItems.forEach((item, i) => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${i + 1}</td>
+      <td>${start + i + 1}</td>
       <td>${item.item_name}</td>
       <td>${item.description || ""}</td>
       <td>${item.capital}</td>
@@ -95,6 +141,18 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
+
+  /* Pagination buttons */
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    if (i === currentPage) btn.classList.add("active-page");
+    btn.onclick = () => {
+      currentPage = i;
+      renderTable();
+    };
+    pagination.appendChild(btn);
+  }
 }
 
 /* ================= ADD ================= */
@@ -115,8 +173,8 @@ function openAddItemModal() {
     <input type="number" id="itemPrice">
 
     <div class="modal-actions">
-      <button class="btn-confirm" id="saveItem">Confirm</button>
-      <button class="btn-back" onclick="closeModal()">Back</button>
+      <button class="btn-danger" id="saveItem">Save</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
@@ -154,8 +212,8 @@ function openEditItemModal() {
     <input type="number" id="itemPrice" value="${selected.selling_price}">
 
     <div class="modal-actions">
-      <button class="btn-confirm" id="saveEdit">Edit</button>
-      <button class="btn-back" onclick="closeModal()">Back</button>
+      <button class="btn-danger" id="saveEdit">Save</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
@@ -181,11 +239,14 @@ function openDeleteItemModal() {
   openModal(`
     <div class="modal-header danger">🗑️ Delete Inventory Item</div>
 
-    <p>Are you sure you want to delete <b>${selected.item_name}</b>?</p>
+    <p>
+      Are you sure you want to delete
+      <b>${selected.item_name}</b>?
+    </p>
 
     <div class="modal-actions">
-      <button class="btn-confirm" id="confirmDelete">Confirm</button>
-      <button class="btn-back" onclick="closeModal()">Back</button>
+      <button class="btn-danger" id="confirmDelete">Delete</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
