@@ -110,7 +110,8 @@ function renderProducts() {
           ${img ? `<a href="${img}" target="_blank" class="btn-preview">👁 Preview</a>` : "—"}
         </td>
         <td>
-          <button class="btn-edit">Edit</button>
+          <button class="btn-edit" onclick="editProduct(${i})">Edit</button>
+          <button class="btn-delete" onclick="deleteProduct(${i})">Delete</button>
         </td>
       </tr>
     `;
@@ -119,18 +120,50 @@ function renderProducts() {
 
 /* ================= ADD PRODUCT ================= */
 function openAddProductModal() {
+  openProductModal();
+}
+
+/* ================= EDIT PRODUCT ================= */
+window.editProduct = index => {
+  const p = productsCache[index];
+  openProductModal(p);
+};
+
+/* ================= DELETE PRODUCT ================= */
+window.deleteProduct = index => {
+  const p = productsCache[index];
+
+  if (!confirm(`Delete "${p.product_name}"?`)) return;
+
+  new Image().src =
+    API_URL +
+    `?action=deleteProduct` +
+    `&rowIndex=${encodeURIComponent(p.rowIndex)}`;
+
+  setTimeout(loadProducts, 500);
+};
+
+/* ================= PRODUCT MODAL (ADD + EDIT) ================= */
+function openProductModal(product = null) {
   const categoryOptions = categoriesCache
-    .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
+    .map(
+      c =>
+        `<option value="${c.category_id}" ${
+          product && product.category_id === c.category_id ? "selected" : ""
+        }>${c.category_name}</option>`
+    )
     .join("");
 
   openModal(`
-    <div class="modal-header">Add Product</div>
+    <div class="modal-header">
+      ${product ? "Edit Product" : "Add Product"}
+    </div>
 
     <label>Product Code</label>
-    <input id="productCode">
+    <input id="productCode" value="${product?.product_code || ""}">
 
     <label>Product Name</label>
-    <input id="productName">
+    <input id="productName" value="${product?.product_name || ""}">
 
     <label>Category</label>
     <select id="productCategory">
@@ -139,23 +172,26 @@ function openAddProductModal() {
     </select>
 
     <label>Price</label>
-    <input id="productPrice" type="number">
+    <input id="productPrice" type="number" value="${product?.price || ""}">
 
     <label>Image URL</label>
-    <input id="productImageUrl" placeholder="Paste Google Drive image link">
+    <input id="productImageUrl" value="${product?.image_url || ""}">
 
     <button id="previewBtn" class="btn-preview" style="display:none">
       👁 Preview Image
     </button>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="saveProduct()">Save</button>
+      <button class="btn-danger" id="saveBtn">
+        ${product ? "Update" : "Save"}
+      </button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
   const input = document.getElementById("productImageUrl");
   const btn = document.getElementById("previewBtn");
+  const saveBtn = document.getElementById("saveBtn");
 
   input.oninput = () => {
     const url = normalizeDriveImageUrl(input.value.trim());
@@ -166,23 +202,28 @@ function openAddProductModal() {
     btn.style.display = "inline-flex";
     btn.onclick = () => window.open(url, "_blank");
   };
+
+  saveBtn.onclick = () => saveProduct(product);
 }
 
 /* ================= SAVE ================= */
-window.saveProduct = () => {
+function saveProduct(product) {
   const img = normalizeDriveImageUrl(
     document.getElementById("productImageUrl").value.trim()
   );
 
-  new Image().src =
+  const base =
     API_URL +
-    `?action=addProduct` +
-    `&product_code=${encodeURIComponent(document.getElementById("productCode").value)}` +
+    `?product_code=${encodeURIComponent(document.getElementById("productCode").value)}` +
     `&product_name=${encodeURIComponent(document.getElementById("productName").value)}` +
     `&category_id=${encodeURIComponent(document.getElementById("productCategory").value)}` +
     `&price=${encodeURIComponent(document.getElementById("productPrice").value)}` +
     `&image_url=${encodeURIComponent(img)}`;
 
+  new Image().src = product
+    ? `${base}&action=editProduct&rowIndex=${product.rowIndex}`
+    : `${base}&action=addProduct`;
+
   closeModal();
   setTimeout(loadProducts, 500);
-};
+}
