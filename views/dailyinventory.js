@@ -15,6 +15,17 @@ const PAGE_SIZE = 10;
 let searchDate = "";
 let searchLocation = "";
 
+/* ================= HELPERS ================= */
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
   renderActionBar();
@@ -49,7 +60,7 @@ function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
     <input
       id="searchDate"
-      placeholder="Search date..."
+      placeholder="Search date (e.g. December)"
       style="padding:8px;border-radius:6px;border:1px solid #bbb"
     />
     <input
@@ -94,7 +105,8 @@ function renderTable() {
   pagination.innerHTML = "";
 
   const filtered = dailyInventoryCache.filter(row => {
-    const dateMatch = row.date.toLowerCase().includes(searchDate);
+    const formattedDate = formatDate(row.date).toLowerCase();
+    const dateMatch = formattedDate.includes(searchDate);
     const locMatch = (row.location || "").toLowerCase().includes(searchLocation);
     return dateMatch && locMatch;
   });
@@ -118,11 +130,12 @@ function renderTable() {
     tbody.innerHTML += `
       <tr>
         <td>${start + i + 1}</td>
-        <td>${row.date}</td>
+        <td>${formatDate(row.date)}</td>
         <td>${row.dn}</td>
         <td>
           <button class="btn-view" onclick="viewDaily('${row.daily_id}')">View</button>
           <button class="btn-view" onclick="editDaily('${row.daily_id}')">Edit</button>
+          <button class="btn-delete" onclick="deleteDaily('${row.daily_id}')">Delete</button>
         </td>
         <td>${row.location || ""}</td>
         <td>${row.created_by}</td>
@@ -130,7 +143,7 @@ function renderTable() {
     `;
   });
 
-  /* Pagination buttons */
+  /* Pagination */
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
@@ -158,23 +171,19 @@ window.viewDaily = async dailyId => {
     <div class="modal-header">Daily Inventory</div>
 
     <label>Date</label>
-    <input value="${header.date}" disabled>
+    <input value="${formatDate(header.date)}" disabled>
 
     <label>Location</label>
     <input value="${header.location || ""}" disabled>
 
     <div class="inventory-modal-box">
       <table class="inventory-table">
-        ${items
-          .map(
-            i => `
+        ${items.map(i => `
           <tr>
             <td>${i.item_name}</td>
             <td style="text-align:center">${i.qty}</td>
           </tr>
-        `
-          )
-          .join("")}
+        `).join("")}
       </table>
     </div>
 
@@ -201,6 +210,17 @@ window.editDaily = async dailyId => {
   openAddEditModal(header);
 };
 
+/* ================= DELETE ================= */
+window.deleteDaily = dailyId => {
+  if (!confirm("Delete this daily inventory record?")) return;
+
+  new Image().src =
+    API_URL +
+    `?action=deleteDailyInventory&daily_id=${dailyId}`;
+
+  setTimeout(loadDailyInventory, 700);
+};
+
 /* ================= ADD / EDIT MODAL ================= */
 async function openAddEditModal(header = null) {
   const today = new Date().toLocaleDateString("en-US", {
@@ -219,16 +239,14 @@ async function openAddEditModal(header = null) {
     </div>
 
     <label>Date</label>
-    <input value="${header ? header.date : today}" disabled>
+    <input value="${header ? formatDate(header.date) : today}" disabled>
 
     <label>Location</label>
     <input id="locationSelect" value="${header?.location || ""}">
 
     <div class="inventory-modal-box">
       <table class="inventory-table">
-        ${inventoryItems
-          .map(
-            i => `
+        ${inventoryItems.map(i => `
           <tr>
             <td>${i.item_name}</td>
             <td class="qty-col">
@@ -237,9 +255,7 @@ async function openAddEditModal(header = null) {
               <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
             </td>
           </tr>
-        `
-          )
-          .join("")}
+        `).join("")}
       </table>
     </div>
 
