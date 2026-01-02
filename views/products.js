@@ -13,10 +13,15 @@ let categoriesCache = [];
 function normalizeDriveImageUrl(url) {
   if (!url) return "";
 
-  // Already direct
+  // Fix missing protocol
+  if (url.startsWith("m/file/d/")) {
+    url = "https://drive.google.com/" + url;
+  }
+
+  // Already direct image
   if (url.includes("drive.google.com/uc?id=")) return url;
 
-  // Extract ID from common Drive links
+  // Extract file ID
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) return "";
 
@@ -32,7 +37,9 @@ async function loadCategories() {
 /* ================= ENTRY ================= */
 export default async function loadProductsView() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="addProductBtn" class="category-action-btn">+ Add Product</button>
+    <button id="addProductBtn" class="category-action-btn">
+      + Add Product
+    </button>
   `;
 
   document.getElementById("addProductBtn").onclick = openAddProductModal;
@@ -100,11 +107,19 @@ async function loadProducts() {
         <td>
           ${
             imgUrl
-              ? `<img
-                   src="${imgUrl}"
-                   referrerpolicy="no-referrer"
-                   style="height:40px;width:40px;object-fit:cover;border-radius:6px;"
-                 >`
+              ? `<a href="${imgUrl}" target="_blank">
+                   <img
+                     src="${imgUrl}"
+                     referrerpolicy="no-referrer"
+                     style="
+                       height:40px;
+                       width:40px;
+                       object-fit:cover;
+                       border-radius:6px;
+                       cursor:pointer;
+                     "
+                   >
+                 </a>`
               : "-"
           }
         </td>
@@ -144,7 +159,7 @@ function openAddProductModal() {
     <label>Price</label>
     <input id="productPrice" type="number" step="0.01">
 
-    <label>Image URL (Google Drive allowed)</label>
+    <label>Image URL (Google Drive)</label>
     <input id="productImageUrl" placeholder="Paste Google Drive link here">
 
     <img
@@ -168,29 +183,31 @@ function openAddProductModal() {
   `);
 
   /* LIVE IMAGE PREVIEW */
-  document.getElementById("productImageUrl").addEventListener("input", e => {
-    const img = document.getElementById("imagePreview");
-    const normalized = normalizeDriveImageUrl(e.target.value.trim());
+  document
+    .getElementById("productImageUrl")
+    .addEventListener("input", e => {
+      const img = document.getElementById("imagePreview");
+      const normalized = normalizeDriveImageUrl(e.target.value.trim());
 
-    if (!normalized) {
-      img.style.display = "none";
+      if (!normalized) {
+        img.style.display = "none";
+        img.src = "";
+        return;
+      }
+
+      img.style.display = "block";
+      img.style.opacity = "0";
       img.src = "";
-      return;
-    }
 
-    img.style.display = "block";
-    img.style.opacity = "0";
-    img.src = "";
+      setTimeout(() => {
+        img.src = normalized;
+        img.style.opacity = "1";
+      }, 50);
 
-    setTimeout(() => {
-      img.src = normalized;
-      img.style.opacity = "1";
-    }, 50);
-
-    img.onerror = () => {
-      img.style.display = "none";
-    };
-  });
+      img.onerror = () => {
+        img.style.display = "none";
+      };
+    });
 }
 
 /* ================= SAVE PRODUCT ================= */
