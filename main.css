@@ -66,14 +66,15 @@ html, body {
   padding: 16px;
 }
 
-/* 🚫 DO NOT HIDE OVERFLOW HERE */
+/* ================= CONTENT BOX (LOCK HEIGHT) ================= */
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: 100%;
+  height: calc(100vh - 96px); /* prevents infinite growth */
   padding: 12px;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 🔒 critical fix */
 }
 
 /* ================= ACTION BAR ================= */
@@ -83,6 +84,7 @@ html, body {
   padding-bottom: 8px;
   margin-bottom: 10px;
   border-bottom: 1px solid #ccc;
+  align-items: center;
 }
 
 .category-action-btn {
@@ -100,13 +102,24 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ================= DATA SCROLL (ONLY SCROLLER) ================= */
+/* ================= SEARCH INPUT ================= */
+.action-bar input[type="text"] {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #bbb;
+  font-size: 14px;
+  min-width: 220px;
+}
+
+/* ================= DATA CONTAINER ================= */
 .data-box {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* REQUIRED for scroll */
 }
 
+/* ================= SCROLL AREA (ONLY SCROLLER) ================= */
 .data-scroll {
   flex: 1;
   overflow-y: auto;
@@ -121,11 +134,14 @@ html, body {
   font-size: 14px;
 }
 
-.category-table th {
+.category-table thead th {
   background: #f3f3f3;
   font-weight: bold;
   text-align: center;
   padding: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .category-table td {
@@ -136,6 +152,16 @@ html, body {
 
 .category-table tbody tr:hover {
   background: #f9f4dc;
+}
+
+/* ================= ROW SELECTION ================= */
+.product-table tbody tr {
+  cursor: pointer;
+}
+
+.product-table tbody tr.selected {
+  background: #f3c84b;
+  font-weight: bold;
 }
 
 /* ================= BUTTONS ================= */
@@ -150,6 +176,58 @@ html, body {
   cursor: pointer;
   font-size: 13px;
   margin: 0 4px;
+}
+
+.btn-delete {
+  background: #e06780;
+}
+
+/* ================= IMAGE PREVIEW BUTTON ================= */
+.btn-preview {
+  background: #4b7bec;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-preview:hover {
+  background: #3867d6;
+}
+
+/* ================= PAGINATION ================= */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid #ddd;
+}
+
+.pagination button {
+  background: #2e3354;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.pagination .active-page {
+  background: #f3c84b;
+  color: black;
+  font-weight: bold;
 }
 
 /* ================= MODAL OVERLAY ================= */
@@ -230,31 +308,4 @@ html, body {
   padding: 8px 20px;
   border-radius: 20px;
   cursor: pointer;
-}
-
-/* ================= INVENTORY QTY ================= */
-.qty-btn {
-  background: #2e3354;
-  color: white;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.qty-value {
-  display: inline-block;
-  width: 30px;
-  text-align: center;
-  font-weight: bold;
-}
-
-.product-table tbody tr {
-  cursor: pointer;
-}
-
-.product-table tbody tr.selected {
-  background: #f3c84b;
-  font-weight: bold;
 }
