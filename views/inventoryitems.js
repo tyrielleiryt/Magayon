@@ -62,8 +62,10 @@ function renderTableLayout() {
               <th>#</th>
               <th>Item Name</th>
               <th>Description</th>
+              <th>Qty / Serving</th>
               <th>Capital</th>
               <th>Selling Price</th>
+              <th>Unit</th>
             </tr>
           </thead>
           <tbody id="inventoryTableBody"></tbody>
@@ -124,30 +126,32 @@ function renderTable() {
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
   pageItems.forEach((item, i) => {
-    const tr = document.createElement("tr");
+  const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-      <td>${start + i + 1}</td>
-      <td>${item.item_name}</td>
-      <td>${item.description || ""}</td>
-      <td>${item.capital}</td>
-      <td>${item.selling_price}</td>
-    `;
+  tr.innerHTML = `
+    <td>${start + i + 1}</td>
+    <td>${item.item_name}</td>
+    <td>${item.description || ""}</td>
+    <td>${item.quantity_per_serving || ""}</td>
+    <td>${item.capital}</td>
+    <td>${item.selling_price}</td>
+    <td>${item.unit || ""}</td>
+  `;
 
-    tr.onclick = () => {
-      document
-        .querySelectorAll("#inventoryTableBody tr")
-        .forEach(r => r.classList.remove("selected"));
+  tr.onclick = () => {
+    document
+      .querySelectorAll("#inventoryTableBody tr")
+      .forEach(r => r.classList.remove("selected"));
 
-      tr.classList.add("selected");
-      selected = item;
+    tr.classList.add("selected");
+    selected = item;
 
-      document.getElementById("editItemBtn").disabled = false;
-      document.getElementById("deleteItemBtn").disabled = false;
-    };
+    document.getElementById("editItemBtn").disabled = false;
+    document.getElementById("deleteItemBtn").disabled = false;
+  };
 
-    tbody.appendChild(tr);
-  });
+  tbody.appendChild(tr);
+});
 
   /* Pagination */
   for (let i = 1; i <= totalPages; i++) {
