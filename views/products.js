@@ -13,15 +13,8 @@ let categoriesCache = [];
 function normalizeDriveImageUrl(url) {
   if (!url) return "";
 
-  // Fix missing protocol
-  if (url.startsWith("m/file/d/")) {
-    url = "https://drive.google.com/" + url;
-  }
-
-  // Already direct image
   if (url.includes("drive.google.com/uc?id=")) return url;
 
-  // Extract file ID
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) return "";
 
@@ -107,20 +100,10 @@ async function loadProducts() {
         <td>
           ${
             imgUrl
-              ? `<a href="${imgUrl}" target="_blank">
-                   <img
-                     src="${imgUrl}"
-                     referrerpolicy="no-referrer"
-                     style="
-                       height:40px;
-                       width:40px;
-                       object-fit:cover;
-                       border-radius:6px;
-                       cursor:pointer;
-                     "
-                   >
+              ? `<a href="${imgUrl}" target="_blank" class="btn-preview">
+                   👁 Preview
                  </a>`
-              : "-"
+              : `<span style="color:#aaa">No image</span>`
           }
         </td>
         <td>
@@ -160,21 +143,16 @@ function openAddProductModal() {
     <input id="productPrice" type="number" step="0.01">
 
     <label>Image URL (Google Drive)</label>
-    <input id="productImageUrl" placeholder="Paste Google Drive link here">
+    <input id="productImageUrl" placeholder="Paste Google Drive link">
 
-    <img
-      id="imagePreview"
-      referrerpolicy="no-referrer"
-      style="
-        display:none;
-        margin-top:12px;
-        width:100%;
-        max-height:180px;
-        object-fit:contain;
-        border-radius:8px;
-        background:#f4f4f4;
-      "
+    <button
+      id="previewImageBtn"
+      class="btn-preview"
+      style="margin-top:10px;display:none;"
+      type="button"
     >
+      👁 Preview Image
+    </button>
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -182,32 +160,21 @@ function openAddProductModal() {
     </div>
   `);
 
-  /* LIVE IMAGE PREVIEW */
-  document
-    .getElementById("productImageUrl")
-    .addEventListener("input", e => {
-      const img = document.getElementById("imagePreview");
-      const normalized = normalizeDriveImageUrl(e.target.value.trim());
+  const input = document.getElementById("productImageUrl");
+  const previewBtn = document.getElementById("previewImageBtn");
 
-      if (!normalized) {
-        img.style.display = "none";
-        img.src = "";
-        return;
-      }
+  input.addEventListener("input", () => {
+    const normalized = normalizeDriveImageUrl(input.value.trim());
 
-      img.style.display = "block";
-      img.style.opacity = "0";
-      img.src = "";
+    if (!normalized) {
+      previewBtn.style.display = "none";
+      previewBtn.onclick = null;
+      return;
+    }
 
-      setTimeout(() => {
-        img.src = normalized;
-        img.style.opacity = "1";
-      }, 50);
-
-      img.onerror = () => {
-        img.style.display = "none";
-      };
-    });
+    previewBtn.style.display = "inline-flex";
+    previewBtn.onclick = () => window.open(normalized, "_blank");
+  });
 }
 
 /* ================= SAVE PRODUCT ================= */
