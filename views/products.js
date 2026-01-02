@@ -142,7 +142,7 @@ function openAddProductModal() {
     <input
       id="productImageUrl"
       placeholder="https://drive.google.com/uc?id=..."
-      oninput="previewProductImage(this.value)"
+      oninput="previewProductImage(normalizeDriveImageUrl(this.value))"
     >
 
     <img
@@ -165,8 +165,9 @@ function openAddProductModal() {
 }
 
 /* ================= LIVE IMAGE PREVIEW ================= */
-window.previewProductImage = url => {
+window.previewProductImage = rawUrl => {
   const preview = document.getElementById("imagePreview");
+  const url = normalizeDriveImageUrl(rawUrl);
 
   if (!url) {
     preview.style.display = "none";
@@ -192,7 +193,8 @@ window.saveProduct = () => {
   const categoryId = document.getElementById("productCategory").value;
   const description = document.getElementById("productDescription").value.trim();
   const price = document.getElementById("productPrice").value;
-  const imageUrl = document.getElementById("productImageUrl").value.trim();
+  const imageUrlRaw = document.getElementById("productImageUrl").value.trim();
+    const imageUrl = normalizeDriveImageUrl(imageUrlRaw);
 
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
@@ -211,3 +213,18 @@ window.saveProduct = () => {
   closeModal();
   setTimeout(loadProducts, 600);
 };
+
+function normalizeDriveImageUrl(url) {
+  if (!url) return "";
+
+  // If already a direct link, keep it
+  if (url.includes("drive.google.com/uc?id=")) {
+    return url;
+  }
+
+  // Extract file ID from common Drive URLs
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return url;
+
+  return `https://drive.google.com/uc?id=${match[1]}`;
+}
