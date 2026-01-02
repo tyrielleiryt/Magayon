@@ -47,7 +47,7 @@ export default function loadDailyInventoryView() {
           <tbody id="dailyInventoryBody"></tbody>
         </table>
       </div>
-      <div id="pagination" style="padding-top:10px;text-align:center;"></div>
+      <div id="pagination" style="padding:10px;text-align:center;"></div>
     </div>
   `;
 
@@ -65,12 +65,12 @@ function renderActionBar() {
     />
     <input
       id="searchLocation"
-      placeholder="Search location..."
+      placeholder="Search location"
       style="padding:8px;border-radius:6px;border:1px solid #bbb"
     />
 
     <button id="addTodayBtn" class="category-action-btn">
-      + Add today's Inventory
+      + Add Today's Inventory
     </button>
   `;
 
@@ -105,8 +105,7 @@ function renderTable() {
   pagination.innerHTML = "";
 
   const filtered = dailyInventoryCache.filter(row => {
-    const formattedDate = formatDate(row.date).toLowerCase();
-    const dateMatch = formattedDate.includes(searchDate);
+    const dateMatch = formatDate(row.date).toLowerCase().includes(searchDate);
     const locMatch = (row.location || "").toLowerCase().includes(searchLocation);
     return dateMatch && locMatch;
   });
@@ -114,7 +113,7 @@ function renderTable() {
   if (!filtered.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="color:#888;text-align:center">
+        <td colspan="6" style="text-align:center;color:#888">
           No daily inventory found
         </td>
       </tr>
@@ -134,7 +133,7 @@ function renderTable() {
         <td>${row.dn}</td>
         <td>
           <button class="btn-view" onclick="viewDaily('${row.daily_id}')">View</button>
-          <button class="btn-view" onclick="editDaily('${row.daily_id}')">Edit</button>
+          <button class="btn-edit" onclick="editDaily('${row.daily_id}')">Edit</button>
           <button class="btn-delete" onclick="deleteDaily('${row.daily_id}')">Delete</button>
         </td>
         <td>${row.location || ""}</td>
@@ -143,7 +142,6 @@ function renderTable() {
     `;
   });
 
-  /* Pagination */
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
@@ -212,22 +210,17 @@ window.editDaily = async dailyId => {
 
 /* ================= DELETE ================= */
 window.deleteDaily = dailyId => {
-  if (!confirm("Delete this daily inventory record?")) return;
+  if (!confirm("Are you sure you want to delete this daily inventory?")) return;
 
   new Image().src =
-    API_URL +
-    `?action=deleteDailyInventory&daily_id=${dailyId}`;
+    API_URL + `?action=deleteDailyInventory&daily_id=${dailyId}`;
 
   setTimeout(loadDailyInventory, 700);
 };
 
 /* ================= ADD / EDIT MODAL ================= */
 async function openAddEditModal(header = null) {
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-  });
+  const today = formatDate(new Date());
 
   if (!inventoryItems.length) {
     inventoryItems = await (await fetch(API_URL + "?type=inventoryItems")).json();
@@ -244,7 +237,11 @@ async function openAddEditModal(header = null) {
     <label>Location</label>
     <input id="locationSelect" value="${header?.location || ""}">
 
-    <div class="inventory-modal-box">
+    <div style="margin:16px 0 8px;font-weight:bold;border-bottom:1px solid #ddd">
+      📦 Add Inventory
+    </div>
+
+    <div class="inventory-modal-box" style="max-height:260px;overflow:auto">
       <table class="inventory-table">
         ${inventoryItems.map(i => `
           <tr>
@@ -260,7 +257,7 @@ async function openAddEditModal(header = null) {
     </div>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="saveDaily()">Save</button>
+      <button class="btn-danger" onclick="saveDaily()">Save Inventory</button>
       <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
   `);
