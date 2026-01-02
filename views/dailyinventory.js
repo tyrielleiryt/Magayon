@@ -180,10 +180,24 @@ function renderTable() {
 /* ================= VIEW ================= */
 window.viewDaily = async id => {
   const header = dailyInventoryCache.find(d => d.daily_id === id);
+
+  // 1️⃣ Load daily inventory items
   const items = await (await fetch(
     API_URL + `?type=dailyInventoryItems&daily_id=${id}`
   )).json();
 
+  // 2️⃣ Load inventory master list
+  const inventory = await (await fetch(
+    API_URL + "?type=inventoryItems"
+  )).json();
+
+  // 3️⃣ Build item_id → item_name map
+  const itemMap = {};
+  inventory.forEach(i => {
+    itemMap[i.item_id] = i.item_name;
+  });
+
+  // 4️⃣ Render modal
   openModal(`
     <div class="modal-header">Daily Inventory</div>
 
@@ -194,20 +208,24 @@ window.viewDaily = async id => {
     <input value="${header.location || ""}" disabled>
 
     <table class="inventory-table">
-      <tr>
-        <th>Item</th>
-        <th>Qty</th>
-        <th>Total</th>
-        <th>Capital</th>
-      </tr>
-      ${items.map(i => `
+      <thead>
         <tr>
-          <td>${i.item_name}</td>
-          <td>${i.qty}</td>
-          <td>${i.total}</td>
-          <td>₱${Number(i.earnings).toFixed(2)}</td>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Total</th>
+          <th>Capital</th>
         </tr>
-      `).join("")}
+      </thead>
+      <tbody>
+        ${items.map(i => `
+          <tr>
+            <td>${itemMap[i.item_id] || "⚠ Unknown Item"}</td>
+            <td>${i.qty}</td>
+            <td>${i.total}</td>
+            <td>₱${Number(i.earnings).toFixed(2)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
     </table>
 
     <div class="modal-actions">
