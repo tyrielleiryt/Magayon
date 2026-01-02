@@ -3,6 +3,23 @@ if (localStorage.getItem("isLoggedIn") !== "true") {
   window.location.replace("index.html");
 }
 
+/* ================= JSONP HELPER ================= */
+export function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Math.random().toString(36).substring(2);
+    window[cb] = data => {
+      resolve(data);
+      delete window[cb];
+      script.remove();
+    };
+
+    const script = document.createElement("script");
+    script.src = `${url}&callback=${cb}`;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
 /* ================= DATE & TIME ================= */
 function updateDateTime() {
   const el = document.getElementById("datetime");
@@ -28,84 +45,51 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
   window.location.replace("index.html");
 });
 
-/* ================= SPA NAVIGATION ================= */
+/* ================= SPA NAV ================= */
 import loadCategoriesView from "./views/categories.js";
 import loadInventoryItemsView from "./views/inventoryitems.js";
 import loadDailyInventoryView from "./views/dailyinventory.js";
-import loadProductsView from "./views/products.js"; // ✅ ADD THIS
+import loadProductsView from "./views/products.js";
 
-const navButtons = document.querySelectorAll(".nav-btn");
-const actionBar = document.getElementById("actionBar");
-const contentBox = document.getElementById("contentBox");
-
-navButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    navButtons.forEach(b => b.classList.remove("active"));
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
-    actionBar.innerHTML = "";
-    contentBox.innerHTML = "";
+    document.getElementById("actionBar").innerHTML = "";
+    document.getElementById("contentBox").innerHTML = "";
 
-    switch (btn.dataset.view) {
-      case "dashboard":
-        contentBox.innerHTML = `
-          <h2>Dashboard</h2>
-          <p>If you see this, JS is working.</p>
-        `;
-        break;
-
-      case "categories":
-        loadCategoriesView();
-        break;
-
-      case "inventory":
-        loadInventoryItemsView();
-        break;
-
-      case "dailyInventory":
-        loadDailyInventoryView();
-        break;
-
-      case "products":                 // ✅ ADD THIS
-        loadProductsView();
-        break;
-
-      default:
-        contentBox.innerHTML = `<h2>Coming soon…</h2>`;
-    }
-  });
+    if (btn.dataset.view === "categories") loadCategoriesView();
+    else if (btn.dataset.view === "inventory") loadInventoryItemsView();
+    else if (btn.dataset.view === "dailyInventory") loadDailyInventoryView();
+    else if (btn.dataset.view === "products") loadProductsView();
+    else document.getElementById("contentBox").innerHTML = "<h2>Dashboard</h2>";
+  };
 });
 
-/* ================= GLOBAL SCROLL HELPER ================= */
+/* ================= SCROLL HELPER ================= */
 export function bindDataBoxScroll(container) {
   const scrollArea = container.querySelector(".data-scroll");
-  const leftBtn = container.querySelector(".scroll-left");
-  const rightBtn = container.querySelector(".scroll-right");
-
-  if (!scrollArea || !leftBtn || !rightBtn) return;
-
-  leftBtn.onclick = () => (scrollArea.scrollLeft -= 300);
-  rightBtn.onclick = () => (scrollArea.scrollLeft += 300);
+  if (!scrollArea) return;
 }
 
-/* ================= GLOBAL MODAL CORE ================= */
+/* ================= MODAL ================= */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "modalOverlay";
-  overlay.className = "hidden";
-  overlay.innerHTML = `<div id="modalBox"></div>`;
-  document.body.appendChild(overlay);
+  const o = document.createElement("div");
+  o.id = "modalOverlay";
+  o.className = "hidden";
+  o.innerHTML = `<div id="modalBox"></div>`;
+  document.body.appendChild(o);
 }
 
-window.openModal = function (html) {
+window.openModal = html => {
   ensureModal();
   document.getElementById("modalBox").innerHTML = html;
   document.getElementById("modalOverlay").classList.remove("hidden");
 };
 
-window.closeModal = function () {
+window.closeModal = () => {
   document.getElementById("modalOverlay").classList.add("hidden");
   document.getElementById("modalBox").innerHTML = "";
 };
