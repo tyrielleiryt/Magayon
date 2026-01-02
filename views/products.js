@@ -33,8 +33,8 @@ export default async function loadProductsView() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Product Code</th>
-              <th>Product Name</th>
+              <th>Code</th>
+              <th>Name</th>
               <th>Category</th>
               <th>Description</th>
               <th>Price</th>
@@ -90,12 +90,12 @@ async function loadProducts() {
               ? `<img
                    src="${p.image_url}"
                    style="
-                     height:40px;
                      width:40px;
+                     height:40px;
                      object-fit:cover;
                      border-radius:6px;
-                     border:1px solid #ccc;
                      cursor:pointer;
+                     border:1px solid #ccc;
                    "
                    onclick="window.open('${p.image_url}', '_blank')"
                  />`
@@ -139,49 +139,51 @@ function openAddProductModal() {
     <input id="productPrice" type="number" step="0.01">
 
     <label>Image URL</label>
-    <input id="productImageUrl" placeholder="https://drive.google.com/uc?id=...">
+    <input
+      id="productImageUrl"
+      placeholder="https://drive.google.com/uc?id=..."
+      oninput="previewProductImage(this.value)"
+    >
 
-    <img id="imagePreview"
-         style="
-           margin-top:10px;
-           max-width:100%;
-           max-height:200px;
-           display:none;
-           border-radius:6px;
-           border:1px solid #ccc;
-         ">
+    <img
+      id="imagePreview"
+      style="
+        margin-top:10px;
+        max-width:100%;
+        max-height:200px;
+        display:none;
+        border-radius:6px;
+        border:1px solid #ccc;
+      "
+    >
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
+}
 
-  /* ===== LIVE PREVIEW (FIXED) ===== */
-  const input = document.getElementById("productImageUrl");
+/* ================= LIVE IMAGE PREVIEW ================= */
+window.previewProductImage = url => {
   const preview = document.getElementById("imagePreview");
 
-  input.addEventListener("input", () => {
-    const url = input.value.trim();
+  if (!url) {
+    preview.style.display = "none";
+    preview.src = "";
+    return;
+  }
 
-    if (!url) {
-      preview.style.display = "none";
-      preview.src = "";
-      return;
-    }
-
-    const testImg = new Image();
-    testImg.onload = () => {
-      preview.src = url;
-      preview.style.display = "block";
-    };
-    testImg.onerror = () => {
-      preview.style.display = "none";
-    };
-
-    testImg.src = url;
-  });
-}
+  const img = new Image();
+  img.onload = () => {
+    preview.src = url;
+    preview.style.display = "block";
+  };
+  img.onerror = () => {
+    preview.style.display = "none";
+  };
+  img.src = url;
+};
 
 /* ================= SAVE PRODUCT ================= */
 window.saveProduct = () => {
