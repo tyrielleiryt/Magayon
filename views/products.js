@@ -13,12 +13,10 @@ let categoriesCache = [];
 function normalizeDriveImageUrl(url) {
   if (!url) return "";
 
-  // Already a direct image link
-  if (url.includes("drive.google.com/uc?id=")) {
-    return url;
-  }
+  // Already direct
+  if (url.includes("drive.google.com/uc?id=")) return url;
 
-  // Extract file ID from common Drive links
+  // Extract ID from common Drive links
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) return "";
 
@@ -78,13 +76,18 @@ async function loadProducts() {
 
   if (!productsCache.length) {
     tbody.innerHTML = `
-      <tr><td colspan="8" style="text-align:center;color:#888">No products yet</td></tr>
+      <tr>
+        <td colspan="8" style="text-align:center;color:#888">
+          No products yet
+        </td>
+      </tr>
     `;
     return;
   }
 
   productsCache.forEach((p, i) => {
     const cat = categoriesCache.find(c => c.category_id === p.category_id);
+    const imgUrl = normalizeDriveImageUrl(p.image_url);
 
     tbody.innerHTML += `
       <tr>
@@ -96,8 +99,12 @@ async function loadProducts() {
         <td>${Number(p.price).toFixed(2)}</td>
         <td>
           ${
-            p.image_url
-              ? `<img src="${p.image_url}" style="height:40px;width:40px;object-fit:cover;border-radius:6px;">`
+            imgUrl
+              ? `<img
+                   src="${imgUrl}"
+                   referrerpolicy="no-referrer"
+                   style="height:40px;width:40px;object-fit:cover;border-radius:6px;"
+                 >`
               : "-"
           }
         </td>
@@ -110,7 +117,7 @@ async function loadProducts() {
   });
 }
 
-/* ================= ADD PRODUCT ================= */
+/* ================= ADD PRODUCT MODAL ================= */
 function openAddProductModal() {
   const categoryOptions = categoriesCache
     .map(c => `<option value="${c.category_id}">${c.category_name}</option>`)
@@ -140,8 +147,19 @@ function openAddProductModal() {
     <label>Image URL (Google Drive allowed)</label>
     <input id="productImageUrl" placeholder="Paste Google Drive link here">
 
-    <img id="imagePreview"
-      style="margin-top:10px;max-width:100%;display:none;border-radius:8px;">
+    <img
+      id="imagePreview"
+      referrerpolicy="no-referrer"
+      style="
+        display:none;
+        margin-top:12px;
+        width:100%;
+        max-height:180px;
+        object-fit:contain;
+        border-radius:8px;
+        background:#f4f4f4;
+      "
+    >
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
@@ -149,18 +167,29 @@ function openAddProductModal() {
     </div>
   `);
 
+  /* LIVE IMAGE PREVIEW */
   document.getElementById("productImageUrl").addEventListener("input", e => {
-    const preview = document.getElementById("imagePreview");
-    const url = normalizeDriveImageUrl(e.target.value);
+    const img = document.getElementById("imagePreview");
+    const normalized = normalizeDriveImageUrl(e.target.value.trim());
 
-    if (!url) {
-      preview.style.display = "none";
-      preview.src = "";
+    if (!normalized) {
+      img.style.display = "none";
+      img.src = "";
       return;
     }
 
-    preview.src = url;
-    preview.style.display = "block";
+    img.style.display = "block";
+    img.style.opacity = "0";
+    img.src = "";
+
+    setTimeout(() => {
+      img.src = normalized;
+      img.style.opacity = "1";
+    }, 50);
+
+    img.onerror = () => {
+      img.style.display = "none";
+    };
   });
 }
 
@@ -171,8 +200,9 @@ window.saveProduct = () => {
   const categoryId = document.getElementById("productCategory").value;
   const description = document.getElementById("productDescription").value.trim();
   const price = document.getElementById("productPrice").value;
-  const rawImageUrl = document.getElementById("productImageUrl").value.trim();
-  const imageUrl = normalizeDriveImageUrl(rawImageUrl);
+  const imageUrl = normalizeDriveImageUrl(
+    document.getElementById("productImageUrl").value.trim()
+  );
 
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
