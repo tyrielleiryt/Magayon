@@ -9,6 +9,22 @@ const API_URL =
 let productsCache = [];
 let categoriesCache = [];
 
+/* ================= HELPERS ================= */
+function normalizeDriveImageUrl(url) {
+  if (!url) return "";
+
+  // Already a direct image link
+  if (url.includes("drive.google.com/uc?id=")) {
+    return url;
+  }
+
+  // Extract file ID from common Drive links
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return "";
+
+  return `https://drive.google.com/uc?id=${match[1]}`;
+}
+
 /* ================= LOAD CATEGORIES ================= */
 async function loadCategories() {
   const res = await fetch(API_URL + "?type=categories");
@@ -18,9 +34,7 @@ async function loadCategories() {
 /* ================= ENTRY ================= */
 export default async function loadProductsView() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="addProductBtn" class="category-action-btn">
-      + Add Product
-    </button>
+    <button id="addProductBtn" class="category-action-btn">+ Add Product</button>
   `;
 
   document.getElementById("addProductBtn").onclick = openAddProductModal;
@@ -33,8 +47,8 @@ export default async function loadProductsView() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Code</th>
-              <th>Name</th>
+              <th>Product Code</th>
+              <th>Product Name</th>
               <th>Category</th>
               <th>Description</th>
               <th>Price</th>
@@ -64,11 +78,7 @@ async function loadProducts() {
 
   if (!productsCache.length) {
     tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align:center;color:#888;">
-          No products yet
-        </td>
-      </tr>
+      <tr><td colspan="8" style="text-align:center;color:#888">No products yet</td></tr>
     `;
     return;
   }
@@ -87,18 +97,7 @@ async function loadProducts() {
         <td>
           ${
             p.image_url
-              ? `<img
-                   src="${p.image_url}"
-                   style="
-                     width:40px;
-                     height:40px;
-                     object-fit:cover;
-                     border-radius:6px;
-                     cursor:pointer;
-                     border:1px solid #ccc;
-                   "
-                   onclick="window.open('${p.image_url}', '_blank')"
-                 />`
+              ? `<img src="${p.image_url}" style="height:40px;width:40px;object-fit:cover;border-radius:6px;">`
               : "-"
           }
         </td>
@@ -138,53 +137,32 @@ function openAddProductModal() {
     <label>Price</label>
     <input id="productPrice" type="number" step="0.01">
 
-    <label>Image URL</label>
-    <input
-      id="productImageUrl"
-      placeholder="https://drive.google.com/uc?id=..."
-      oninput="previewProductImage(normalizeDriveImageUrl(this.value))"
-    >
+    <label>Image URL (Google Drive allowed)</label>
+    <input id="productImageUrl" placeholder="Paste Google Drive link here">
 
-    <img
-      id="imagePreview"
-      style="
-        margin-top:10px;
-        max-width:100%;
-        max-height:200px;
-        display:none;
-        border-radius:6px;
-        border:1px solid #ccc;
-      "
-    >
+    <img id="imagePreview"
+      style="margin-top:10px;max-width:100%;display:none;border-radius:8px;">
 
     <div class="modal-actions">
       <button class="btn-danger" onclick="saveProduct()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
-}
 
-/* ================= LIVE IMAGE PREVIEW ================= */
-window.previewProductImage = rawUrl => {
-  const preview = document.getElementById("imagePreview");
-  const url = normalizeDriveImageUrl(rawUrl);
+  document.getElementById("productImageUrl").addEventListener("input", e => {
+    const preview = document.getElementById("imagePreview");
+    const url = normalizeDriveImageUrl(e.target.value);
 
-  if (!url) {
-    preview.style.display = "none";
-    preview.src = "";
-    return;
-  }
+    if (!url) {
+      preview.style.display = "none";
+      preview.src = "";
+      return;
+    }
 
-  const img = new Image();
-  img.onload = () => {
     preview.src = url;
     preview.style.display = "block";
-  };
-  img.onerror = () => {
-    preview.style.display = "none";
-  };
-  img.src = url;
-};
+  });
+}
 
 /* ================= SAVE PRODUCT ================= */
 window.saveProduct = () => {
@@ -193,8 +171,8 @@ window.saveProduct = () => {
   const categoryId = document.getElementById("productCategory").value;
   const description = document.getElementById("productDescription").value.trim();
   const price = document.getElementById("productPrice").value;
-  const imageUrlRaw = document.getElementById("productImageUrl").value.trim();
-    const imageUrl = normalizeDriveImageUrl(imageUrlRaw);
+  const rawImageUrl = document.getElementById("productImageUrl").value.trim();
+  const imageUrl = normalizeDriveImageUrl(rawImageUrl);
 
   if (!name) return alert("Product name required");
   if (!categoryId) return alert("Please select a category");
@@ -213,18 +191,3 @@ window.saveProduct = () => {
   closeModal();
   setTimeout(loadProducts, 600);
 };
-
-function normalizeDriveImageUrl(url) {
-  if (!url) return "";
-
-  // If already a direct link, keep it
-  if (url.includes("drive.google.com/uc?id=")) {
-    return url;
-  }
-
-  // Extract file ID from common Drive URLs
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (!match) return url;
-
-  return `https://drive.google.com/uc?id=${match[1]}`;
-}
