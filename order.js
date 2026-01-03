@@ -31,7 +31,6 @@ function renderProducts(list) {
       <div class="product-img">
         <img src="${p.image_url || "placeholder.png"}" alt="${p.product_name}">
       </div>
-
       <div class="product-info">
         <div class="product-name">${p.product_name}</div>
         <div class="product-code">${p.product_code}</div>
@@ -110,7 +109,7 @@ async function checkoutOrder() {
 
   isCheckingOut = true;
 
-  const location = "MAIN"; // later: dynamic
+  const location = "MAIN"; // later dynamic
   const refId = "ORD-" + Date.now();
 
   try {
