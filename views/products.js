@@ -182,18 +182,32 @@ function openProductModal(p = {}) {
 
 /* ================= SAVE ================= */
 window.saveProduct = rowIndex => {
-  const url =
+  const productNameEl = document.getElementById("productName");
+  const codeEl = document.getElementById("code");
+  const categoryEl = document.getElementById("category");
+  const descEl = document.getElementById("desc");
+  const priceEl = document.getElementById("price");
+  const qtyServingEl = document.getElementById("qtyServing");
+  const unitEl = document.getElementById("unit");
+  const imgEl = document.getElementById("img");
+
+  if (!productNameEl.value.trim()) {
+    alert("Product name is required");
+    return;
+  }
+
+  let url =
     API_URL +
     `?action=${rowIndex ? "editProduct" : "addProduct"}` +
     (rowIndex ? `&rowIndex=${rowIndex}` : "") +
-    `&product_code=${encodeURIComponent(code.value)}` +
-    `&product_name=${encodeURIComponent(name.value)}` +
-    `&category_id=${encodeURIComponent(category.value)}` +
-    `&description=${encodeURIComponent(desc.value)}` +
-    `&price=${encodeURIComponent(price.value)}` +
-    `&quantity_per_serving=${encodeURIComponent(qtyServing.value)}` +
-    `&unit=${encodeURIComponent(unit.value)}` +
-    `&image_url=${encodeURIComponent(img.value)}`;
+    `&product_code=${encodeURIComponent(codeEl.value)}` +
+    `&product_name=${encodeURIComponent(productNameEl.value)}` +
+    `&category_id=${encodeURIComponent(categoryEl.value)}` +
+    `&description=${encodeURIComponent(descEl.value)}` +
+    `&price=${encodeURIComponent(priceEl.value)}` +
+    `&quantity_per_serving=${encodeURIComponent(qtyServingEl.value)}` +
+    `&unit=${encodeURIComponent(unitEl.value)}` +
+    `&image_url=${encodeURIComponent(imgEl.value)}`;
 
   new Image().src = url;
   closeModal();
