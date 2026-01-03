@@ -4,6 +4,7 @@ const API_URL =
 /* ================= STATE ================= */
 let products = [];
 let cart = [];
+let isCheckingOut = false;
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
@@ -28,7 +29,7 @@ function renderProducts(list) {
 
     card.innerHTML = `
       <div class="product-img">
-        <img src="${p.image_url || 'placeholder.png'}" alt="${p.product_name}">
+        <img src="${p.image_url || "placeholder.png"}" alt="${p.product_name}">
       </div>
 
       <div class="product-info">
@@ -88,8 +89,65 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
-/* ================= CLEAR ================= */
+/* ================= CLEAR ORDER ================= */
 document.getElementById("clearOrderBtn").onclick = () => {
+  if (!cart.length) return;
+  if (!confirm("Clear current order?")) return;
+
   cart = [];
   renderCart();
 };
+
+/* ================= CHECKOUT ================= */
+document.querySelector(".checkout").onclick = checkoutOrder;
+
+async function checkoutOrder() {
+  if (isCheckingOut) return;
+  if (!cart.length) {
+    alert("Cart is empty");
+    return;
+  }
+
+  isCheckingOut = true;
+
+  const location = "MAIN"; // later: dynamic
+  const refId = "ORD-" + Date.now();
+
+  try {
+    for (const line of cart) {
+      // 1️⃣ Load recipe for product
+      const recipes = await fetch(
+        API_URL + `?type=productRecipes&product_id=${line.product_id}`
+      ).then(r => r.json());
+
+      if (!recipes.length) {
+        alert(`No recipe set for ${line.product_name}`);
+        continue;
+      }
+
+      // 2️⃣ Deduct inventory per recipe
+      for (const r of recipes) {
+        const qtyOut = Number(r.qty_used) * Number(line.qty);
+
+        new Image().src =
+          API_URL +
+          `?action=stockOut` +
+          `&item_id=${r.item_id}` +
+          `&qty=${qtyOut}` +
+          `&location=${location}` +
+          `&source=POS` +
+          `&ref_id=${refId}`;
+      }
+    }
+
+    alert("Order completed successfully!");
+    cart = [];
+    renderCart();
+
+  } catch (err) {
+    console.error(err);
+    alert("Checkout failed. Please try again.");
+  }
+
+  isCheckingOut = false;
+}
