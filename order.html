@@ -8,56 +8,38 @@
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div class="top-bar">
-  <div class="logo">POS</div>
+  <div class="logo">MAGAYON POS</div>
   <div class="top-actions">
-    <button>New</button>
-    <button>Hold</button>
-    <button>Bill List</button>
-    <button>KOT</button>
-    <button>Delivery</button>
-    <button>Take Away</button>
-    <button>Dine In</button>
+    <button id="newOrderBtn">New</button>
+    <button id="holdBtn">Hold</button>
+    <button id="billListBtn">Bill List</button>
   </div>
 </div>
 
 <div class="pos-container">
 
-  <!-- LEFT: CATEGORIES -->
-  <aside class="categories">
-    <button class="category-btn active" data-category="all">All Categories</button>
-    <button class="category-btn" data-category="Pancit Bato Meals">Pancit Bato Meals</button>
-    <button class="category-btn" data-category="Dinuguan Meals">Dinuguan Meals</button>
-    <button class="category-btn" data-category="Bicol Express Meals">Bicol Express Meals</button>
-    <button class="category-btn" data-category="Lumpiang Shanghai">Lumpiang Shanghai</button>
-    <button class="category-btn" data-category="Siomai Meals">Siomai Meals</button>
-    <button class="category-btn" data-category="Ala Carte">Ala Carte</button>
-    <button class="category-btn" data-category="Drinks">Drinks</button>
-    <button class="category-btn" data-category="Add ons">Add ons</button>
-  </aside>
+  <!-- CATEGORIES -->
+  <aside class="categories" id="categoryList"></aside>
 
-  <!-- CENTER: PRODUCTS -->
+  <!-- PRODUCTS -->
   <main class="products">
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search">
+      <input type="text" id="searchInput" placeholder="Search products">
     </div>
-
-    <div class="product-grid" id="productGrid">
-      <!-- Product cards injected by JS -->
-    </div>
+    <div class="product-grid" id="productGrid"></div>
   </main>
 
-  <!-- RIGHT: ORDER SUMMARY -->
+  <!-- ORDER SUMMARY -->
   <aside class="order-summary">
     <table>
       <thead>
         <tr>
-          <th scope="col">SR#</th>
-          <th scope="col">Product Name</th>
-          <th scope="col">Qty</th>
-          <th scope="col">Price</th>
-          <th scope="col">Total</th>
+          <th>#</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
         </tr>
       </thead>
       <tbody id="orderTable"></tbody>
@@ -65,14 +47,13 @@
 
     <div class="summary-footer">
       <div class="total">
-        SUM TOTAL: ₱<span id="sumTotal">0</span>
+        TOTAL: ₱<span id="sumTotal">0.00</span>
       </div>
 
-    <div class="actions">
-        <button class="clear" id="clearOrderBtn">Clear</button>
-        <button class="checkout">Check out</button>
-        <button class="print">Print</button>
-    </div>
+      <div class="actions">
+        <button id="clearOrderBtn" class="clear">Clear</button>
+        <button id="checkoutBtn" class="checkout">Checkout</button>
+      </div>
     </div>
   </aside>
 

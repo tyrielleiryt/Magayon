@@ -1,176 +1,114 @@
-console.log("ORDER.JS LOADED");
+const API_URL =
+  "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+let products = [];
+let categories = [];
+let cart = [];
 
-/* ================= FIREBASE ================= */
+/* ================= LOAD DATA ================= */
+async function initPOS() {
+  categories = await fetch(API_URL + "?type=categories").then(r => r.json());
+  products = await fetch(API_URL + "?type=products").then(r => r.json());
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
-  authDomain: "magayon.firebaseapp.com",
-  projectId: "magayon",
+  renderCategories();
+  renderProducts();
+}
+
+initPOS();
+
+/* ================= CATEGORIES ================= */
+function renderCategories() {
+  const el = document.getElementById("categoryList");
+
+  el.innerHTML = `
+    <button class="category-btn active" onclick="filterCategory('all')">
+      All
+    </button>
+    ${categories.map(c => `
+      <button class="category-btn"
+        onclick="filterCategory('${c.category_id}')">
+        ${c.category_name}
+      </button>
+    `).join("")}
+  `;
+}
+
+window.filterCategory = id => {
+  renderProducts(id);
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+/* ================= PRODUCTS ================= */
+function renderProducts(category = "all") {
+  const grid = document.getElementById("productGrid");
 
-/* ================= AUTH + ROLE CHECK ================= */
+  const filtered = category === "all"
+    ? products
+    : products.filter(p => p.category_id === category);
 
-let authResolved = false;
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card" onclick="addToCart('${p.id}')">
+      <div class="name">${p.product_name}</div>
+      <div class="price">₱${Number(p.price).toFixed(2)}</div>
+    </div>
+  `).join("");
+}
 
-onAuthStateChanged(auth, async (user) => {
-  if (authResolved) return; // prevent re-run
-  authResolved = true;
+/* ================= CART ================= */
+window.addToCart = productId => {
+  const p = products.find(x => x.id === productId);
+  const row = cart.find(x => x.product_id === productId);
 
-  if (!user) {
-    window.location.replace("index.html");
-    return;
-  }
+  if (row) row.qty++;
+  else cart.push({ ...p, qty: 1 });
 
-  try {
-    const snap = await getDoc(doc(db, "users", user.uid));
+  renderCart();
+};
 
-    if (!snap.exists()) {
-      window.location.replace("index.html");
-      return;
-    }
+function renderCart() {
+  const tbody = document.getElementById("orderTable");
+  let sum = 0;
 
-    const role = snap.data().role;
+  tbody.innerHTML = cart.map((i, idx) => {
+    const total = i.qty * i.price;
+    sum += total;
 
-    // Allow ADMIN and CASHIER
-    if (role !== "admin" && role !== "cashier") {
-      window.location.replace("index.html");
-      return;
-    }
-
-    // ✅ Authorized — allow POS to load
-
-  } catch (error) {
-    console.error("Auth check error:", error);
-    window.location.replace("index.html");
-  }
-});
-
-/* ================= PRODUCTS (TEMP) ================= */
-
-const products = [
-  {
-    id: 1,
-    name: "Pancit Bato w/ Lechon Kawali",
-    price: 60,
-    category: "Pancit Bato Meals",
-    image: "images/p1.jpg"
-  },
-  {
-    id: 2,
-    name: "Pancit Bato w/ Chicharon",
-    price: 47,
-    category: "Pancit Bato Meals",
-    image: "images/p2.jpg"
-  },
-  {
-    id: 3,
-    name: "Pancit Bato w/ Dinuguan",
-    price: 55,
-    category: "Dinuguan Meals",
-    image: "images/p3.jpg"
-  },
-  {
-    id: 4,
-    name: "Bicol Express Meal",
-    price: 65,
-    category: "Bicol Express Meals",
-    image: "images/p4.jpg"
-  },
-  {
-    id: 5,
-    name: "Iced Tea",
-    price: 20,
-    category: "Drinks",
-    image: "images/drink1.jpg"
-  }
-];
-
-/* ================= DOM ELEMENTS ================= */
-
-const grid = document.getElementById("productGrid");
-const table = document.getElementById("orderTable");
-const totalEl = document.getElementById("sumTotal");
-const clearBtn = document.getElementById("clearOrderBtn");
-const categoryButtons = document.querySelectorAll(".category-btn");
-
-/* ================= STATE ================= */
-
-let order = [];
-let total = 0;
-
-/* ================= RENDER PRODUCTS ================= */
-
-function renderProducts(list) {
-  grid.innerHTML = "";
-
-  list.forEach(product => {
-    const card = document.createElement("div");
-    card.className = "product-card";
-    card.innerHTML = `
-      <img src="${product.image}">
-      <h4>${product.name}</h4>
-      <strong>₱${product.price}</strong>
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${i.product_name}</td>
+        <td>${i.qty}</td>
+        <td>₱${i.price.toFixed(2)}</td>
+        <td>₱${total.toFixed(2)}</td>
+      </tr>
     `;
-    card.addEventListener("click", () => addToOrder(product));
-    grid.appendChild(card);
-  });
+  }).join("");
+
+  document.getElementById("sumTotal").textContent = sum.toFixed(2);
 }
 
-/* ================= CATEGORY FILTER ================= */
+/* ================= CHECKOUT ================= */
+document.getElementById("checkoutBtn").onclick = async () => {
+  if (!cart.length) return alert("Cart empty");
 
-categoryButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    categoryButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+  const payload = {
+    location: "MAIN",
+    cashier: "ADMIN",
+    items: cart.map(i => ({
+      product_id: i.id,
+      qty: i.qty,
+      price: i.price
+    }))
+  };
 
-    const category = btn.dataset.category;
-
-    if (category === "all") {
-      renderProducts(products);
-    } else {
-      renderProducts(products.filter(p => p.category === category));
-    }
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "checkoutPOS",
+      data: payload
+    })
   });
-});
 
-/* ================= ORDER LOGIC ================= */
-
-function addToOrder(product) {
-  order.push(product);
-  total += product.price;
-
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td>${order.length}</td>
-    <td>${product.name}</td>
-    <td>1</td>
-    <td>₱${product.price}</td>
-    <td>₱${product.price}</td>
-  `;
-
-  table.appendChild(row);
-  totalEl.textContent = total;
-}
-
-/* ================= CLEAR ORDER ================= */
-
-clearBtn.addEventListener("click", () => {
-  if (!confirm("Clear all current orders?")) return;
-
-  order = [];
-  total = 0;
-  table.innerHTML = "";
-  totalEl.textContent = "0";
-});
-
-/* ================= INITIAL LOAD ================= */
-
-renderProducts(products);
+  cart = [];
+  renderCart();
+  alert("Sale completed");
+};
