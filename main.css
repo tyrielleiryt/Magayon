@@ -126,14 +126,14 @@ html, body {
 #modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-/* 🔥 CRITICAL FIX */
+/* 🔥 CRITICAL FIX — allows clicking again */
 #modalOverlay.hidden {
   display: none !important;
 }
@@ -159,12 +159,19 @@ html, body {
 }
 
 #modalBox input,
+#modalBox textarea,
 #modalBox select {
   width: 100%;
   padding: 8px 10px;
   margin-top: 6px;
   border-radius: 6px;
   border: 1px solid #bbb;
+  font-size: 14px;
+}
+
+#modalBox textarea {
+  resize: none;
+  min-height: 70px;
 }
 
 /* ================= PRODUCT RECIPE ================= */
@@ -197,7 +204,7 @@ html, body {
   font-size: 13px;
 }
 
-/* Quantity input (COMPACT) */
+/* Quantity input (compact) */
 #modalBox input.recipe-qty {
   width: 50px !important;
   height: 32px;
@@ -220,6 +227,11 @@ html, body {
 
 .recipe-btn:hover {
   background: #1f2447;
+}
+
+.recipe-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 /* Cost */
@@ -247,6 +259,39 @@ html, body {
   cursor: pointer;
 }
 
+/* ================= DAILY INVENTORY (IMPROVED, SAME LAYOUT) ================= */
+
+.daily-inventory-row {
+  display: grid;
+  grid-template-columns: 1.6fr 90px 90px 110px 110px 110px;
+  align-items: center;
+  padding: 6px 4px;
+  font-size: 13px;
+}
+
+.daily-inventory-row:nth-child(even) {
+  background: #fafafa;
+}
+
+.money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Summary */
+.inventory-summary {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.inventory-summary .net {
+  font-weight: bold;
+  color: #2f3457;
+}
+
 /* ================= MODAL ACTIONS ================= */
 .modal-actions {
   margin-top: auto;
@@ -270,4 +315,10 @@ html, body {
   padding: 8px 18px;
   border-radius: 20px;
   cursor: pointer;
+}
+
+/* ================= READONLY ================= */
+.readonly {
+  background: #f3f3f3;
+  cursor: not-allowed;
 }
