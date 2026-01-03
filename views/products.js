@@ -1,12 +1,18 @@
 import { openModal, closeModal } from "./modal.js";
 
-const API_URL = "YOUR_SCRIPT_URL_HERE";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-let inventoryMap = {};
-let recipeRows = [];
+/* ================= STATE ================= */
+let inventoryMap = {}; // key = item_id
+
+/* ================= ENTRY ================= */
+export default function loadProductsView() {
+  // called by router — keep even if empty for now
+}
 
 /* ================= OPEN MODAL ================= */
-function openProductModal(product = {}) {
+window.openProductModal = function (product = {}) {
   openModal(`
     <div class="modal-header">Add Product</div>
 
@@ -24,8 +30,12 @@ function openProductModal(product = {}) {
 
     <div class="recipe-section">
       <h4>Product Recipe</h4>
+
       <div class="recipe-scroll" id="recipeList"></div>
-      <button class="add-ingredient-btn" onclick="addRecipeRow()">➕ Add Ingredient</button>
+
+      <button class="add-ingredient-btn" onclick="addRecipeRow()">
+        ➕ Add Ingredient
+      </button>
     </div>
 
     <div class="modal-actions">
@@ -35,27 +45,30 @@ function openProductModal(product = {}) {
   `);
 
   loadInventory();
-}
+};
 
 /* ================= LOAD INVENTORY ================= */
 async function loadInventory() {
+  inventoryMap = {};
+
   const res = await fetch(API_URL + "?type=inventoryItems");
   const items = await res.json();
 
   items.forEach(i => {
     inventoryMap[i.item_id] = {
+      item_id: i.item_id,
       name: i.item_name,
-      capital: i.capital,
-      remaining: i.remaining,
-      unit: i.unit
+      capital: Number(i.capital) || 0,
+      unit: i.unit || ""
+      // remaining will be added later via low-stock API
     };
   });
 
   addRecipeRow();
 }
 
-/* ================= ADD ROW ================= */
-window.addRecipeRow = () => {
+/* ================= ADD RECIPE ROW ================= */
+window.addRecipeRow = function () {
   const list = document.getElementById("recipeList");
 
   const row = document.createElement("div");
@@ -64,19 +77,19 @@ window.addRecipeRow = () => {
   row.innerHTML = `
     <select class="recipe-item">
       ${Object.values(inventoryMap)
-        .map(i => `<option value="${i.name}">${i.name}</option>`)
+        .map(i => `<option value="${i.item_id}">${i.name}</option>`)
         .join("")}
     </select>
 
-    <button class="recipe-btn minus">−</button>
+    <button type="button" class="recipe-btn minus">−</button>
     <input type="number" class="recipe-qty" value="1" min="1">
-    <button class="recipe-btn plus">+</button>
+    <button type="button" class="recipe-btn plus">+</button>
 
     <div class="recipe-cost">₱0.00</div>
   `;
 
   const warning = document.createElement("div");
-  warning.className = "recipe-warning";
+  warning.className = "recipe-warning hidden";
 
   list.appendChild(row);
   list.appendChild(warning);
@@ -84,38 +97,54 @@ window.addRecipeRow = () => {
   bindRecipeEvents(row, warning);
 };
 
-/* ================= EVENTS ================= */
+/* ================= ROW EVENTS ================= */
 function bindRecipeEvents(row, warning) {
   const select = row.querySelector(".recipe-item");
-  const qty = row.querySelector(".recipe-qty");
-  const cost = row.querySelector(".recipe-cost");
+  const qtyInput = row.querySelector(".recipe-qty");
+  const costEl = row.querySelector(".recipe-cost");
 
   function update() {
     const item = inventoryMap[select.value];
-    const q = Number(qty.value || 0);
-    const total = q * item.capital;
+    if (!item) return;
 
-    cost.textContent = `₱${total.toFixed(2)}`;
+    const qty = Math.max(1, Number(qtyInput.value || 1));
+    qtyInput.value = qty;
 
-    if (item.remaining !== undefined && q > item.remaining) {
-      warning.textContent = `⚠ Only ${item.remaining} ${item.unit} left`;
-    } else {
-      warning.textContent = "";
-    }
+    const total = qty * item.capital;
+    costEl.textContent = `₱${total.toFixed(2)}`;
+
+    // Low stock placeholder (safe)
+    warning.classList.add("hidden");
+    warning.textContent = "";
   }
 
   row.querySelector(".plus").onclick = () => {
-    qty.value++;
+    qtyInput.value = Number(qtyInput.value) + 1;
     update();
   };
 
   row.querySelector(".minus").onclick = () => {
-    qty.value = Math.max(1, qty.value - 1);
+    qtyInput.value = Math.max(1, Number(qtyInput.value) - 1);
     update();
   };
 
-  qty.oninput = update;
+  qtyInput.oninput = update;
   select.onchange = update;
 
   update();
 }
+
+/* ================= SAVE PRODUCT ================= */
+window.saveProduct = function () {
+  const rows = document.querySelectorAll(".recipe-row");
+
+  const recipe = Array.from(rows).map(r => ({
+    item_id: r.querySelector(".recipe-item").value,
+    qty_used: Number(r.querySelector(".recipe-qty").value || 0)
+  }));
+
+  console.log("Recipe to save:", recipe);
+
+  // API save will be added after UI is stable
+  closeModal();
+};
