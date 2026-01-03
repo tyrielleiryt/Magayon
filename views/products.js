@@ -6,34 +6,41 @@ const API_URL =
 /* ================= STATE ================= */
 let inventoryMap = {}; // key = item_id
 
-/* ================= ENTRY ================= */
+/* ================= ENTRY (REQUIRED BY ROUTER) ================= */
 export default function loadProductsView() {
-  // called by router — keep even if empty for now
+  // This must exist for admin.js import
+  // UI rendering handled elsewhere
+  console.log("Products view loaded");
 }
 
 /* ================= OPEN MODAL ================= */
 window.openProductModal = function (product = {}) {
   openModal(`
-    <div class="modal-header">Add Product</div>
+    <div class="modal-header">
+      ${product.product_id ? "Edit Product" : "Add Product"}
+    </div>
 
     <label>Product Name</label>
-    <input id="productName">
+    <input id="productName" value="${product.product_name || ""}">
 
     <label>Category</label>
     <select id="category"></select>
 
     <label>Price</label>
-    <input type="number" id="price">
+    <input type="number" id="price" value="${product.price || ""}">
 
     <label>Image URL</label>
-    <input id="image">
+    <input id="image" value="${product.image_url || ""}">
 
     <div class="recipe-section">
       <h4>Product Recipe</h4>
 
       <div class="recipe-scroll" id="recipeList"></div>
 
-      <button class="add-ingredient-btn" onclick="addRecipeRow()">
+      <button
+        type="button"
+        class="add-ingredient-btn"
+        onclick="addRecipeRow()">
         ➕ Add Ingredient
       </button>
     </div>
@@ -51,25 +58,31 @@ window.openProductModal = function (product = {}) {
 async function loadInventory() {
   inventoryMap = {};
 
-  const res = await fetch(API_URL + "?type=inventoryItems");
-  const items = await res.json();
+  try {
+    const res = await fetch(API_URL + "?type=inventoryItems");
+    const items = await res.json();
 
-  items.forEach(i => {
-    inventoryMap[i.item_id] = {
-      item_id: i.item_id,
-      name: i.item_name,
-      capital: Number(i.capital) || 0,
-      unit: i.unit || ""
-      // remaining will be added later via low-stock API
-    };
-  });
+    items.forEach(i => {
+      inventoryMap[i.item_id] = {
+        item_id: i.item_id,
+        name: i.item_name,
+        capital: Number(i.capital) || 0,
+        unit: i.unit || "",
+        remaining: i.remaining // optional / future
+      };
+    });
 
-  addRecipeRow();
+    // Always start with one row
+    addRecipeRow();
+  } catch (err) {
+    console.error("Failed to load inventory items", err);
+  }
 }
 
 /* ================= ADD RECIPE ROW ================= */
 window.addRecipeRow = function () {
   const list = document.getElementById("recipeList");
+  if (!list) return;
 
   const row = document.createElement("div");
   row.className = "recipe-row";
@@ -77,12 +90,22 @@ window.addRecipeRow = function () {
   row.innerHTML = `
     <select class="recipe-item">
       ${Object.values(inventoryMap)
-        .map(i => `<option value="${i.item_id}">${i.name}</option>`)
+        .map(
+          i => `<option value="${i.item_id}">${i.name}</option>`
+        )
         .join("")}
     </select>
 
     <button type="button" class="recipe-btn minus">−</button>
-    <input type="number" class="recipe-qty" value="1" min="1">
+
+    <input
+      type="number"
+      class="recipe-qty"
+      value="1"
+      min="1"
+      step="1"
+    >
+
     <button type="button" class="recipe-btn plus">+</button>
 
     <div class="recipe-cost">₱0.00</div>
@@ -107,15 +130,24 @@ function bindRecipeEvents(row, warning) {
     const item = inventoryMap[select.value];
     if (!item) return;
 
-    const qty = Math.max(1, Number(qtyInput.value || 1));
+    let qty = Number(qtyInput.value || 1);
+    qty = Math.max(1, qty);
     qtyInput.value = qty;
 
     const total = qty * item.capital;
     costEl.textContent = `₱${total.toFixed(2)}`;
 
-    // Low stock placeholder (safe)
-    warning.classList.add("hidden");
-    warning.textContent = "";
+    // Low-stock warning (safe / optional)
+    if (
+      item.remaining !== undefined &&
+      qty > item.remaining
+    ) {
+      warning.textContent = `⚠ Only ${item.remaining} ${item.unit} left`;
+      warning.classList.remove("hidden");
+    } else {
+      warning.textContent = "";
+      warning.classList.add("hidden");
+    }
   }
 
   row.querySelector(".plus").onclick = () => {
@@ -134,17 +166,19 @@ function bindRecipeEvents(row, warning) {
   update();
 }
 
-/* ================= SAVE PRODUCT ================= */
+/* ================= SAVE PRODUCT (UI ONLY FOR NOW) ================= */
 window.saveProduct = function () {
   const rows = document.querySelectorAll(".recipe-row");
 
   const recipe = Array.from(rows).map(r => ({
     item_id: r.querySelector(".recipe-item").value,
-    qty_used: Number(r.querySelector(".recipe-qty").value || 0)
+    qty_used: Number(
+      r.querySelector(".recipe-qty").value || 0
+    )
   }));
 
   console.log("Recipe to save:", recipe);
 
-  // API save will be added after UI is stable
+  // API wiring will come next (product + recipe save)
   closeModal();
 };
