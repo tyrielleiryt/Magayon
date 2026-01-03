@@ -388,50 +388,60 @@ html, body {
   background: #1f2447;
 }
 
-/* ================= PRODUCT MODAL FIX ================= */
+/* ================= PRODUCT RECIPE MODAL ================= */
 
-.modal {
+#modalBox {
   max-height: 85vh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* critical */
 }
 
-/* Recipe section container */
+/* Recipe section wrapper */
 .recipe-section {
-  border-top: 1px solid #ddd;
-  margin-top: 10px;
+  margin-top: 16px;
   padding-top: 10px;
+  border-top: 1px solid #ddd;
 }
 
-/* Scrollable recipe list */
+/* Scrollable recipe area */
 .recipe-scroll {
-  max-height: 220px; /* adjust if needed */
+  max-height: 240px;
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 6px;
+  margin-top: 8px;
 }
 
 /* Compact recipe table */
 .recipe-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
+}
+
+.recipe-table th {
+  background: #f3f3f3;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .recipe-table th,
 .recipe-table td {
   padding: 6px;
-  font-size: 13px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
 }
 
-/* Compact dropdown */
+/* Inventory dropdown */
 .recipe-item {
   width: 100%;
   padding: 6px;
   font-size: 13px;
 }
 
-/* Compact qty input */
+/* Quantity input */
 .recipe-qty {
   width: 70px;
   padding: 6px;
@@ -439,11 +449,11 @@ html, body {
   text-align: center;
 }
 
-/* Remove button */
+/* Remove ingredient */
 .recipe-remove-btn {
   background: transparent;
   border: none;
-  color: #c0392b;
+  color: #e06780;
   font-size: 16px;
   cursor: pointer;
 }
@@ -451,6 +461,11 @@ html, body {
 /* Add ingredient button */
 .add-ingredient-btn {
   margin-top: 8px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   font-size: 13px;
+  background: #2f3457;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
