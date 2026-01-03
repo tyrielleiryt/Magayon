@@ -207,6 +207,30 @@ window.viewDaily = async dailyId => {
   `);
 };
 
+/* ================= EDIT ================= */
+window.editDaily = async function (dailyId) {
+  editDailyId = dailyId;
+
+  // Load inventory items (if not yet loaded)
+  inventoryItems = await (await fetch(
+    API_URL + "?type=inventoryItems"
+  )).json();
+
+  // Load existing daily inventory quantities
+  const existing = await (await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+  )).json();
+
+  // Reset quantities
+  quantities = {};
+  existing.forEach(i => {
+    quantities[i.item_id] = Number(i.qty) || 0;
+  });
+
+  // Open modal with populated values
+  openAddEditModal();
+};
+
 /* ================= ADD / EDIT ================= */
 async function openAddEditModal() {
   if (!inventoryItems.length) {
