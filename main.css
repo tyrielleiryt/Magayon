@@ -469,3 +469,39 @@ html, body {
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* ================= RECIPE QTY FIX ================= */
+
+/* Row layout */
+.recipe-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Inventory dropdown */
+.recipe-item {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  height: 34px;
+}
+
+/* ✅ Quantity input – COMPACT */
+.recipe-qty {
+  width: 70px;
+  height: 34px;
+  padding: 4px 6px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Remove button */
+.recipe-remove-btn {
+  width: 32px;
+  height: 32px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 6px;
+}
