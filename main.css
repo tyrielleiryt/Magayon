@@ -1,7 +1,5 @@
 /* ================= GLOBAL ================= */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -66,15 +64,15 @@ html, body {
   padding: 16px;
 }
 
-/* ================= CONTENT BOX (LOCK HEIGHT) ================= */
+/* ================= CONTENT BOX ================= */
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: calc(100vh - 96px); /* prevents infinite growth */
+  height: calc(100vh - 96px);
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 🔒 critical fix */
+  overflow: hidden;
 }
 
 /* ================= ACTION BAR ================= */
@@ -84,7 +82,6 @@ html, body {
   padding-bottom: 8px;
   margin-bottom: 10px;
   border-bottom: 1px solid #ccc;
-  align-items: center;
 }
 
 .category-action-btn {
@@ -102,30 +99,6 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ================= SEARCH INPUT ================= */
-.action-bar input[type="text"] {
-  padding: 8px 12px;
-  border-radius: 20px;
-  border: 1px solid #bbb;
-  font-size: 14px;
-  min-width: 220px;
-}
-
-/* ================= DATA CONTAINER ================= */
-.data-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* REQUIRED for scroll */
-}
-
-/* ================= SCROLL AREA (ONLY SCROLLER) ================= */
-.data-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
 /* ================= TABLE ================= */
 .category-table {
   width: 100%;
@@ -134,374 +107,157 @@ html, body {
   font-size: 14px;
 }
 
-.category-table thead th {
+.category-table th {
   background: #f3f3f3;
-  font-weight: bold;
-  text-align: center;
   padding: 8px;
   position: sticky;
   top: 0;
-  z-index: 2;
 }
 
 .category-table td {
   padding: 8px;
-  text-align: center;
   border-bottom: 1px solid #ddd;
+  text-align: center;
 }
 
-.category-table tbody tr:hover {
-  background: #f9f4dc;
-}
-
-/* ================= ROW SELECTION ================= */
-.product-table tbody tr {
-  cursor: pointer;
-}
-
-.product-table tbody tr.selected {
-  background: #f3c84b;
-  font-weight: bold;
-}
-
-/* ================= BUTTONS ================= */
-.btn-view,
-.btn-edit,
-.btn-delete {
-  background: #2e3354;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 13px;
-  margin: 0 4px;
-}
-
-.btn-delete {
-  background: #e06780;
-}
-
-/* ================= IMAGE PREVIEW BUTTON ================= */
-.btn-preview {
-  background: #4b7bec;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 13px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-preview:hover {
-  background: #3867d6;
-}
-
-/* ================= PAGINATION ================= */
-.pagination {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 0;
-  border-top: 1px solid #ddd;
-}
-
-.pagination button {
-  background: #2e3354;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-.pagination .active-page {
-  background: #f3c84b;
-  color: black;
-  font-weight: bold;
-}
-
-/* ================= MODAL OVERLAY ================= */
+/* ================= MODAL ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-#modalOverlay.hidden {
-  display: none;
-}
-
-/* ================= MODAL BOX ================= */
 #modalBox {
-  background: #ffffff;
-  width: 420px;
-  max-width: 90%;
+  background: #fff;
+  width: 520px;
+  max-width: 95vw;
+  max-height: 85vh;
   padding: 24px;
   border-radius: 14px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* ================= MODAL CONTENT ================= */
-.modal-header {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 16px;
-}
-
+/* ================= MODAL FORM ================= */
 #modalBox label {
-  display: block;
   margin-top: 12px;
   font-size: 14px;
   font-weight: bold;
 }
 
 #modalBox input,
-#modalBox textarea,
 #modalBox select {
   width: 100%;
   padding: 8px 10px;
   margin-top: 6px;
   border-radius: 6px;
   border: 1px solid #bbb;
-  font-size: 14px;
 }
 
-#modalBox textarea {
-  resize: none;
-  min-height: 80px;
+/* ================= PRODUCT RECIPE ================= */
+.recipe-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+}
+
+.recipe-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+/* Individual row */
+.recipe-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* Inventory select */
+.recipe-item {
+  height: 32px;
+  font-size: 13px;
+}
+
+/* Quantity input — 🔥 SMALL */
+#modalBox input.recipe-qty {
+  width: 50px !important;
+  height: 32px;
+  padding: 2px 4px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* + / - buttons */
+.recipe-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: #2f3457;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.recipe-btn:hover {
+  background: #1f2447;
+}
+
+/* Cost */
+.recipe-cost {
+  font-size: 12px;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Warning */
+.recipe-warning {
+  font-size: 11px;
+  color: #c0392b;
+  margin-bottom: 6px;
+}
+
+/* Add ingredient */
+.add-ingredient-btn {
+  margin-top: 8px;
+  padding: 8px;
+  background: #2f3457;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 /* ================= MODAL ACTIONS ================= */
 .modal-actions {
+  margin-top: auto;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
 }
 
 .btn-danger {
   background: #e06780;
   color: white;
   border: none;
-  padding: 8px 20px;
+  padding: 8px 18px;
   border-radius: 20px;
-  cursor: pointer;
 }
 
 .btn-back {
   background: #ddd;
   border: none;
-  padding: 8px 20px;
+  padding: 8px 18px;
   border-radius: 20px;
-  cursor: pointer;
-}
-
-/* ================= DAILY INVENTORY MODAL (IMPROVED UX) ================= */
-
-#modalBox.large {
-  width: 900px;
-  max-width: 95vw;
-}
-
-.inventory-header-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.inventory-header-grid label {
-  margin-top: 0;
-}
-
-.inventory-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.inventory-table th {
-  background: #f3f3f3;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.inventory-table th,
-.inventory-table td {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-  text-align: center;
-}
-
-.inventory-table td:first-child,
-.inventory-table th:first-child {
-  text-align: left;
-}
-
-.inventory-scroll {
-  max-height: 420px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.inventory-summary {
-  margin-top: 14px;
-  padding: 12px;
-  background: #fafafa;
-  border-radius: 8px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 24px;
-  font-size: 15px;
-}
-
-.inventory-summary span {
-  font-weight: bold;
-}
-
-.qty-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: none;
-  background: #2f3457;
-  color: white;
-  cursor: pointer;
-}
-
-.qty-btn:hover {
-  background: #1f2447;
-}
-
-/* ================= PRODUCT RECIPE MODAL ================= */
-
-#modalBox {
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* critical */
-}
-
-/* Recipe section wrapper */
-.recipe-section {
-  margin-top: 16px;
-  padding-top: 10px;
-  border-top: 1px solid #ddd;
-}
-
-/* Scrollable recipe area */
-.recipe-scroll {
-  max-height: 240px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  margin-top: 8px;
-}
-
-/* Compact recipe table */
-.recipe-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.recipe-table th {
-  background: #f3f3f3;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.recipe-table th,
-.recipe-table td {
-  padding: 6px;
-  border-bottom: 1px solid #ddd;
-  text-align: left;
-}
-
-/* Inventory dropdown */
-.recipe-item {
-  width: 100%;
-  padding: 6px;
-  font-size: 13px;
-}
-
-/* Quantity input */
-.recipe-qty {
-  width: 70px;
-  padding: 6px;
-  font-size: 13px;
-  text-align: center;
-}
-
-/* Remove ingredient */
-.recipe-remove-btn {
-  background: transparent;
-  border: none;
-  color: #e06780;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/* Add ingredient button */
-.add-ingredient-btn {
-  margin-top: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  background: #2f3457;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ================= RECIPE QTY FIX ================= */
-
-/* Row layout */
-.recipe-row {
-  display: grid;
-  grid-template-columns: 1fr 80px 32px;
-  gap: 8px;
-  align-items: center;
-}
-
-/* Inventory dropdown */
-.recipe-item {
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 13px;
-  height: 34px;
-}
-
-/* ✅ Quantity input – COMPACT */
-.recipe-qty {
-  width: 70px;
-  height: 34px;
-  padding: 4px 6px;
-  font-size: 13px;
-  text-align: center;
-}
-
-/* Remove button */
-.recipe-remove-btn {
-  width: 32px;
-  height: 32px;
-  line-height: 30px;
-  text-align: center;
-  border-radius: 6px;
 }
