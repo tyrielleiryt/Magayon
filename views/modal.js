@@ -1,24 +1,51 @@
-export function ensureModal() {
-  if (document.getElementById("modalOverlay")) return;
+const overlay = document.getElementById("modalOverlay");
+const box = document.getElementById("modalBox");
 
-  const overlay = document.createElement("div");
-  overlay.id = "modalOverlay";
-  overlay.className = "hidden";
+/* ================= OPEN MODAL ================= */
+export function openModal(html, large = false) {
+  if (!overlay || !box) {
+    console.error("Modal elements not found in DOM");
+    return;
+  }
 
-  overlay.innerHTML = `
-    <div id="modalBox"></div>
-  `;
+  box.innerHTML = html;
 
-  document.body.appendChild(overlay);
+  // size control
+  if (large) {
+    box.classList.add("large");
+  } else {
+    box.classList.remove("large");
+  }
+
+  overlay.classList.remove("hidden");
+
+  // prevent background scroll
+  document.body.style.overflow = "hidden";
 }
 
-export function openModal(html) {
-  ensureModal();
-  document.getElementById("modalBox").innerHTML = html;
-  document.getElementById("modalOverlay").classList.remove("hidden");
-}
-
+/* ================= CLOSE MODAL ================= */
 export function closeModal() {
-  document.getElementById("modalOverlay").classList.add("hidden");
-  document.getElementById("modalBox").innerHTML = "";
+  if (!overlay || !box) return;
+
+  box.innerHTML = "";
+  box.classList.remove("large");
+
+  overlay.classList.add("hidden");
+
+  // restore background scroll
+  document.body.style.overflow = "";
 }
+
+/* ================= CLICK OUTSIDE TO CLOSE ================= */
+overlay.addEventListener("click", e => {
+  if (e.target === overlay) {
+    closeModal();
+  }
+});
+
+/* ================= ESC KEY TO CLOSE ================= */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !overlay.classList.contains("hidden")) {
+    closeModal();
+  }
+});
