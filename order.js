@@ -1,114 +1,95 @@
 const API_URL =
-  "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ================= STATE ================= */
 let products = [];
-let categories = [];
 let cart = [];
 
-/* ================= LOAD DATA ================= */
-async function initPOS() {
-  categories = await fetch(API_URL + "?type=categories").then(r => r.json());
-  products = await fetch(API_URL + "?type=products").then(r => r.json());
+/* ================= INIT ================= */
+document.addEventListener("DOMContentLoaded", () => {
+  loadProducts();
+});
 
-  renderCategories();
-  renderProducts();
+/* ================= LOAD PRODUCTS ================= */
+async function loadProducts() {
+  const res = await fetch(API_URL + "?type=products");
+  products = await res.json();
+  renderProducts(products);
 }
 
-initPOS();
-
-/* ================= CATEGORIES ================= */
-function renderCategories() {
-  const el = document.getElementById("categoryList");
-
-  el.innerHTML = `
-    <button class="category-btn active" onclick="filterCategory('all')">
-      All
-    </button>
-    ${categories.map(c => `
-      <button class="category-btn"
-        onclick="filterCategory('${c.category_id}')">
-        ${c.category_name}
-      </button>
-    `).join("")}
-  `;
-}
-
-window.filterCategory = id => {
-  renderProducts(id);
-};
-
-/* ================= PRODUCTS ================= */
-function renderProducts(category = "all") {
+/* ================= RENDER PRODUCTS ================= */
+function renderProducts(list) {
   const grid = document.getElementById("productGrid");
+  grid.innerHTML = "";
 
-  const filtered = category === "all"
-    ? products
-    : products.filter(p => p.category_id === category);
+  list.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "product-card";
 
-  grid.innerHTML = filtered.map(p => `
-    <div class="product-card" onclick="addToCart('${p.id}')">
-      <div class="name">${p.product_name}</div>
-      <div class="price">₱${Number(p.price).toFixed(2)}</div>
-    </div>
-  `).join("");
+    card.innerHTML = `
+      <div class="product-img">
+        <img src="${p.image_url || 'placeholder.png'}" alt="${p.product_name}">
+      </div>
+
+      <div class="product-info">
+        <div class="product-name">${p.product_name}</div>
+        <div class="product-code">${p.product_code}</div>
+        <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+      </div>
+    `;
+
+    card.onclick = () => addToCart(p);
+    grid.appendChild(card);
+  });
 }
 
 /* ================= CART ================= */
-window.addToCart = productId => {
-  const p = products.find(x => x.id === productId);
-  const row = cart.find(x => x.product_id === productId);
+function addToCart(product) {
+  const existing = cart.find(i => i.product_id === product.product_id);
 
-  if (row) row.qty++;
-  else cart.push({ ...p, qty: 1 });
+  if (existing) {
+    existing.qty += 1;
+    existing.total = existing.qty * existing.price;
+  } else {
+    cart.push({
+      product_id: product.product_id,
+      product_name: product.product_name,
+      price: Number(product.price),
+      qty: 1,
+      total: Number(product.price)
+    });
+  }
 
   renderCart();
-};
-
-function renderCart() {
-  const tbody = document.getElementById("orderTable");
-  let sum = 0;
-
-  tbody.innerHTML = cart.map((i, idx) => {
-    const total = i.qty * i.price;
-    sum += total;
-
-    return `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${i.product_name}</td>
-        <td>${i.qty}</td>
-        <td>₱${i.price.toFixed(2)}</td>
-        <td>₱${total.toFixed(2)}</td>
-      </tr>
-    `;
-  }).join("");
-
-  document.getElementById("sumTotal").textContent = sum.toFixed(2);
 }
 
-/* ================= CHECKOUT ================= */
-document.getElementById("checkoutBtn").onclick = async () => {
-  if (!cart.length) return alert("Cart empty");
+/* ================= RENDER CART ================= */
+function renderCart() {
+  const tbody = document.getElementById("orderTable");
+  const sumEl = document.getElementById("sumTotal");
 
-  const payload = {
-    location: "MAIN",
-    cashier: "ADMIN",
-    items: cart.map(i => ({
-      product_id: i.id,
-      qty: i.qty,
-      price: i.price
-    }))
-  };
+  tbody.innerHTML = "";
+  let sum = 0;
 
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "checkoutPOS",
-      data: payload
-    })
+  cart.forEach((item, i) => {
+    sum += item.total;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${item.product_name}</td>
+        <td>${item.qty}</td>
+        <td>₱${item.price.toFixed(2)}</td>
+        <td>₱${item.total.toFixed(2)}</td>
+      </tr>
+    `;
   });
 
+  sumEl.textContent = sum.toFixed(2);
+}
+
+/* ================= CLEAR ================= */
+document.getElementById("clearOrderBtn").onclick = () => {
   cart = [];
   renderCart();
-  alert("Sale completed");
 };
