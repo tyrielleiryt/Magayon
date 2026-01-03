@@ -1,5 +1,7 @@
 /* ================= GLOBAL ================= */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body {
   margin: 0;
@@ -120,17 +122,23 @@ html, body {
   text-align: center;
 }
 
-/* ================= MODAL ================= */
+/* ================= MODAL OVERLAY ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
+/* 🔥 CRITICAL FIX */
+#modalOverlay.hidden {
+  display: none !important;
+}
+
+/* ================= MODAL BOX ================= */
 #modalBox {
   background: #fff;
   width: 520px;
@@ -174,10 +182,10 @@ html, body {
   padding: 6px;
 }
 
-/* Individual row */
+/* Recipe row */
 .recipe-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto auto;
+  grid-template-columns: 1fr 28px 50px 28px 70px;
   gap: 6px;
   align-items: center;
   margin-bottom: 6px;
@@ -189,7 +197,7 @@ html, body {
   font-size: 13px;
 }
 
-/* Quantity input — 🔥 SMALL */
+/* Quantity input (COMPACT) */
 #modalBox input.recipe-qty {
   width: 50px !important;
   height: 32px;
@@ -253,6 +261,7 @@ html, body {
   border: none;
   padding: 8px 18px;
   border-radius: 20px;
+  cursor: pointer;
 }
 
 .btn-back {
@@ -260,4 +269,5 @@ html, body {
   border: none;
   padding: 8px 18px;
   border-radius: 20px;
+  cursor: pointer;
 }
