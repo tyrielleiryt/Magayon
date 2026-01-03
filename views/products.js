@@ -150,7 +150,7 @@ function openProductModal(p = {}) {
     <input id="code" value="${p.product_code || ""}">
 
     <label>Product Name</label>
-    <input id="name" value="${p.product_name || ""}">
+    <input id="productName" value="${p.product_name || ""}">
 
     <label>Category</label>
     <select id="category">
