@@ -35,6 +35,8 @@ function isToday(dateStr) {
   );
 }
 
+const el = id => document.getElementById(id);
+
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
   renderActionBar();
@@ -75,17 +77,17 @@ function renderActionBar() {
     </button>
   `;
 
-  searchDateInput.oninput = e => {
+  el("searchDateInput").oninput = e => {
     searchDate = e.target.value.toLowerCase();
     renderTable();
   };
 
-  searchLocationInput.oninput = e => {
+  el("searchLocationInput").oninput = e => {
     searchLocation = e.target.value.toLowerCase();
     renderTable();
   };
 
-  addTodayBtn.onclick = () => {
+  el("addTodayBtn").onclick = () => {
     editDailyId = null;
     quantities = {};
     openAddEditModal();
@@ -97,13 +99,12 @@ async function loadDailyInventory() {
   dailyInventoryCache = await (await fetch(
     API_URL + "?type=dailyInventory"
   )).json();
-
   renderTable();
 }
 
 /* ================= TABLE ================= */
 function renderTable() {
-  const tbody = document.getElementById("dailyInventoryBody");
+  const tbody = el("dailyInventoryBody");
   tbody.innerHTML = "";
 
   const filtered = dailyInventoryCache.filter(r =>
@@ -160,41 +161,48 @@ window.viewDaily = async dailyId => {
   openModal(`
     <div class="modal-header">Daily Inventory</div>
 
-    <label>Date</label>
-    <input value="${formatDate(header.date)}" disabled>
+    <div class="inventory-header-grid">
+      <div>
+        <label>Date</label>
+        <input value="${formatDate(header.date)}" disabled>
+      </div>
+      <div>
+        <label>Location</label>
+        <input value="${header.location || ""}" disabled>
+      </div>
+    </div>
 
-    <label>Location</label>
-    <input value="${header.location || ""}" disabled>
-
-    <table class="inventory-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Qty</th>
-          <th>Qty Total</th>
-          <th>Capital</th>
-          <th>Earnings</th>
-          <th>Net</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map(i => {
-          const net = i.earnings - i.capital;
-          return `
-            <tr>
-              <td>${map[i.item_id]}</td>
-              <td>${i.qty}</td>
-              <td>${i.total}</td>
-              <td>₱${i.capital.toFixed(2)}</td>
-              <td>₱${i.earnings.toFixed(2)}</td>
-              <td style="color:${net >= 0 ? "#1b8f3c" : "#c0392b"}">
-                ₱${net.toFixed(2)}
-              </td>
-            </tr>
-          `;
-        }).join("")}
-      </tbody>
-    </table>
+    <div class="inventory-scroll">
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Qty Total</th>
+            <th>Capital</th>
+            <th>Earnings</th>
+            <th>Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(i => {
+            const net = i.earnings - i.capital;
+            return `
+              <tr>
+                <td>${map[i.item_id]}</td>
+                <td>${i.qty}</td>
+                <td>${i.total}</td>
+                <td>₱${i.capital.toFixed(2)}</td>
+                <td>₱${i.earnings.toFixed(2)}</td>
+                <td style="color:${net >= 0 ? "#1b8f3c" : "#c0392b"}">
+                  ₱${net.toFixed(2)}
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
 
     <div class="modal-actions">
       <button class="btn-back" onclick="closeModal()">Close</button>
@@ -202,11 +210,31 @@ window.viewDaily = async dailyId => {
   `);
 };
 
-/* ================= ADD / EDIT MODAL ================= */
-async function openAddEditModal(header = null) {
+/* ================= EDIT ================= */
+window.editDaily = async dailyId => {
+  editDailyId = dailyId;
+
   inventoryItems = await (await fetch(
     API_URL + "?type=inventoryItems"
   )).json();
+
+  const existing = await (await fetch(
+    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+  )).json();
+
+  quantities = {};
+  existing.forEach(i => quantities[i.item_id] = i.qty);
+
+  openAddEditModal();
+};
+
+/* ================= ADD / EDIT MODAL ================= */
+async function openAddEditModal() {
+  if (!inventoryItems.length) {
+    inventoryItems = await (await fetch(
+      API_URL + "?type=inventoryItems"
+    )).json();
+  }
 
   openModal(`
     <div class="modal-header">
@@ -220,7 +248,7 @@ async function openAddEditModal(header = null) {
       </div>
       <div>
         <label>Location</label>
-        <input id="locationSelect" value="${header?.location || ""}">
+        <input id="locationSelect">
       </div>
     </div>
 
@@ -242,9 +270,7 @@ async function openAddEditModal(header = null) {
               <td>${i.item_name}</td>
               <td>
                 <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
-                <span id="q-${i.item_id}" style="margin:0 8px">
-                  ${quantities[i.item_id] || 0}
-                </span>
+                <span id="q-${i.item_id}">${quantities[i.item_id] || 0}</span>
                 <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
               </td>
               <td id="t-${i.item_id}">0</td>
@@ -260,9 +286,7 @@ async function openAddEditModal(header = null) {
     <div class="inventory-summary">
       <div>Capital: ₱<span id="gt-capital">0.00</span></div>
       <div>Earnings: ₱<span id="gt-earnings">0.00</span></div>
-      <div>
-        Net: ₱<span id="gt-net" style="color:#1b8f3c">0.00</span>
-      </div>
+      <div>Net: ₱<span id="gt-net">0.00</span></div>
     </div>
 
     <div class="modal-actions">
@@ -271,8 +295,11 @@ async function openAddEditModal(header = null) {
     </div>
   `);
 
-  // 👇 make modal wide
-  document.getElementById("modalBox").classList.add("large");
+  Object.keys(quantities).forEach(id => chg(id, 0));
+
+  setTimeout(() => {
+    el("modalBox")?.classList.add("large");
+  }, 0);
 }
 
 /* ================= CALCULATIONS ================= */
@@ -290,35 +317,29 @@ window.chg = (id, d) => {
     const earnings = qty * Number(i.selling_price || 0);
     const net = earnings - capital;
 
-    if (document.getElementById(`q-${i.item_id}`)) {
-      q(`q-${i.item_id}`).textContent = qty;
-      q(`t-${i.item_id}`).textContent = qtyTotal;
-      q(`c-${i.item_id}`).textContent = capital.toFixed(2);
-      q(`e-${i.item_id}`).textContent = earnings.toFixed(2);
-
-      const n = q(`n-${i.item_id}`);
-      n.textContent = net.toFixed(2);
-      n.style.color = net >= 0 ? "#1b8f3c" : "#c0392b";
-    }
+    el(`q-${i.item_id}`).textContent = qty;
+    el(`t-${i.item_id}`).textContent = qtyTotal;
+    el(`c-${i.item_id}`).textContent = capital.toFixed(2);
+    el(`e-${i.item_id}`).textContent = earnings.toFixed(2);
+    el(`n-${i.item_id}`).textContent = net.toFixed(2);
+    el(`n-${i.item_id}`).style.color = net >= 0 ? "#1b8f3c" : "#c0392b";
 
     totalCapital += capital;
     totalEarnings += earnings;
   });
 
-  const totalNet = totalEarnings - totalCapital;
-
-  q("gt-capital").textContent = totalCapital.toFixed(2);
-  q("gt-earnings").textContent = totalEarnings.toFixed(2);
-
-  const gt = q("gt-net");
-  gt.textContent = totalNet.toFixed(2);
-  gt.style.color = totalNet >= 0 ? "#1b8f3c" : "#c0392b";
+  el("gt-capital").textContent = totalCapital.toFixed(2);
+  el("gt-earnings").textContent = totalEarnings.toFixed(2);
+  el("gt-net").textContent = (totalEarnings - totalCapital).toFixed(2);
 };
-
-const q = id => document.getElementById(id);
 
 /* ================= SAVE ================= */
 window.saveDaily = () => {
+  if (!locationSelect.value.trim()) {
+    alert("Location is required");
+    return;
+  }
+
   const items = Object.entries(quantities)
     .filter(([, qty]) => qty > 0)
     .map(([id, qty]) => {
@@ -334,19 +355,25 @@ window.saveDaily = () => {
 
   if (!items.length) return alert("No inventory entered");
 
-  new Image().src =
+  let url =
     API_URL +
-    `?action=addDailyInventory` +
+    `?action=${editDailyId ? "editDailyInventory" : "addDailyInventory"}` +
     `&location=${encodeURIComponent(locationSelect.value)}` +
     `&created_by=ADMIN` +
     `&items=${encodeURIComponent(JSON.stringify(items))}`;
 
+  if (editDailyId) url += `&daily_id=${editDailyId}`;
+
+  new Image().src = url;
+
+  editDailyId = null;
   quantities = {};
   closeModal();
   setTimeout(loadDailyInventory, 700);
 };
 
 window.cancelDaily = () => {
+  editDailyId = null;
   quantities = {};
   closeModal();
 };
