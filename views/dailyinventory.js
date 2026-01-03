@@ -209,22 +209,24 @@ async function openAddEditModal(header = null) {
   )).json();
 
   openModal(`
-    <div class="modal-header">Add Today's Inventory</div>
+    <div class="modal-header">
+      ${editDailyId ? "Edit Daily Inventory" : "Add Today's Inventory"}
+    </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="inventory-header-grid">
       <div>
         <label>Date</label>
         <input value="${formatDate(new Date())}" disabled>
       </div>
       <div>
         <label>Location</label>
-        <input id="locationSelect">
+        <input id="locationSelect" value="${header?.location || ""}">
       </div>
     </div>
 
-    <div style="margin-top:20px;max-height:420px;overflow:auto">
+    <div class="inventory-scroll">
       <table class="inventory-table">
-        <thead style="background:#f3f3f3;position:sticky;top:0">
+        <thead>
           <tr>
             <th>Item</th>
             <th>Qty</th>
@@ -240,7 +242,9 @@ async function openAddEditModal(header = null) {
               <td>${i.item_name}</td>
               <td>
                 <button class="qty-btn" onclick="chg('${i.item_id}',-1)">−</button>
-                <span id="q-${i.item_id}">0</span>
+                <span id="q-${i.item_id}" style="margin:0 8px">
+                  ${quantities[i.item_id] || 0}
+                </span>
                 <button class="qty-btn" onclick="chg('${i.item_id}',1)">+</button>
               </td>
               <td id="t-${i.item_id}">0</td>
@@ -250,18 +254,15 @@ async function openAddEditModal(header = null) {
             </tr>
           `).join("")}
         </tbody>
-
-        <tfoot>
-          <tr style="background:#fafafa;border-top:2px solid #ccc">
-            <th colspan="3" style="text-align:right">TOTAL</th>
-            <th>₱<span id="gt-capital">0.00</span></th>
-            <th>₱<span id="gt-earnings">0.00</span></th>
-            <th>
-              ₱<span id="gt-net" style="font-weight:bold">0.00</span>
-            </th>
-          </tr>
-        </tfoot>
       </table>
+    </div>
+
+    <div class="inventory-summary">
+      <div>Capital: ₱<span id="gt-capital">0.00</span></div>
+      <div>Earnings: ₱<span id="gt-earnings">0.00</span></div>
+      <div>
+        Net: ₱<span id="gt-net" style="color:#1b8f3c">0.00</span>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -269,6 +270,9 @@ async function openAddEditModal(header = null) {
       <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
   `);
+
+  // 👇 make modal wide
+  document.getElementById("modalBox").classList.add("large");
 }
 
 /* ================= CALCULATIONS ================= */
