@@ -7,9 +7,7 @@ let cart = [];
 let isCheckingOut = false;
 
 /* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded", () => {
-  loadProducts();
-});
+document.addEventListener("DOMContentLoaded", loadProducts);
 
 /* ================= LOAD PRODUCTS ================= */
 async function loadProducts() {
@@ -29,11 +27,10 @@ function renderProducts(list) {
 
     card.innerHTML = `
       <div class="product-img">
-        <img src="${p.image_url || "placeholder.png"}" alt="${p.product_name}">
+        <img src="${p.image_url || "placeholder.png"}">
       </div>
       <div class="product-info">
         <div class="product-name">${p.product_name}</div>
-        <div class="product-code">${p.product_code}</div>
         <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
       </div>
     `;
@@ -45,11 +42,11 @@ function renderProducts(list) {
 
 /* ================= CART ================= */
 function addToCart(product) {
-  const existing = cart.find(i => i.product_id === product.product_id);
+  const item = cart.find(i => i.product_id === product.product_id);
 
-  if (existing) {
-    existing.qty += 1;
-    existing.total = existing.qty * existing.price;
+  if (item) {
+    item.qty++;
+    item.total = item.qty * item.price;
   } else {
     cart.push({
       product_id: product.product_id,
@@ -71,16 +68,15 @@ function renderCart() {
   tbody.innerHTML = "";
   let sum = 0;
 
-  cart.forEach((item, i) => {
-    sum += item.total;
-
+  cart.forEach((i, idx) => {
+    sum += i.total;
     tbody.innerHTML += `
       <tr>
-        <td>${i + 1}</td>
-        <td>${item.product_name}</td>
-        <td>${item.qty}</td>
-        <td>₱${item.price.toFixed(2)}</td>
-        <td>₱${item.total.toFixed(2)}</td>
+        <td>${idx + 1}</td>
+        <td>${i.product_name}</td>
+        <td>${i.qty}</td>
+        <td>₱${i.price.toFixed(2)}</td>
+        <td>₱${i.total.toFixed(2)}</td>
       </tr>
     `;
   });
@@ -88,65 +84,79 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
-/* ================= CLEAR ORDER ================= */
+/* ================= CLEAR ================= */
 document.getElementById("clearOrderBtn").onclick = () => {
   if (!cart.length) return;
   if (!confirm("Clear current order?")) return;
-
   cart = [];
   renderCart();
 };
 
 /* ================= CHECKOUT ================= */
-document.querySelector(".checkout").onclick = checkoutOrder;
+document.querySelector(".checkout").onclick = checkoutPOS;
 
-async function checkoutOrder() {
+async function checkoutPOS() {
   if (isCheckingOut) return;
-  if (!cart.length) {
-    alert("Cart is empty");
-    return;
-  }
+  if (!cart.length) return alert("Cart is empty");
 
   isCheckingOut = true;
-
-  const location = "MAIN"; // later dynamic
-  const refId = "ORD-" + Date.now();
+  const orderId = "ORD-" + Date.now();
+  const location = "MAIN";
 
   try {
-    for (const line of cart) {
-      // 1️⃣ Load recipe for product
-      const recipes = await fetch(
-        API_URL + `?type=productRecipes&product_id=${line.product_id}`
-      ).then(r => r.json());
+    // 1️⃣ Build inventory deduction map
+    const deductionMap = await buildInventoryDeduction(cart);
 
-      if (!recipes.length) {
-        alert(`No recipe set for ${line.product_name}`);
-        continue;
-      }
+    // 2️⃣ Deduct inventory (single batch)
+    stockOutInventory(deductionMap, orderId, location);
 
-      // 2️⃣ Deduct inventory per recipe
-      for (const r of recipes) {
-        const qtyOut = Number(r.qty_used) * Number(line.qty);
-
-        new Image().src =
-          API_URL +
-          `?action=stockOut` +
-          `&item_id=${r.item_id}` +
-          `&qty=${qtyOut}` +
-          `&location=${location}` +
-          `&source=POS` +
-          `&ref_id=${refId}`;
-      }
-    }
-
-    alert("Order completed successfully!");
+    // 3️⃣ Clear cart
     cart = [];
     renderCart();
 
+    alert("Checkout successful");
   } catch (err) {
     console.error(err);
-    alert("Checkout failed. Please try again.");
+    alert("Checkout failed");
   }
 
   isCheckingOut = false;
+}
+
+/* ================= BUILD DEDUCTION ================= */
+async function buildInventoryDeduction(cart) {
+  const map = {}; // item_id → qty
+
+  for (const c of cart) {
+    const recipes = await fetch(
+      API_URL + `?type=productRecipes&product_id=${c.product_id}`
+    ).then(r => r.json());
+
+    if (!recipes.length) {
+      throw new Error(`No recipe set for ${c.product_name}`);
+    }
+
+    recipes.forEach(r => {
+      const used = c.qty * Number(r.qty_used || 0);
+      map[r.item_id] = (map[r.item_id] || 0) + used;
+    });
+  }
+
+  return map;
+}
+
+/* ================= STOCK OUT ================= */
+function stockOutInventory(map, refId, location) {
+  Object.entries(map).forEach(([item_id, qty]) => {
+    const url =
+      API_URL +
+      `?action=stockOut` +
+      `&item_id=${item_id}` +
+      `&qty=${qty}` +
+      `&location=${location}` +
+      `&source=POS` +
+      `&ref_id=${refId}`;
+
+    new Image().src = url; // Apps Script-safe
+  });
 }
