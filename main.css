@@ -387,3 +387,70 @@ html, body {
 .qty-btn:hover {
   background: #1f2447;
 }
+
+/* ================= PRODUCT MODAL FIX ================= */
+
+.modal {
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Recipe section container */
+.recipe-section {
+  border-top: 1px solid #ddd;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+/* Scrollable recipe list */
+.recipe-scroll {
+  max-height: 220px; /* adjust if needed */
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+/* Compact recipe table */
+.recipe-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recipe-table th,
+.recipe-table td {
+  padding: 6px;
+  font-size: 13px;
+}
+
+/* Compact dropdown */
+.recipe-item {
+  width: 100%;
+  padding: 6px;
+  font-size: 13px;
+}
+
+/* Compact qty input */
+.recipe-qty {
+  width: 70px;
+  padding: 6px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Remove button */
+.recipe-remove-btn {
+  background: transparent;
+  border: none;
+  color: #c0392b;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Add ingredient button */
+.add-ingredient-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
