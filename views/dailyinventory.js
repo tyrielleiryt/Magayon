@@ -147,6 +147,16 @@ window.viewDaily = async dailyId => {
     API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
   )).json();
 
+  const inventory = await (await fetch(
+    API_URL + "?type=inventoryItems"
+  )).json();
+
+  // ✅ item_id → item_name map
+  const nameMap = {};
+  inventory.forEach(i => {
+    nameMap[i.item_id] = i.item_name;
+  });
+
   openModal(`
     <div class="modal-header">Daily Inventory</div>
 
@@ -170,14 +180,17 @@ window.viewDaily = async dailyId => {
         </thead>
         <tbody>
           ${items.map(i => {
-            const net = i.earnings - i.capital;
+            const capital = Number(i.capital || 0);
+            const earnings = Number(i.earnings || 0);
+            const net = earnings - capital;
+
             return `
               <tr>
-                <td>${i.item_name}</td>
+                <td>${nameMap[i.item_id] || "Unknown Item"}</td>
                 <td>${i.qty}</td>
                 <td>${i.total}</td>
-                <td>₱${i.capital.toFixed(2)}</td>
-                <td>₱${i.earnings.toFixed(2)}</td>
+                <td>₱${capital.toFixed(2)}</td>
+                <td>₱${earnings.toFixed(2)}</td>
                 <td style="color:${net >= 0 ? "#1b8f3c" : "#c0392b"}">
                   ₱${net.toFixed(2)}
                 </td>
