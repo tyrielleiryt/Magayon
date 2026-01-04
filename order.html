@@ -1,64 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Magayon POS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="order.css">
+  <meta charset="UTF-8" />
+  <title>MAGAYON POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- POS STYLES -->
+  <link rel="stylesheet" href="order.css" />
 </head>
 <body>
 
-<div class="top-bar">
-  <div class="logo">MAGAYON POS</div>
-  <div class="top-actions">
-    <button id="newOrderBtn">New</button>
-    <button id="holdBtn">Hold</button>
-    <button id="billListBtn">Bill List</button>
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="pos-title">POS</div>
+
+    <div class="top-actions">
+      <button>Ongoing Orders</button>
+      <button>Completed Orders</button>
+      <button>Cancelled Orders</button>
+      <button>Stocks List</button>
+      <button>Sales Report</button>
+      <button class="active">Main Page</button>
+    </div>
+
+    <div class="cashier-info">
+      <div><b>Cashier:</b> Geraldine Castillo</div>
+      <div><b>Location:</b> MAIN</div>
+    </div>
   </div>
-</div>
 
-<div class="pos-container">
+  <!-- ================= MAIN LAYOUT ================= -->
+  <div class="pos-container">
 
-  <!-- CATEGORIES -->
-  <aside class="categories" id="categoryList"></aside>
+    <!-- ========== LEFT : CATEGORIES ========== -->
+    <aside class="categories-panel">
+      <button class="category-btn active">All Categories</button>
+      <button class="category-btn">Pancit Bato Meals</button>
+      <button class="category-btn">Dinuguan Meals</button>
+      <button class="category-btn">Bicol Express Meals</button>
+      <button class="category-btn">Lumpiang Shanghai Meals</button>
+      <button class="category-btn">Siomai Meals</button>
+      <button class="category-btn">Ala Carte</button>
+      <button class="category-btn">Drinks</button>
+      <button class="category-btn">Add-ons</button>
+    </aside>
 
-  <!-- PRODUCTS -->
-  <main class="products">
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search products">
-    </div>
-    <div class="product-grid" id="productGrid"></div>
-  </main>
-
-  <!-- ORDER SUMMARY -->
-  <aside class="order-summary">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Item</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody id="orderTable"></tbody>
-    </table>
-
-    <div class="summary-footer">
-      <div class="total">
-        TOTAL: ₱<span id="sumTotal">0.00</span>
+    <!-- ========== CENTER : PRODUCTS ========== -->
+    <main class="products-panel">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search products" />
       </div>
 
-      <div class="actions">
-        <button id="clearOrderBtn" class="clear">Clear</button>
-        <button id="checkoutBtn" class="checkout">Checkout</button>
+      <div id="productGrid" class="product-grid">
+        <!-- Product cards injected by order.js -->
       </div>
-    </div>
-  </aside>
+    </main>
 
-</div>
+    <!-- ========== RIGHT : CART ========== -->
+    <aside class="cart-panel">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable">
+          <!-- Cart rows -->
+        </tbody>
+      </table>
 
-<script type="module" src="order.js"></script>
+      <div class="cart-summary">
+        <div class="total-line">
+          <span>SUM TOTAL:</span>
+          <span>₱<span id="sumTotal">0.00</span></span>
+        </div>
+      </div>
+
+      <div class="cart-actions">
+        <button id="clearOrderBtn" class="btn-clear">Clear</button>
+        <button class="btn-checkout checkout">Checkout</button>
+        <button class="btn-print">Print</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ================= SCRIPT ================= -->
+  <script type="module" src="order.js"></script>
 </body>
 </html>
