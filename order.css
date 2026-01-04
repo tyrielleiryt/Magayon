@@ -1,229 +1,178 @@
 /* ================= GLOBAL ================= */
 * {
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
 }
 
 body {
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
   margin: 0;
-  background: #f2f2f2;
-}
-
-/* ================= TOP BAR ================= */
-.top-bar {
-  background: #343a5e;
-  color: white;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.top-actions {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.top-actions button {
-  margin-left: 8px;
-  margin-top: 4px;
-  background: #e96a85;
-  border: none;
-  padding: 8px 12px;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ================= MAIN LAYOUT ================= */
-.pos-container {
-  display: flex;
-  height: calc(100vh - 50px);
-}
-
-/* ================= CATEGORIES ================= */
-.categories {
-  width: 240px;
-  background: #2e3354;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.categories button {
-  background: #3b4066;
-  color: white;
-  border: none;
-  padding: 16px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 6px;
-  transition: background 0.2s ease;
-}
-
-.categories button:hover {
-  background: #4a507f;
-}
-
-.categories button.active {
-  background: #f5c542;
-  color: #000;
-  font-weight: bold;
-  box-shadow: inset 0 0 0 2px #000;
-}
-
-/* ================= PRODUCTS ================= */
-.products {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-/* ================= SEARCH BAR ================= */
-.search-bar {
-  position: sticky;
-  top: 0;
-  background: #f2f2f2;
-  z-index: 2;
-  padding-bottom: 10px;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
 }
 
 /* ================= PRODUCT GRID ================= */
-.product-grid {
+#productGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 14px;
+  padding: 12px;
 }
 
 /* ================= PRODUCT CARD ================= */
 .product-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  cursor: pointer;
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  height: 240px;
-  display: flex;
-  flex-direction: column;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15);
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 
 .product-card:hover {
-  transform: scale(1.04);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,.25);
 }
 
-.product-card:active {
-  transform: scale(0.97);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+/* ================= DISABLED (OUT OF STOCK) ================= */
+.product-card.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-/* ================= PRODUCT IMAGE ================= */
+.product-card.disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15);
+}
+
+/* ================= LOW STOCK ================= */
+.product-card.low-stock {
+  outline: 2px solid #f39c12;
+}
+
+/* ================= IMAGE ================= */
 .product-img {
+  position: relative;
   width: 100%;
-  height: 160px;
+  height: 110px;
+  background: #eee;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
-  padding: 8px;
 }
 
 .product-img img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain; /* ✅ SHOW FULL IMAGE */
+  object-fit: cover;
+}
+
+/* ================= SOLD OUT BADGE ================= */
+.sold-out {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  text-transform: uppercase;
 }
 
 /* ================= PRODUCT INFO ================= */
 .product-info {
-  padding: 8px;
+  padding: 10px;
   text-align: center;
-  margin-top: auto;
 }
 
 .product-name {
-  font-weight: bold;
   font-size: 14px;
-}
-
-.product-code {
-  font-size: 12px;
-  color: #777;
+  font-weight: bold;
+  margin-bottom: 6px;
 }
 
 .product-price {
-  margin-top: 6px;
+  font-size: 13px;
+  color: #2f3457;
   font-weight: bold;
-  color: #1b8f3c;
 }
 
-/* ================= ORDER SUMMARY ================= */
-.order-summary {
-  width: 360px;
-  background: white;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
+/* ================= TOOLTIP ================= */
+.product-tooltip {
+  position: absolute;
+  bottom: 105%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2f3457;
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  max-width: 220px;
+  white-space: normal;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease;
+  z-index: 50;
 }
 
-.order-summary table {
+/* Tooltip arrow */
+.product-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: inherit transparent transparent transparent;
+}
+
+/* Show tooltip on hover */
+.product-card:hover .product-tooltip {
+  opacity: 1;
+}
+
+/* ================= TOOLTIP VARIANTS ================= */
+.product-tooltip.low {
+  background: #f39c12;
+}
+
+.product-tooltip.block {
+  background: #c0392b;
+}
+
+/* ================= CART TABLE ================= */
+#orderTable {
   width: 100%;
   border-collapse: collapse;
 }
 
-.order-summary th,
-.order-summary td {
-  border-bottom: 1px solid #ccc;
-  padding: 6px;
-  text-align: center;
-  word-break: break-word;
-}
-
-.summary-footer {
-  margin-top: auto;
+#orderTable td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
 }
 
 /* ================= TOTAL ================= */
-.total {
-  font-size: 20px;
+#sumTotal {
   font-weight: bold;
-  margin-bottom: 10px;
-}
-
-/* ================= ACTION BUTTONS ================= */
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.actions button {
-  width: 48%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  color: white;
-  cursor: pointer;
-  border-radius: 6px;
   font-size: 16px;
 }
 
+/* ================= CHECKOUT BUTTON ================= */
 .checkout {
-  background: #e96a85;
+  background: #2f3457;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.print {
-  background: #888;
-}
-
-.clear {
-  background: #f06277;
+.checkout:hover {
+  background: #1f2447;
 }

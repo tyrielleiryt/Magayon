@@ -35,6 +35,28 @@ function isToday(dateStr) {
   );
 }
 
+function groupByDateAndLocation(data) {
+  const map = {};
+
+  data.forEach(d => {
+    const dateKey = new Date(d.date).toDateString();
+    const key = `${dateKey}|${d.location || ""}`;
+
+    if (!map[key]) {
+      map[key] = {
+        date: d.date,
+        location: d.location || "",
+        created_by: d.created_by,
+        entries: []
+      };
+    }
+
+    map[key].entries.push(d);
+  });
+
+  return Object.values(map);
+}
+
 /* ================= ENTRY ================= */
 export default function loadDailyInventoryView() {
   renderActionBar();
@@ -47,8 +69,7 @@ export default function loadDailyInventoryView() {
             <tr>
               <th>#</th>
               <th>Date</th>
-              <th>DN</th>
-              <th>Actions</th>
+              <th>Stocked Inventories</th>
               <th>Location</th>
               <th>Created By</th>
             </tr>
@@ -92,9 +113,9 @@ function renderActionBar() {
 
 /* ================= LOAD ================= */
 async function loadDailyInventory() {
-  dailyInventoryCache = await (await fetch(
-    API_URL + "?type=dailyInventory"
-  )).json();
+  dailyInventoryCache = await (
+    await fetch(API_URL + "?type=dailyInventory")
+  ).json();
   renderTable();
 }
 
@@ -103,15 +124,15 @@ function renderTable() {
   const tbody = el("dailyInventoryBody");
   tbody.innerHTML = "";
 
-  const filtered = dailyInventoryCache.filter(r =>
-    formatDate(r.date).toLowerCase().includes(searchDate) &&
-    (r.location || "").toLowerCase().includes(searchLocation)
+  const grouped = groupByDateAndLocation(dailyInventoryCache).filter(g =>
+    formatDate(g.date).toLowerCase().includes(searchDate) &&
+    (g.location || "").toLowerCase().includes(searchLocation)
   );
 
-  if (!filtered.length) {
+  if (!grouped.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align:center;color:#888">
+        <td colspan="5" style="text-align:center;color:#888">
           No daily inventory found
         </td>
       </tr>
@@ -119,43 +140,99 @@ function renderTable() {
     return;
   }
 
-  filtered.forEach((r, i) => {
-    const canEdit = isToday(r.date);
-
+  grouped.forEach((g, i) => {
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
-        <td>${formatDate(r.date)}</td>
-        <td>${r.dn}</td>
+        <td>${formatDate(g.date)}</td>
         <td>
-          <button class="btn-view" onclick="viewDaily('${r.daily_id}')">View</button>
-          <button class="btn-edit" ${!canEdit ? "disabled" : ""}
-            onclick="editDaily('${r.daily_id}')">Edit</button>
+          <button class="btn-view"
+            onclick="viewDailyGroup('${g.date}','${g.location}')">
+            View (${g.entries.length})
+          </button>
         </td>
-        <td>${r.location || ""}</td>
-        <td>${r.created_by}</td>
+        <td>${g.location}</td>
+        <td>${g.created_by}</td>
       </tr>
     `;
   });
 }
 
-/* ================= VIEW ================= */
-window.viewDaily = async dailyId => {
+/* ================= VIEW GROUP ================= */
+window.viewDailyGroup = async function (date, location) {
+  const entries = dailyInventoryCache.filter(d =>
+    new Date(d.date).toDateString() === new Date(date).toDateString() &&
+    (d.location || "") === (location || "")
+  );
+
+  let html = `
+    <div class="modal-header">
+      Inventory for ${formatDate(date)} — ${location}
+    </div>
+  `;
+
+  for (const entry of entries) {
+    const items = await (
+      await fetch(
+        API_URL + `?type=dailyInventoryItems&daily_id=${entry.daily_id}`
+      )
+    ).json();
+
+    const totalCapital = items.reduce((s, i) => s + Number(i.capital || 0), 0);
+    const totalEarnings = items.reduce((s, i) => s + Number(i.earnings || 0), 0);
+    const net = totalEarnings - totalCapital;
+
+    html += `
+      <div style="margin-bottom:14px;padding:12px;border:1px solid #ddd;border-radius:8px">
+        <b>Document No:</b> ${entry.dn}
+        <div style="margin-top:6px">
+          Capital: ₱${totalCapital.toFixed(2)} |
+          Earnings: ₱${totalEarnings.toFixed(2)} |
+          <b style="color:${net >= 0 ? "#1b8f3c" : "#c0392b"}">
+            Net: ₱${net.toFixed(2)}
+          </b>
+        </div>
+
+        <button class="btn-view"
+          onclick="viewDaily('${entry.daily_id}')">
+          View Details
+        </button>
+
+        ${
+          isToday(entry.date)
+            ? `<button class="btn-edit"
+                 onclick="editDaily('${entry.daily_id}')">
+                 Edit
+               </button>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `;
+
+  openModal(html, true);
+};
+
+/* ================= VIEW SINGLE ================= */
+window.viewDaily = async function (dailyId) {
   const header = dailyInventoryCache.find(d => d.daily_id === dailyId);
 
-  const items = await (await fetch(
-    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
-  )).json();
+  const items = await (
+    await fetch(API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`)
+  ).json();
 
-  const inventory = await (await fetch(
-    API_URL + "?type=inventoryItems"
-  )).json();
+  const inventory = await (
+    await fetch(API_URL + "?type=inventoryItems")
+  ).json();
 
-  // ✅ item_id → item_name map
   const nameMap = {};
-  inventory.forEach(i => {
-    nameMap[i.item_id] = i.item_name;
-  });
+  inventory.forEach(i => (nameMap[i.item_id] = i.item_name));
 
   openModal(`
     <div class="modal-header">Daily Inventory</div>
@@ -186,7 +263,7 @@ window.viewDaily = async dailyId => {
 
             return `
               <tr>
-                <td>${nameMap[i.item_id] || "Unknown Item"}</td>
+                <td>${nameMap[i.item_id] || "Unknown"}</td>
                 <td>${i.qty}</td>
                 <td>${i.total}</td>
                 <td>₱${capital.toFixed(2)}</td>
@@ -204,40 +281,42 @@ window.viewDaily = async dailyId => {
     <div class="modal-actions">
       <button class="btn-back" onclick="closeModal()">Close</button>
     </div>
-  `);
+  `, true);
 };
 
 /* ================= EDIT ================= */
 window.editDaily = async function (dailyId) {
   editDailyId = dailyId;
 
-  // Load inventory items (if not yet loaded)
-  inventoryItems = await (await fetch(
-    API_URL + "?type=inventoryItems"
-  )).json();
+  inventoryItems = await (
+    await fetch(API_URL + "?type=inventoryItems")
+  ).json();
 
-  // Load existing daily inventory quantities
-  const existing = await (await fetch(
-    API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
-  )).json();
+  const existing = await (
+    await fetch(
+      API_URL + `?type=dailyInventoryItems&daily_id=${dailyId}`
+    )
+  ).json();
 
-  // Reset quantities
   quantities = {};
   existing.forEach(i => {
     quantities[i.item_id] = Number(i.qty) || 0;
   });
 
-  // Open modal with populated values
   openAddEditModal();
 };
 
-/* ================= ADD / EDIT ================= */
+/* ================= ADD / EDIT MODAL ================= */
 async function openAddEditModal() {
   if (!inventoryItems.length) {
-    inventoryItems = await (await fetch(
-      API_URL + "?type=inventoryItems"
-    )).json();
+    inventoryItems = await (
+      await fetch(API_URL + "?type=inventoryItems")
+    ).json();
   }
+
+  const existing = editDailyId
+    ? dailyInventoryCache.find(d => d.daily_id === editDailyId)
+    : null;
 
   openModal(`
     <div class="modal-header">
@@ -248,7 +327,7 @@ async function openAddEditModal() {
     <input value="${formatDate(new Date().toISOString())}" disabled>
 
     <label>Location</label>
-    <input id="locationInput">
+    <input id="locationInput" value="${existing?.location || ""}">
 
     <div class="inventory-scroll">
       <table class="inventory-table">
@@ -291,13 +370,13 @@ async function openAddEditModal() {
       <button class="btn-danger" onclick="saveDaily()">Save Inventory</button>
       <button class="btn-back" onclick="cancelDaily()">Cancel</button>
     </div>
-  `);
+  `, true);
 
   Object.keys(quantities).forEach(id => chg(id, 0));
 }
 
 /* ================= CALCULATIONS ================= */
-window.chg = (id, d) => {
+window.chg = function (id, d) {
   quantities[id] = Math.max(0, (quantities[id] || 0) + d);
 
   let totalCapital = 0;
@@ -305,18 +384,18 @@ window.chg = (id, d) => {
 
   inventoryItems.forEach(i => {
     const qty = quantities[i.item_id] || 0;
-
-    const total = qty * Number(i.quantity_per_serving || 0);
     const capital = qty * Number(i.capital || 0);
     const earnings = qty * Number(i.selling_price || 0);
     const net = earnings - capital;
 
     el(`q-${i.item_id}`).textContent = qty;
-    el(`t-${i.item_id}`).textContent = total;
+    el(`t-${i.item_id}`).textContent =
+      qty * Number(i.quantity_per_serving || 0);
     el(`c-${i.item_id}`).textContent = capital.toFixed(2);
     el(`e-${i.item_id}`).textContent = earnings.toFixed(2);
     el(`n-${i.item_id}`).textContent = net.toFixed(2);
-    el(`n-${i.item_id}`).style.color = net >= 0 ? "#1b8f3c" : "#c0392b";
+    el(`n-${i.item_id}`).style.color =
+      net >= 0 ? "#1b8f3c" : "#c0392b";
 
     totalCapital += capital;
     totalEarnings += earnings;
@@ -324,13 +403,17 @@ window.chg = (id, d) => {
 
   el("gt-capital").textContent = totalCapital.toFixed(2);
   el("gt-earnings").textContent = totalEarnings.toFixed(2);
-  el("gt-net").textContent = (totalEarnings - totalCapital).toFixed(2);
+  el("gt-net").textContent =
+    (totalEarnings - totalCapital).toFixed(2);
 };
 
 /* ================= SAVE ================= */
-window.saveDaily = () => {
+window.saveDaily = function () {
   const location = el("locationInput");
-  if (!location.value.trim()) return alert("Location is required");
+  if (!location.value.trim()) {
+    alert("Location is required");
+    return;
+  }
 
   const items = Object.entries(quantities)
     .filter(([, q]) => q > 0)
@@ -345,7 +428,10 @@ window.saveDaily = () => {
       };
     });
 
-  if (!items.length) return alert("No inventory entered");
+  if (!items.length) {
+    alert("No inventory entered");
+    return;
+  }
 
   let url =
     API_URL +
@@ -364,7 +450,7 @@ window.saveDaily = () => {
   setTimeout(loadDailyInventory, 700);
 };
 
-window.cancelDaily = () => {
+window.cancelDaily = function () {
   editDailyId = null;
   quantities = {};
   closeModal();
