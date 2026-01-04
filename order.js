@@ -1,197 +1,214 @@
+/* =========================================================
+   CONFIG
+========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= CONFIG ================= */
 const LOCATION = "MAIN";
 const LOW_STOCK_THRESHOLD = 5;
-const INVENTORY_REFRESH_INTERVAL = 15000;
 
-/* ================= STATE ================= */
+/* =========================================================
+   STATE
+========================================================= */
 let products = [];
 let categories = [];
+let recipesByProduct = {};
+let inventoryRemaining = {};
+let reservedInventory = {};
 let cart = [];
 
-let inventoryRemaining = {};   // item_id → remaining
-let recipeCache = {};          // product_id → recipe[]
-let reservedInventory = {};    // item_id → reserved in cart
+let activeCategoryId = null; // null = ALL
+let searchKeyword = "";
 
-let activeCategory = null;
-let isCheckingOut = false;
-
-/* ================= INIT ================= */
+/* =========================================================
+   INIT
+========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadCategories();
-  await loadInventoryRemaining();
-  await loadRecipes();
-  await loadProducts();
+  await Promise.all([
+    loadCategories(),
+    loadProducts(),
+    loadProductRecipes(),
+    loadInventoryRemaining()
+  ]);
 
-  setInterval(refreshInventorySafely, INVENTORY_REFRESH_INTERVAL);
+  renderCategories();
+  renderProducts();
+
+  document.getElementById("searchInput").addEventListener("input", e => {
+    searchKeyword = e.target.value.toLowerCase();
+    renderProducts();
+  });
+
+  document.getElementById("clearOrderBtn").onclick = clearCart;
+  document.querySelector(".checkout").onclick = checkoutPOS;
 });
 
-/* ================= LOADERS ================= */
+/* =========================================================
+   LOADERS
+========================================================= */
 async function loadCategories() {
   categories = await fetch(API_URL + "?type=categories").then(r => r.json());
-  renderCategories();
 }
 
 async function loadProducts() {
   products = await fetch(API_URL + "?type=products").then(r => r.json());
-  renderProducts();
 }
 
-async function loadRecipes() {
+async function loadProductRecipes() {
   const list = await fetch(API_URL + "?type=products").then(r => r.json());
+
   for (const p of list) {
-    recipeCache[p.product_id] = await fetch(
+    recipesByProduct[p.product_id] = await fetch(
       API_URL + `?type=productRecipes&product_id=${p.product_id}`
     ).then(r => r.json());
   }
 }
 
 async function loadInventoryRemaining() {
-  const inv = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+  const inventory = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+
   inventoryRemaining = {};
-  inv.forEach(i => inventoryRemaining[i.item_id] = 0);
+  inventory.forEach(i => {
+    inventoryRemaining[i.item_id] = Number(i.remaining || 0);
+  });
 
   reservedInventory = {};
 }
 
-async function refreshInventorySafely() {
-  try {
-    const res = await fetch(
-      API_URL +
-      `?type=dailyRemainingInventory&date=${new Date().toISOString()}&location=${LOCATION}`
-    );
-    const data = await res.json();
-
-    inventoryRemaining = {};
-    data.forEach(i => inventoryRemaining[i.item_id] = Number(i.remaining || 0));
-
-    renderProducts();
-  } catch (e) {
-    console.warn("Inventory refresh failed");
-  }
-}
-
-/* ================= CATEGORY UI ================= */
+/* =========================================================
+   CATEGORY RENDERING
+========================================================= */
 function renderCategories() {
   const panel = document.querySelector(".categories-panel");
-  if (!panel) return;
+  panel.innerHTML = "";
 
-  panel.innerHTML = `
-    <button class="category-btn ${!activeCategory ? "active" : ""}"
-      onclick="filterCategory(null)">
-      All Categories
-    </button>
-  `;
+  // ALL CATEGORIES
+  const allBtn = document.createElement("button");
+  allBtn.className = "category-btn" + (activeCategoryId === null ? " active" : "");
+  allBtn.textContent = "All Categories";
+  allBtn.onclick = () => {
+    activeCategoryId = null;
+    renderCategories();
+    renderProducts();
+  };
+  panel.appendChild(allBtn);
 
+  // OTHER CATEGORIES
   categories.forEach(c => {
-    panel.innerHTML += `
-      <button class="category-btn ${activeCategory === c.category_id ? "active" : ""}"
-        onclick="filterCategory('${c.category_id}')">
-        ${c.category_name}
-      </button>
-    `;
+    const btn = document.createElement("button");
+    btn.className = "category-btn" + (activeCategoryId === c.category_id ? " active" : "");
+    btn.textContent = c.category_name;
+    btn.onclick = () => {
+      activeCategoryId = c.category_id;
+      renderCategories();
+      renderProducts();
+    };
+    panel.appendChild(btn);
   });
 }
 
-window.filterCategory = function (catId) {
-  activeCategory = catId;
-  renderCategories();
-  renderProducts();
-};
-
-/* ================= STOCK LOGIC ================= */
-function getWarnings(product, qty = 1) {
-  const recipe = recipeCache[product.product_id];
+/* =========================================================
+   STOCK LOGIC
+========================================================= */
+function getProductStockStatus(product, qty = 1) {
+  const recipe = recipesByProduct[product.product_id];
   if (!recipe || !recipe.length) {
-    return [{ type: "block", text: "No recipe set" }];
+    return { status: "block", message: "No recipe" };
   }
 
-  const warnings = [];
+  let isLow = false;
 
-  recipe.forEach(r => {
+  for (const r of recipe) {
     const needed = qty * Number(r.qty_used || 0);
     const available =
       (inventoryRemaining[r.item_id] || 0) -
       (reservedInventory[r.item_id] || 0);
 
     if (available < needed) {
-      warnings.push({
-        type: "block",
-        text: `${r.item_id} insufficient (${available})`
-      });
-    } else if (available <= LOW_STOCK_THRESHOLD) {
-      warnings.push({
-        type: "low",
-        text: `${r.item_id} low (${available})`
-      });
+      return {
+        status: "block",
+        message: `${r.item_name || r.item_id} insufficient`
+      };
     }
-  });
 
-  return warnings;
+    if (available <= LOW_STOCK_THRESHOLD) {
+      isLow = true;
+    }
+  }
+
+  return { status: isLow ? "low" : "ok" };
 }
 
-/* ================= PRODUCTS GRID ================= */
+/* =========================================================
+   PRODUCT RENDERING
+========================================================= */
 function renderProducts() {
   const grid = document.getElementById("productGrid");
-  if (!grid) return;
-
   grid.innerHTML = "";
 
-  products
-    .filter(p => !activeCategory || p.category_id === activeCategory)
-    .forEach(p => {
-      const warnings = getWarnings(p, 1);
-      const blocked = warnings.some(w => w.type === "block");
-      const low = warnings.some(w => w.type === "low");
+  let filtered = products.filter(p => p.active);
 
-      const tooltip = warnings.map(w => w.text).join("<br>");
+  // CATEGORY FILTER
+  if (activeCategoryId) {
+    filtered = filtered.filter(p => p.category_id === activeCategoryId);
+  }
 
-      const card = document.createElement("div");
-      card.className = "product-card";
-      if (blocked) card.classList.add("disabled");
-      if (low) card.classList.add("low-stock");
+  // SEARCH FILTER
+  if (searchKeyword) {
+    filtered = filtered.filter(p =>
+      p.product_name.toLowerCase().includes(searchKeyword) ||
+      p.product_code.toLowerCase().includes(searchKeyword)
+    );
+  }
 
-      card.innerHTML = `
-        <div class="product-img">
-          <img src="${p.image_url || "placeholder.png"}">
-          ${blocked ? `<div class="sold-out">OUT OF STOCK</div>` : ""}
-        </div>
+  filtered.forEach(p => {
+    const stock = getProductStockStatus(p, 1);
 
-        <div class="product-info">
-          <div class="product-code">${p.product_code || ""}</div>
-          <div class="product-name">${p.product_name}</div>
-          <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
-        </div>
+    const card = document.createElement("div");
+    card.className = "product-card";
 
-        ${tooltip ? `<div class="product-tooltip ${blocked ? "block" : "low"}">${tooltip}</div>` : ""}
-      `;
+    if (stock.status === "block") card.classList.add("disabled");
+    if (stock.status === "low") card.classList.add("low-stock");
 
-      if (!blocked) {
-        card.onclick = () => addToCart(p);
-      }
+    card.innerHTML = `
+      <div class="product-img">
+        <img src="${p.image_url || "placeholder.png"}" />
+        ${stock.status === "block" ? `<div class="sold-out">OUT OF STOCK</div>` : ""}
+      </div>
 
-      grid.appendChild(card);
-    });
+      <div class="product-info">
+        <div class="product-code">${p.product_code}</div>
+        <div class="product-name">${p.product_name}</div>
+        <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+      </div>
+    `;
+
+    if (stock.status !== "block") {
+      card.onclick = () => addToCart(p);
+    }
+
+    grid.appendChild(card);
+  });
 }
 
-/* ================= CART ================= */
+/* =========================================================
+   CART
+========================================================= */
 function addToCart(product) {
   const existing = cart.find(i => i.product_id === product.product_id);
   const newQty = (existing?.qty || 0) + 1;
 
-  const warnings = getWarnings(product, newQty);
-  const block = warnings.find(w => w.type === "block");
-
-  if (block) {
-    alert(`❌ ${block.text}`);
+  const stock = getProductStockStatus(product, newQty);
+  if (stock.status === "block") {
+    alert("❌ Not enough inventory");
     return;
   }
 
-  recipeCache[product.product_id].forEach(r => {
+  const recipe = recipesByProduct[product.product_id];
+  recipe.forEach(r => {
     reservedInventory[r.item_id] =
-      (reservedInventory[r.item_id] || 0) + Number(r.qty_used || 0);
+      (reservedInventory[r.item_id] || 0) +
+      Number(r.qty_used || 0);
   });
 
   if (existing) {
@@ -214,20 +231,19 @@ function addToCart(product) {
 function renderCart() {
   const tbody = document.getElementById("orderTable");
   const sumEl = document.getElementById("sumTotal");
-  if (!tbody || !sumEl) return;
 
   tbody.innerHTML = "";
   let sum = 0;
 
-  cart.forEach((i, idx) => {
-    sum += i.total;
+  cart.forEach((item, i) => {
+    sum += item.total;
     tbody.innerHTML += `
       <tr>
-        <td>${idx + 1}</td>
-        <td>${i.product_name}</td>
-        <td>${i.qty}</td>
-        <td>₱${i.price.toFixed(2)}</td>
-        <td>₱${i.total.toFixed(2)}</td>
+        <td>${i + 1}</td>
+        <td>${item.product_name}</td>
+        <td>${item.qty}</td>
+        <td>₱${item.price.toFixed(2)}</td>
+        <td>₱${item.total.toFixed(2)}</td>
       </tr>
     `;
   });
@@ -235,60 +251,46 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
-/* ================= CLEAR ================= */
-document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
-  if (!cart.length) return;
-  if (!confirm("Clear order?")) return;
-
+function clearCart() {
   cart = [];
   reservedInventory = {};
   renderCart();
   renderProducts();
-});
+}
 
-/* ================= CHECKOUT ================= */
+/* =========================================================
+   CHECKOUT
+========================================================= */
 async function checkoutPOS() {
-  if (!cart.length || isCheckingOut) return;
-  isCheckingOut = true;
+  if (!cart.length) return;
 
   const refId = "ORD-" + Date.now();
 
-  try {
-    for (const line of cart) {
+  for (const line of cart) {
+    new Image().src =
+      API_URL +
+      `?action=recordPosOrderItem` +
+      `&product_id=${line.product_id}` +
+      `&qty=${line.qty}` +
+      `&price=${line.price}` +
+      `&total=${line.total}` +
+      `&ref_id=${refId}` +
+      `&location=${LOCATION}`;
+
+    const recipe = recipesByProduct[line.product_id];
+    recipe.forEach(r => {
       new Image().src =
         API_URL +
-        `?action=recordPosOrderItem` +
-        `&product_id=${line.product_id}` +
-        `&qty=${line.qty}` +
-        `&price=${line.price}` +
-        `&total=${line.total}` +
-        `&ref_id=${refId}` +
-        `&location=${LOCATION}`;
-
-      recipeCache[line.product_id].forEach(r => {
-        new Image().src =
-          API_URL +
-          `?action=stockOut` +
-          `&item_id=${r.item_id}` +
-          `&qty=${r.qty_used * line.qty}` +
-          `&location=${LOCATION}` +
-          `&source=POS` +
-          `&ref_id=${refId}`;
-      });
-    }
-
-    alert("✅ Order completed");
-    cart = [];
-    reservedInventory = {};
-    await refreshInventorySafely();
-    renderCart();
-    renderProducts();
-
-  } catch (e) {
-    alert("❌ Checkout failed");
+        `?action=stockOut` +
+        `&item_id=${r.item_id}` +
+        `&qty=${r.qty_used * line.qty}` +
+        `&location=${LOCATION}` +
+        `&source=POS` +
+        `&ref_id=${refId}`;
+    });
   }
 
-  isCheckingOut = false;
+  alert("✅ Order completed");
+  clearCart();
+  await loadInventoryRemaining();
 }
-
-document.querySelector(".checkout")?.addEventListener("click", checkoutPOS);
