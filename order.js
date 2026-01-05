@@ -4,9 +4,15 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-const LOCATION = "MAIN";
+const staff = JSON.parse(sessionStorage.getItem("staff"));
+const LOCATION = localStorage.getItem("userLocation");
+const CASHIER_NAME = localStorage.getItem("userName");
 const LOW_STOCK_THRESHOLD = 5;
 
+if (!LOCATION) {
+  alert("❌ No branch assigned. Please contact admin.");
+  window.location.replace("index.html");
+}
 /* =========================================================
    STATE
 ========================================================= */
@@ -83,6 +89,17 @@ async function loadInventoryRemaining() {
   inventoryRemaining = {};
   rows.forEach(r => {
     inventoryRemaining[r.item_id] = Number(r.remaining);
+  });
+
+  // 🔧 SAFETY NET
+  // If no inventory today, treat as zero instead of undefined
+  products.forEach(p => {
+    const recipe = recipesByProduct[p.product_id] || [];
+    recipe.forEach(r => {
+      if (!(r.item_id in inventoryRemaining)) {
+        inventoryRemaining[r.item_id] = 0;
+      }
+    });
   });
 
   reservedInventory = {};

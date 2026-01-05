@@ -47,24 +47,27 @@ async function handleLogin() {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const user = cred.user;
 
-    // 🔎 Fetch role from Firestore
+    // 🔎 Firestore user profile
     const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists()) throw new Error("User profile not found");
 
-    if (!snap.exists()) {
-      throw new Error("User role not found");
+    const data = snap.data();
+
+    if (data.active !== true) {
+      throw new Error("Account is disabled");
     }
 
-    const role = snap.data().role;
-
-    // ✅ Save session state
+    // ✅ SAVE SESSION
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("userRole", role);
+    localStorage.setItem("userRole", data.role);
     localStorage.setItem("userEmail", email);
+    localStorage.setItem("userName", data.name || "");
+    localStorage.setItem("userLocation", data.location || "");
 
-    // 🚦 Route by role
-    if (role === "admin") {
+    // 🚦 ROUTE BY ROLE
+    if (data.role === "admin") {
       window.location.replace("main.html");
-    } else if (role === "cashier") {
+    } else if (data.role === "cashier") {
       window.location.replace("order.html");
     } else {
       throw new Error("Invalid role");
@@ -72,18 +75,14 @@ async function handleLogin() {
 
   } catch (err) {
     console.error(err);
-    errorMsg.textContent = "Invalid email or password.";
+    errorMsg.textContent = err.message || "Invalid email or password.";
     loginBtn.disabled = false;
     loginBtn.textContent = "Sign In";
   }
 }
 
-/* ===== BUTTON CLICK ===== */
+/* ===== EVENTS ===== */
 loginBtn.addEventListener("click", handleLogin);
-
-/* ===== ENTER KEY SUPPORT ===== */
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    handleLogin();
-  }
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter") handleLogin();
 });
