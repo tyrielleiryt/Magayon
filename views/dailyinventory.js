@@ -27,9 +27,9 @@ function jsonp(params) {
 
 /* ================= STATE ================= */
 let inventoryItems = [];
+let locations = [];
 let dailyInventoryCache = [];
 let quantities = {};
-let editDailyId = null;
 
 let searchDate = "";
 let searchLocation = "";
@@ -43,16 +43,6 @@ function formatDate(d) {
     month: "long",
     day: "numeric"
   });
-}
-
-function isToday(d) {
-  const a = new Date(d);
-  const b = new Date();
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
 }
 
 function groupByDateAndLocation(data) {
@@ -158,8 +148,7 @@ function renderTable() {
         <td>${i + 1}</td>
         <td>${formatDate(g.date)}</td>
         <td>
-          <button class="btn-view"
-            onclick="viewDailyGroup('${g.date}','${g.location}')">
+          <button class="btn-view">
             View (${g.entries.length})
           </button>
         </td>
@@ -170,12 +159,27 @@ function renderTable() {
   });
 }
 
-/* ================= ADD DAILY INVENTORY (IMPROVED UI) ================= */
+/* ======================================================
+   ADD DAILY INVENTORY — LOCATION AWARE (IMPROVED UI)
+====================================================== */
 window.openAddEditModal = async function () {
   inventoryItems = await jsonp({ type: "inventoryItems" });
+  locations = await jsonp({ type: "locations" });
 
   openModal(`
     <div class="modal-header">📦 Add Today's Inventory</div>
+
+    <label>Location</label>
+    <select id="dailyLocation">
+      <option value="">-- Select Location --</option>
+      ${locations
+        .filter(l => l.active)
+        .map(l =>
+          `<option value="${l.location_id}">
+            ${l.location_name}
+          </option>`
+        ).join("")}
+    </select>
 
     <div class="inventory-modal-body">
       <input
@@ -238,6 +242,13 @@ window.updateQty = function (id, delta) {
 
 /* ================= SAVE ================= */
 window.saveDailyInventory = function () {
+  const location = el("dailyLocation").value;
+
+  if (!location) {
+    alert("Please select a location");
+    return;
+  }
+
   const items = Object.entries(quantities)
     .filter(([_, q]) => q > 0)
     .map(([item_id, qty]) => ({
@@ -248,12 +259,15 @@ window.saveDailyInventory = function () {
       earnings: 0
     }));
 
-  if (!items.length) return alert("No quantities entered");
+  if (!items.length) {
+    alert("No quantities entered");
+    return;
+  }
 
   jsonp({
     action: "addDailyInventory",
     items: JSON.stringify(items),
-    location: localStorage.getItem("userLocation"),
+    location: location,
     created_by: localStorage.getItem("userName")
   }).then(() => {
     closeModal();
