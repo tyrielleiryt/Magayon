@@ -34,25 +34,32 @@ import loadInventoryItemsView from "./views/inventoryitems.js";
 import loadDailyInventoryView from "./views/dailyinventory.js";
 import loadProductsView from "./views/products.js";
 import loadDailySalesView from "./views/dailySales.js";
+import loadLocationsView from "./views/locations.js";
+import loadStaffView from "./views/staff.js";
 
 /* ================= SPA NAV ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.onclick = () => {
+    // Active state
     document
       .querySelectorAll(".nav-btn")
       .forEach(b => b.classList.remove("active"));
-
     btn.classList.add("active");
 
+    // Reset UI
     const actionBar = document.getElementById("actionBar");
     const contentBox = document.getElementById("contentBox");
-
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
+    // Route
     switch (btn.dataset.view) {
       case "categories":
         loadCategoriesView();
+        break;
+
+      case "products":
+        loadProductsView();
         break;
 
       case "inventory":
@@ -63,14 +70,19 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
         loadDailyInventoryView();
         break;
 
-      case "products":
-        loadProductsView();
-        break;
-
       case "dailySales":
         loadDailySalesView();
         break;
 
+      case "locations":
+        loadLocationsView();
+        break;
+
+      case "staff":
+        loadStaffView();
+        break;
+
+      case "dashboard":
       default:
         contentBox.innerHTML = `
           <h2>Dashboard</h2>
