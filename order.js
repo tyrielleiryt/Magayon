@@ -4,15 +4,15 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-const staff = JSON.parse(sessionStorage.getItem("staff"));
 const LOCATION = localStorage.getItem("userLocation");
-const CASHIER_NAME = localStorage.getItem("userName");
+const CASHIER_NAME = localStorage.getItem("userName") || "CASHIER";
 const LOW_STOCK_THRESHOLD = 5;
 
 if (!LOCATION) {
   alert("❌ No branch assigned. Please contact admin.");
   window.location.replace("index.html");
 }
+
 /* =========================================================
    STATE
 ========================================================= */
@@ -31,7 +31,7 @@ let isLoaded = false;
    INIT (NO FLICKER)
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  document.body.classList.add("loading"); // optional CSS hook
+  document.body.classList.add("loading");
 
   await loadAllData();
 
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOADERS (FIXED ORDER)
+   LOADERS
 ========================================================= */
 async function loadAllData() {
   await loadCategories();
@@ -77,7 +77,6 @@ async function loadProductRecipes() {
   }
 }
 
-/* ✅ CORRECT INVENTORY SOURCE */
 async function loadInventoryRemaining() {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -91,11 +90,9 @@ async function loadInventoryRemaining() {
     inventoryRemaining[r.item_id] = Number(r.remaining);
   });
 
-  // 🔧 SAFETY NET
-  // If no inventory today, treat as zero instead of undefined
+  // Safety net: missing items default to zero
   products.forEach(p => {
-    const recipe = recipesByProduct[p.product_id] || [];
-    recipe.forEach(r => {
+    (recipesByProduct[p.product_id] || []).forEach(r => {
       if (!(r.item_id in inventoryRemaining)) {
         inventoryRemaining[r.item_id] = 0;
       }
@@ -139,12 +136,12 @@ function renderCategories() {
 }
 
 /* =========================================================
-   STOCK LOGIC (PER PRODUCT – CORRECT)
+   STOCK LOGIC (PER PRODUCT)
 ========================================================= */
 function getProductStockStatus(product, qty = 1) {
   const recipe = recipesByProduct[product.product_id];
   if (!recipe || !recipe.length) {
-    return { status: "block" };
+    return { status: "block", reason: "NO_RECIPE" };
   }
 
   let low = false;
@@ -196,7 +193,9 @@ function renderProducts() {
         <img src="${p.image_url || "placeholder.png"}">
         ${
           stock.status === "block"
-            ? `<div class="sold-out">OUT OF STOCK</div>`
+            ? `<div class="sold-out">${
+                stock.reason === "NO_RECIPE" ? "NO RECIPE" : "OUT OF STOCK"
+              }</div>`
             : ""
         }
       </div>
@@ -223,10 +222,12 @@ function addToCart(product) {
   const newQty = (existing?.qty || 0) + 1;
 
   const stock = getProductStockStatus(product, newQty);
-  if (stock.status === "block") return alert("❌ Out of stock");
+  if (stock.status === "block") {
+    alert("❌ Not enough inventory");
+    return;
+  }
 
-  const recipe = recipesByProduct[product.product_id];
-  recipe.forEach(r => {
+  recipesByProduct[product.product_id].forEach(r => {
     reservedInventory[r.item_id] =
       (reservedInventory[r.item_id] || 0) + Number(r.qty_used);
   });
@@ -237,6 +238,7 @@ function addToCart(product) {
   } else {
     cart.push({
       product_id: product.product_id,
+      product_code: product.product_code,
       product_name: product.product_name,
       price: Number(product.price),
       qty: 1,
@@ -260,7 +262,7 @@ function renderCart() {
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
-        <td>${item.product_name}</td>
+        <td>${item.product_name} <small>(${item.product_code})</small></td>
         <td>${item.qty}</td>
         <td>₱${item.price.toFixed(2)}</td>
         <td>₱${item.total.toFixed(2)}</td>
@@ -279,23 +281,47 @@ function clearCart() {
 }
 
 /* =========================================================
-   CHECKOUT
+   CHECKOUT (RACE-SAFE)
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) return;
+
+  // 🔒 FINAL STOCK VALIDATION
+  await loadInventoryRemaining();
+
+  for (const line of cart) {
+    const stock = getProductStockStatus(
+      { product_id: line.product_id },
+      line.qty
+    );
+    if (stock.status === "block") {
+      alert("❌ Stock changed. Please recheck your order.");
+      return;
+    }
+  }
 
   const refId = "ORD-" + Date.now();
 
   for (const line of cart) {
     new Image().src =
       API_URL +
-      `?action=recordPosOrderItem&product_id=${line.product_id}&qty=${line.qty}&price=${line.price}&total=${line.total}&ref_id=${refId}&location=${LOCATION}`;
+      `?action=recordPosOrderItem` +
+      `&product_id=${line.product_id}` +
+      `&qty=${line.qty}` +
+      `&price=${line.price}` +
+      `&total=${line.total}` +
+      `&ref_id=${refId}` +
+      `&location=${LOCATION}`;
 
     recipesByProduct[line.product_id].forEach(r => {
       new Image().src =
         API_URL +
-        `?action=stockOut&item_id=${r.item_id}&qty=${r.qty_used *
-          line.qty}&location=${LOCATION}&source=POS&ref_id=${refId}`;
+        `?action=stockOut` +
+        `&item_id=${r.item_id}` +
+        `&qty=${r.qty_used * line.qty}` +
+        `&location=${LOCATION}` +
+        `&source=POS` +
+        `&ref_id=${refId}`;
     });
   }
 
