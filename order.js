@@ -6,10 +6,17 @@ const API_URL =
 
 const LOCATION = localStorage.getItem("userLocation");
 const CASHIER_NAME = localStorage.getItem("userName") || "CASHIER";
+const CASHIER_POSITION = localStorage.getItem("userPosition") || "";
 const LOW_STOCK_THRESHOLD = 5;
 
+/* ================= ACCESS GUARDS ================= */
 if (!LOCATION) {
   alert("❌ No branch assigned. Please contact admin.");
+  window.location.replace("index.html");
+}
+
+if (localStorage.getItem("canPOS") !== "true") {
+  alert("❌ You are not authorized to use POS.");
   window.location.replace("index.html");
 }
 
@@ -23,15 +30,20 @@ let inventoryRemaining = {};
 let reservedInventory = {};
 let cart = [];
 
-let activeCategoryId = null; // null = ALL
+let activeCategoryId = null;
 let searchKeyword = "";
 let isLoaded = false;
 
 /* =========================================================
-   INIT (NO FLICKER)
+   INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
   document.body.classList.add("loading");
+
+  // Header info
+  document.getElementById("cashierName").textContent = CASHIER_NAME;
+  document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
+  document.getElementById("cashierLocation").textContent = LOCATION;
 
   await loadAllData();
 
@@ -61,18 +73,18 @@ async function loadAllData() {
 }
 
 async function loadCategories() {
-  categories = await fetch(API_URL + "?type=categories").then(r => r.json());
+  categories = await fetch(`${API_URL}?type=categories`).then(r => r.json());
 }
 
 async function loadProducts() {
-  products = await fetch(API_URL + "?type=products").then(r => r.json());
+  products = await fetch(`${API_URL}?type=products`).then(r => r.json());
 }
 
 async function loadProductRecipes() {
   recipesByProduct = {};
   for (const p of products) {
     recipesByProduct[p.product_id] = await fetch(
-      API_URL + `?type=productRecipes&product_id=${p.product_id}`
+      `${API_URL}?type=productRecipes&product_id=${p.product_id}`
     ).then(r => r.json());
   }
 }
@@ -81,8 +93,7 @@ async function loadInventoryRemaining() {
   const today = new Date().toISOString().slice(0, 10);
 
   const rows = await fetch(
-    API_URL +
-      `?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
+    `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
   ).then(r => r.json());
 
   inventoryRemaining = {};
@@ -90,7 +101,7 @@ async function loadInventoryRemaining() {
     inventoryRemaining[r.item_id] = Number(r.remaining);
   });
 
-  // Safety net: missing items default to zero
+  // Default missing inventory to zero
   products.forEach(p => {
     (recipesByProduct[p.product_id] || []).forEach(r => {
       if (!(r.item_id in inventoryRemaining)) {
@@ -136,7 +147,7 @@ function renderCategories() {
 }
 
 /* =========================================================
-   STOCK LOGIC (PER PRODUCT)
+   STOCK LOGIC
 ========================================================= */
 function getProductStockStatus(product, qty = 1) {
   const recipe = recipesByProduct[product.product_id];
@@ -160,7 +171,7 @@ function getProductStockStatus(product, qty = 1) {
 }
 
 /* =========================================================
-   PRODUCT RENDERING
+   PRODUCT GRID
 ========================================================= */
 function renderProducts() {
   if (!isLoaded) return;
@@ -281,19 +292,16 @@ function clearCart() {
 }
 
 /* =========================================================
-   CHECKOUT (RACE-SAFE)
+   CHECKOUT
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) return;
 
-  // 🔒 FINAL STOCK VALIDATION
   await loadInventoryRemaining();
 
   for (const line of cart) {
-    const stock = getProductStockStatus(
-      { product_id: line.product_id },
-      line.qty
-    );
+    const product = products.find(p => p.product_id === line.product_id);
+    const stock = getProductStockStatus(product, line.qty);
     if (stock.status === "block") {
       alert("❌ Stock changed. Please recheck your order.");
       return;
@@ -304,8 +312,7 @@ async function checkoutPOS() {
 
   for (const line of cart) {
     new Image().src =
-      API_URL +
-      `?action=recordPosOrderItem` +
+      `${API_URL}?action=recordPosOrderItem` +
       `&product_id=${line.product_id}` +
       `&qty=${line.qty}` +
       `&price=${line.price}` +
@@ -315,8 +322,7 @@ async function checkoutPOS() {
 
     recipesByProduct[line.product_id].forEach(r => {
       new Image().src =
-        API_URL +
-        `?action=stockOut` +
+        `${API_URL}?action=stockOut` +
         `&item_id=${r.item_id}` +
         `&qty=${r.qty_used * line.qty}` +
         `&location=${LOCATION}` +
