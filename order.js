@@ -19,18 +19,17 @@ let cart = [];
 
 let activeCategoryId = null; // null = ALL
 let searchKeyword = "";
+let isLoaded = false;
 
 /* =========================================================
-   INIT
+   INIT (NO FLICKER)
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  await Promise.all([
-    loadCategories(),
-    loadProducts(),
-    loadProductRecipes(),
-    loadInventoryRemaining()
-  ]);
+  document.body.classList.add("loading"); // optional CSS hook
 
+  await loadAllData();
+
+  isLoaded = true;
   renderCategories();
   renderProducts();
 
@@ -41,11 +40,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("clearOrderBtn").onclick = clearCart;
   document.querySelector(".checkout").onclick = checkoutPOS;
+
+  document.body.classList.remove("loading");
 });
 
 /* =========================================================
-   LOADERS
+   LOADERS (FIXED ORDER)
 ========================================================= */
+async function loadAllData() {
+  await loadCategories();
+  await loadProducts();
+  await loadProductRecipes();
+  await loadInventoryRemaining();
+}
+
 async function loadCategories() {
   categories = await fetch(API_URL + "?type=categories").then(r => r.json());
 }
@@ -55,21 +63,26 @@ async function loadProducts() {
 }
 
 async function loadProductRecipes() {
-  const list = await fetch(API_URL + "?type=products").then(r => r.json());
-
-  for (const p of list) {
+  recipesByProduct = {};
+  for (const p of products) {
     recipesByProduct[p.product_id] = await fetch(
       API_URL + `?type=productRecipes&product_id=${p.product_id}`
     ).then(r => r.json());
   }
 }
 
+/* ✅ CORRECT INVENTORY SOURCE */
 async function loadInventoryRemaining() {
-  const inventory = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+  const today = new Date().toISOString().slice(0, 10);
+
+  const rows = await fetch(
+    API_URL +
+      `?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
+  ).then(r => r.json());
 
   inventoryRemaining = {};
-  inventory.forEach(i => {
-    inventoryRemaining[i.item_id] = Number(i.remaining || 0);
+  rows.forEach(r => {
+    inventoryRemaining[r.item_id] = Number(r.remaining);
   });
 
   reservedInventory = {};
@@ -79,10 +92,11 @@ async function loadInventoryRemaining() {
    CATEGORY RENDERING
 ========================================================= */
 function renderCategories() {
+  if (!isLoaded) return;
+
   const panel = document.querySelector(".categories-panel");
   panel.innerHTML = "";
 
-  // ALL CATEGORIES
   const allBtn = document.createElement("button");
   allBtn.className = "category-btn" + (activeCategoryId === null ? " active" : "");
   allBtn.textContent = "All Categories";
@@ -93,10 +107,10 @@ function renderCategories() {
   };
   panel.appendChild(allBtn);
 
-  // OTHER CATEGORIES
   categories.forEach(c => {
     const btn = document.createElement("button");
-    btn.className = "category-btn" + (activeCategoryId === c.category_id ? " active" : "");
+    btn.className =
+      "category-btn" + (activeCategoryId === c.category_id ? " active" : "");
     btn.textContent = c.category_name;
     btn.onclick = () => {
       activeCategoryId = c.category_id;
@@ -108,15 +122,15 @@ function renderCategories() {
 }
 
 /* =========================================================
-   STOCK LOGIC
+   STOCK LOGIC (PER PRODUCT – CORRECT)
 ========================================================= */
 function getProductStockStatus(product, qty = 1) {
   const recipe = recipesByProduct[product.product_id];
   if (!recipe || !recipe.length) {
-    return { status: "block", message: "No recipe" };
+    return { status: "block" };
   }
 
-  let isLow = false;
+  let low = false;
 
   for (const r of recipe) {
     const needed = qty * Number(r.qty_used || 0);
@@ -124,40 +138,31 @@ function getProductStockStatus(product, qty = 1) {
       (inventoryRemaining[r.item_id] || 0) -
       (reservedInventory[r.item_id] || 0);
 
-    if (available < needed) {
-      return {
-        status: "block",
-        message: `${r.item_name || r.item_id} insufficient`
-      };
-    }
-
-    if (available <= LOW_STOCK_THRESHOLD) {
-      isLow = true;
-    }
+    if (available < needed) return { status: "block" };
+    if (available <= LOW_STOCK_THRESHOLD) low = true;
   }
 
-  return { status: isLow ? "low" : "ok" };
+  return { status: low ? "low" : "ok" };
 }
 
 /* =========================================================
    PRODUCT RENDERING
 ========================================================= */
 function renderProducts() {
+  if (!isLoaded) return;
+
   const grid = document.getElementById("productGrid");
   grid.innerHTML = "";
 
   let filtered = products.filter(p => p.active);
 
-  // CATEGORY FILTER
   if (activeCategoryId) {
     filtered = filtered.filter(p => p.category_id === activeCategoryId);
   }
 
-  // SEARCH FILTER
   if (searchKeyword) {
     filtered = filtered.filter(p =>
-      p.product_name.toLowerCase().includes(searchKeyword) ||
-      p.product_code.toLowerCase().includes(searchKeyword)
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(searchKeyword)
     );
   }
 
@@ -166,16 +171,18 @@ function renderProducts() {
 
     const card = document.createElement("div");
     card.className = "product-card";
-
     if (stock.status === "block") card.classList.add("disabled");
     if (stock.status === "low") card.classList.add("low-stock");
 
     card.innerHTML = `
       <div class="product-img">
-        <img src="${p.image_url || "placeholder.png"}" />
-        ${stock.status === "block" ? `<div class="sold-out">OUT OF STOCK</div>` : ""}
+        <img src="${p.image_url || "placeholder.png"}">
+        ${
+          stock.status === "block"
+            ? `<div class="sold-out">OUT OF STOCK</div>`
+            : ""
+        }
       </div>
-
       <div class="product-info">
         <div class="product-code">${p.product_code}</div>
         <div class="product-name">${p.product_name}</div>
@@ -199,16 +206,12 @@ function addToCart(product) {
   const newQty = (existing?.qty || 0) + 1;
 
   const stock = getProductStockStatus(product, newQty);
-  if (stock.status === "block") {
-    alert("❌ Not enough inventory");
-    return;
-  }
+  if (stock.status === "block") return alert("❌ Out of stock");
 
   const recipe = recipesByProduct[product.product_id];
   recipe.forEach(r => {
     reservedInventory[r.item_id] =
-      (reservedInventory[r.item_id] || 0) +
-      Number(r.qty_used || 0);
+      (reservedInventory[r.item_id] || 0) + Number(r.qty_used);
   });
 
   if (existing) {
@@ -269,28 +272,18 @@ async function checkoutPOS() {
   for (const line of cart) {
     new Image().src =
       API_URL +
-      `?action=recordPosOrderItem` +
-      `&product_id=${line.product_id}` +
-      `&qty=${line.qty}` +
-      `&price=${line.price}` +
-      `&total=${line.total}` +
-      `&ref_id=${refId}` +
-      `&location=${LOCATION}`;
+      `?action=recordPosOrderItem&product_id=${line.product_id}&qty=${line.qty}&price=${line.price}&total=${line.total}&ref_id=${refId}&location=${LOCATION}`;
 
-    const recipe = recipesByProduct[line.product_id];
-    recipe.forEach(r => {
+    recipesByProduct[line.product_id].forEach(r => {
       new Image().src =
         API_URL +
-        `?action=stockOut` +
-        `&item_id=${r.item_id}` +
-        `&qty=${r.qty_used * line.qty}` +
-        `&location=${LOCATION}` +
-        `&source=POS` +
-        `&ref_id=${refId}`;
+        `?action=stockOut&item_id=${r.item_id}&qty=${r.qty_used *
+          line.qty}&location=${LOCATION}&source=POS&ref_id=${refId}`;
     });
   }
 
   alert("✅ Order completed");
   clearCart();
   await loadInventoryRemaining();
+  renderProducts();
 }
