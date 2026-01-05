@@ -64,11 +64,11 @@ function renderTableLayout() {
 
 /* ================= LOAD DATA ================= */
 async function loadCategories() {
-  categories = await (await fetch(API_URL + "?type=categories")).json();
+  categories = await fetch(API_URL + "?type=categories").then(r => r.json());
 }
 
 async function loadProducts() {
-  products = await (await fetch(API_URL + "?type=products")).json();
+  products = await fetch(API_URL + "?type=products").then(r => r.json());
   selected = null;
   document.getElementById("editBtn").disabled = true;
   document.getElementById("deleteBtn").disabled = true;
@@ -82,7 +82,9 @@ function renderTable() {
 
   if (!products.length) {
     tbody.innerHTML = `
-      <tr><td colspan="6" style="text-align:center;color:#888">No products found</td></tr>
+      <tr>
+        <td colspan="6" style="text-align:center;color:#888">No products found</td>
+      </tr>
     `;
     return;
   }
@@ -117,57 +119,54 @@ async function openProductModal(product = {}) {
   openModal(`
     <div class="modal-header">${product.product_id ? "Edit" : "Add"} Product</div>
 
-    <div class="form-group">
-      <label>Product Code</label>
-      <input id="productCode" value="${product.product_code || ""}" placeholder="e.g. PB-001">
-    </div>
+    <label>Product Code</label>
+    <input id="productCode" value="${product.product_code || ""}">
 
-    <div class="form-group">
-      <label>Product Name</label>
-      <input id="productName" value="${product.product_name || ""}">
-    </div>
+    <label>Product Name</label>
+    <input id="productName" value="${product.product_name || ""}">
 
-    <div class="form-group">
-      <label>Category</label>
-      <select id="category">
-        ${categories.map(c => `
-          <option value="${c.category_id}" ${c.category_id === product.category_id ? "selected" : ""}>
-            ${c.category_name}
-          </option>
-        `).join("")}
-      </select>
-    </div>
+    <label>Category</label>
+    <select id="categorySelect">
+      ${categories.map(c =>
+        `<option value="${c.category_id}" ${c.category_id === product.category_id ? "selected" : ""}>
+          ${c.category_name}
+        </option>`
+      ).join("")}
+    </select>
 
-    <div class="form-group">
-      <label>Price</label>
-      <input type="number" id="price" value="${product.price || ""}">
-    </div>
+    <label>Price</label>
+    <input type="number" id="priceInput" value="${product.price || ""}">
 
-    <div class="form-group">
-      <label>Image URL</label>
-      <input id="image" value="${product.image_url || ""}">
-    </div>
+    <label>Image URL</label>
+    <input id="imageInput" value="${product.image_url || ""}">
 
     <div class="recipe-section">
       <strong>Product Recipe</strong>
-      <div id="recipeList" class="recipe-scroll"></div>
-      <button class="add-ingredient-btn" onclick="addRecipeRow()">➕ Add Ingredient</button>
+      <div class="recipe-scroll" id="recipeList"></div>
+      <button type="button" class="add-ingredient-btn" id="addIngredientBtn">
+        ➕ Add Ingredient
+      </button>
     </div>
 
     <div class="modal-actions">
-      <button class="btn-danger" onclick="saveProduct()">Save</button>
+      <button class="btn-danger" id="saveProductBtn">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
   await loadInventory();
+
+  document.getElementById("addIngredientBtn").onclick = addRecipeRow;
+  document.getElementById("saveProductBtn").onclick = saveProduct;
+
   addRecipeRow();
 }
 
 /* ================= INVENTORY ================= */
 async function loadInventory() {
   inventoryMap = {};
-  const items = await (await fetch(API_URL + "?type=inventoryItems")).json();
+  const items = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+
   items.forEach(i => {
     inventoryMap[i.item_id] = {
       name: i.item_name,
@@ -177,16 +176,18 @@ async function loadInventory() {
 }
 
 /* ================= RECIPE ================= */
-window.addRecipeRow = function () {
+function addRecipeRow() {
   const list = document.getElementById("recipeList");
+  if (!list) return;
+
   const row = document.createElement("div");
   row.className = "recipe-row";
 
   row.innerHTML = `
     <select class="recipe-item">
-      ${Object.entries(inventoryMap).map(([id, i]) =>
-        `<option value="${id}">${i.name}</option>`
-      ).join("")}
+      ${Object.entries(inventoryMap)
+        .map(([id, i]) => `<option value="${id}">${i.name}</option>`)
+        .join("")}
     </select>
     <button class="recipe-btn minus">−</button>
     <input class="recipe-qty" type="number" value="1" min="1">
@@ -196,7 +197,7 @@ window.addRecipeRow = function () {
 
   list.appendChild(row);
   bindRecipeEvents(row);
-};
+}
 
 function bindRecipeEvents(row) {
   const select = row.querySelector(".recipe-item");
@@ -205,7 +206,7 @@ function bindRecipeEvents(row) {
 
   function update() {
     const item = inventoryMap[select.value];
-    cost.textContent = `₱${(item.capital * qty.value).toFixed(2)}`;
+    cost.textContent = `₱${(item.capital * Number(qty.value)).toFixed(2)}`;
   }
 
   row.querySelector(".plus").onclick = () => { qty.value++; update(); };
@@ -217,10 +218,12 @@ function bindRecipeEvents(row) {
 }
 
 /* ================= SAVE ================= */
-window.saveProduct = function () {
-  const code = productCode.value.trim();
-  const name = productName.value.trim();
-  const price = priceInput = price.value;
+function saveProduct() {
+  const code = document.getElementById("productCode").value.trim();
+  const name = document.getElementById("productName").value.trim();
+  const category = document.getElementById("categorySelect").value;
+  const price = Number(document.getElementById("priceInput").value);
+  const image = document.getElementById("imageInput").value.trim();
 
   if (!code || !name || !price) {
     alert("Product Code, Name, and Price are required.");
@@ -229,7 +232,7 @@ window.saveProduct = function () {
 
   const recipe = Array.from(document.querySelectorAll(".recipe-row")).map(r => ({
     item_id: r.querySelector(".recipe-item").value,
-    qty_used: r.querySelector(".recipe-qty").value
+    qty_used: Number(r.querySelector(".recipe-qty").value)
   }));
 
   let url =
@@ -237,31 +240,30 @@ window.saveProduct = function () {
     `?action=saveProduct` +
     `&product_code=${encodeURIComponent(code)}` +
     `&product_name=${encodeURIComponent(name)}` +
-    `&category_id=${category.value}` +
+    `&category_id=${category}` +
     `&price=${price}` +
-    `&image_url=${encodeURIComponent(image.value)}` +
+    `&image_url=${encodeURIComponent(image)}` +
     `&recipe=${encodeURIComponent(JSON.stringify(recipe))}`;
 
   if (selected?.product_id) url += `&product_id=${selected.product_id}`;
 
   fetch(url)
-  .then(r => r.json())
-  .then(res => {
-    if (!res.success && res.error === "DUPLICATE_CODE") {
-      alert("❌ Product code already exists.");
-      return;
-    }
-    closeModal();
-    setTimeout(loadProducts, 600);
-  });
-  closeModal();
-  setTimeout(loadProducts, 600);
-};
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success && res.error === "DUPLICATE_CODE") {
+        alert("❌ Product code already exists.");
+        return;
+      }
+      closeModal();
+      setTimeout(loadProducts, 500);
+    });
+}
 
 /* ================= DELETE ================= */
 function deleteProduct() {
   if (!selected) return;
   if (!confirm(`Delete ${selected.product_name}?`)) return;
-  new Image().src = API_URL + `?action=deleteProduct&rowIndex=${selected.rowIndex}`;
-  setTimeout(loadProducts, 600);
+
+  fetch(API_URL + `?action=deleteProduct&product_id=${selected.product_id}`);
+  setTimeout(loadProducts, 500);
 }
