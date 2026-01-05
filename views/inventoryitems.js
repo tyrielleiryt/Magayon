@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, jsonp } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
 /* ================= API ================= */
@@ -25,16 +25,10 @@ function renderActionBar() {
   const actionBar = document.getElementById("actionBar");
 
   actionBar.innerHTML = `
-    <input
-      type="text"
-      id="inventorySearch"
-      placeholder="Search inventory..."
-      style="padding:8px;border-radius:6px;border:1px solid #bbb"
-    />
-
-    <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
-    <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
-    <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
+    <input id="inventorySearch" placeholder="Search inventory..." />
+    <button id="addItemBtn">➕ Add Item</button>
+    <button id="editItemBtn" disabled>✏️ Edit</button>
+    <button id="deleteItemBtn" disabled>🗑️ Delete</button>
   `;
 
   document.getElementById("addItemBtn").onclick = openAddItemModal;
@@ -49,11 +43,11 @@ function renderActionBar() {
   };
 }
 
-/* ================= TABLE LAYOUT ================= */
+/* ================= TABLE ================= */
 function renderTableLayout() {
-  const contentBox = document.getElementById("contentBox");
+  const box = document.getElementById("contentBox");
 
-  contentBox.innerHTML = `
+  box.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
         <table class="category-table">
@@ -71,18 +65,16 @@ function renderTableLayout() {
           <tbody id="inventoryTableBody"></tbody>
         </table>
       </div>
-      <div id="pagination" style="padding-top:10px;text-align:center;"></div>
+      <div id="pagination"></div>
     </div>
   `;
 
-  bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  bindDataBoxScroll(box);
 }
 
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
-  const res = await fetch(API_URL + "?type=inventoryItems");
-  inventoryItems = await res.json();
-
+  inventoryItems = await jsonp(API_URL + "?type=inventoryItems");
   clearSelection();
   renderTable();
 }
@@ -90,113 +82,74 @@ async function loadInventoryItems() {
 /* ================= HELPERS ================= */
 function clearSelection() {
   selected = null;
-  const editBtn = document.getElementById("editItemBtn");
-  const delBtn = document.getElementById("deleteItemBtn");
-  if (editBtn) editBtn.disabled = true;
-  if (delBtn) delBtn.disabled = true;
+  document.getElementById("editItemBtn").disabled = true;
+  document.getElementById("deleteItemBtn").disabled = true;
 }
 
-/* ================= RENDER TABLE ================= */
+/* ================= RENDER ================= */
 function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
-  const pagination = document.getElementById("pagination");
+  const pager = document.getElementById("pagination");
 
   tbody.innerHTML = "";
-  pagination.innerHTML = "";
+  pager.innerHTML = "";
 
-  const filtered = inventoryItems.filter(item =>
-    `${item.item_name} ${item.description || ""}`
-      .toLowerCase()
-      .includes(searchQuery)
+  const filtered = inventoryItems.filter(i =>
+    `${i.item_name} ${i.description || ""}`.toLowerCase().includes(searchQuery)
   );
 
   if (!filtered.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5" style="text-align:center;color:#888">
-          No inventory items found
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="7">No items found</td></tr>`;
     return;
   }
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
-  pageItems.forEach((item, i) => {
-  const tr = document.createElement("tr");
+  filtered.slice(start, start + PAGE_SIZE).forEach((item, i) => {
+    const tr = document.createElement("tr");
 
-  tr.innerHTML = `
-    <td>${start + i + 1}</td>
-    <td>${item.item_name}</td>
-    <td>${item.description || ""}</td>
-    <td>${item.quantity_per_serving || ""}</td>
-    <td>${item.capital}</td>
-    <td>${item.selling_price}</td>
-    <td>${item.unit || ""}</td>
-  `;
+    tr.innerHTML = `
+      <td>${start + i + 1}</td>
+      <td>${item.item_name}</td>
+      <td>${item.description || ""}</td>
+      <td>${item.quantity_per_serving}</td>
+      <td>${item.capital}</td>
+      <td>${item.selling_price}</td>
+      <td>${item.unit || ""}</td>
+    `;
 
-  tr.onclick = () => {
-    document
-      .querySelectorAll("#inventoryTableBody tr")
-      .forEach(r => r.classList.remove("selected"));
-
-    tr.classList.add("selected");
-    selected = item;
-
-    document.getElementById("editItemBtn").disabled = false;
-    document.getElementById("deleteItemBtn").disabled = false;
-  };
-
-  tbody.appendChild(tr);
-});
-
-  /* Pagination */
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement("button");
-    btn.textContent = i;
-    btn.className = "btn-view";
-    if (i === currentPage) btn.style.background = "#f3c84b";
-
-    btn.onclick = () => {
-      currentPage = i;
-      clearSelection();
-      renderTable();
+    tr.onclick = () => {
+      document.querySelectorAll("tr").forEach(r => r.classList.remove("selected"));
+      tr.classList.add("selected");
+      selected = item;
+      document.getElementById("editItemBtn").disabled = false;
+      document.getElementById("deleteItemBtn").disabled = false;
     };
 
-    pagination.appendChild(btn);
+    tbody.appendChild(tr);
+  });
+
+  for (let i = 1; i <= totalPages; i++) {
+    const b = document.createElement("button");
+    b.textContent = i;
+    if (i === currentPage) b.classList.add("active");
+    b.onclick = () => { currentPage = i; renderTable(); };
+    pager.appendChild(b);
   }
 }
 
-/* ================= ADD ================= */
+/* ================= MODALS ================= */
 function openAddItemModal() {
   openModal(`
-    <div class="modal-header">➕ Add Inventory Item</div>
-
-    <label>Item Name</label>
-    <input id="itemName">
-
-    <label>Description</label>
-    <textarea id="itemDesc"></textarea>
-
-    <label>Quantity per Serving</label>
-    <input type="number" id="itemQtyServing">
-
-    <label>Unit (e.g. g, ml, pcs)</label>
-    <input id="itemUnit">
-
-    <label>Capital</label>
-    <input type="number" id="itemCap">
-
-    <label>Selling Price</label>
-    <input type="number" id="itemPrice">
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveItem">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
+    <h3>Add Inventory Item</h3>
+    <input id="itemName" placeholder="Name">
+    <input id="itemDesc" placeholder="Description">
+    <input id="itemQty" type="number" placeholder="Qty / Serving">
+    <input id="itemUnit" placeholder="Unit">
+    <input id="itemCap" type="number" placeholder="Capital">
+    <input id="itemPrice" type="number" placeholder="Selling Price">
+    <button id="saveItem">Save</button>
   `);
 
   document.getElementById("saveItem").onclick = () => {
@@ -205,45 +158,28 @@ function openAddItemModal() {
       `?action=addInventoryItem` +
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
-      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
-      `&unit=${encodeURIComponent(itemUnit.value)}`;
+      `&quantity_per_serving=${itemQty.value}` +
+      `&unit=${itemUnit.value}` +
+      `&capital=${itemCap.value}` +
+      `&selling_price=${itemPrice.value}`;
 
     closeModal();
-    setTimeout(loadInventoryItems, 500);
+    setTimeout(loadInventoryItems, 600);
   };
 }
 
-/* ================= EDIT ================= */
 function openEditItemModal() {
   if (!selected) return;
 
   openModal(`
-    <div class="modal-header">✏️ Edit Inventory Item</div>
-
-    <label>Item Name</label>
+    <h3>Edit Inventory Item</h3>
     <input id="itemName" value="${selected.item_name}">
-
-    <label>Description</label>
-    <textarea id="itemDesc">${selected.description || ""}</textarea>
-
-    <label>Quantity per Serving</label>
-    <input type="number" id="itemQtyServing" value="${selected.quantity_per_serving || ""}">
-
-    <label>Unit (e.g. g, ml, pcs)</label>
+    <input id="itemDesc" value="${selected.description || ""}">
+    <input id="itemQty" type="number" value="${selected.quantity_per_serving}">
     <input id="itemUnit" value="${selected.unit || ""}">
-
-    <label>Capital</label>
-    <input type="number" id="itemCap" value="${selected.capital}">
-
-    <label>Selling Price</label>
-    <input type="number" id="itemPrice" value="${selected.selling_price}">
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveEdit">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
+    <input id="itemCap" type="number" value="${selected.capital}">
+    <input id="itemPrice" type="number" value="${selected.selling_price}">
+    <button id="saveEdit">Save</button>
   `);
 
   document.getElementById("saveEdit").onclick = () => {
@@ -253,37 +189,23 @@ function openEditItemModal() {
       `&rowIndex=${selected.rowIndex}` +
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
-      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
-      `&unit=${encodeURIComponent(itemUnit.value)}`;
+      `&quantity_per_serving=${itemQty.value}` +
+      `&unit=${itemUnit.value}` +
+      `&capital=${itemCap.value}` +
+      `&selling_price=${itemPrice.value}`;
 
     closeModal();
-    setTimeout(loadInventoryItems, 500);
+    setTimeout(loadInventoryItems, 600);
   };
 }
 
-/* ================= DELETE ================= */
 function openDeleteItemModal() {
   if (!selected) return;
 
-  openModal(`
-    <div class="modal-header danger">🗑️ Delete Inventory Item</div>
+  if (!confirm(`Delete ${selected.item_name}?`)) return;
 
-    <p>Are you sure you want to delete <b>${selected.item_name}</b>?</p>
+  new Image().src =
+    API_URL + `?action=deleteInventoryItem&rowIndex=${selected.rowIndex}`;
 
-    <div class="modal-actions">
-      <button class="btn-danger" id="confirmDelete">Delete</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
-  `);
-
-  document.getElementById("confirmDelete").onclick = () => {
-    new Image().src =
-      API_URL +
-      `?action=deleteInventoryItem&rowIndex=${selected.rowIndex}`;
-
-    closeModal();
-    setTimeout(loadInventoryItems, 500);
-  };
+  setTimeout(loadInventoryItems, 600);
 }
