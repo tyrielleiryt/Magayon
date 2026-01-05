@@ -4,29 +4,31 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= JSONP (REQUIRED FOR GITHUB PAGES) ================= */
-function fetchJSONP(url) {
+/* ================= JSONP HELPER ================= */
+function jsonp(params) {
   return new Promise((resolve, reject) => {
     const cb = "cb_" + Date.now();
-
     window[cb] = data => {
-      resolve(data);
       delete window[cb];
       script.remove();
+      resolve(data);
     };
 
-    const script = document.createElement("script");
-    script.src = url + "&callback=" + cb;
-    script.onerror = reject;
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
 
+    const script = document.createElement("script");
+    script.src = `${API_URL}?${qs}`;
+    script.onerror = reject;
     document.body.appendChild(script);
   });
 }
 
 /* ================= STATE ================= */
 let inventoryItems = [];
-let quantities = {};
 let dailyInventoryCache = [];
+let quantities = {};
 let editDailyId = null;
 
 let searchDate = "";
@@ -35,21 +37,21 @@ let searchLocation = "";
 /* ================= HELPERS ================= */
 const el = id => document.getElementById(id);
 
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+function formatDate(d) {
+  return new Date(d).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric"
   });
 }
 
-function isToday(dateStr) {
-  const d = new Date(dateStr);
-  const t = new Date();
+function isToday(d) {
+  const a = new Date(d);
+  const b = new Date();
   return (
-    d.getFullYear() === t.getFullYear() &&
-    d.getMonth() === t.getMonth() &&
-    d.getDate() === t.getDate()
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
   );
 }
 
@@ -124,11 +126,9 @@ function renderActionBar() {
   };
 }
 
-/* ================= LOAD (JSONP FIXED) ================= */
+/* ================= LOAD ================= */
 async function loadDailyInventory() {
-  dailyInventoryCache = await fetchJSONP(
-    API_URL + "?type=dailyInventory"
-  );
+  dailyInventoryCache = await jsonp({ type: "dailyInventory" });
   renderTable();
 }
 
@@ -171,13 +171,14 @@ function renderTable() {
   });
 }
 
-/* ================= CHECK SALES (JSONP FIXED) ================= */
+/* ================= SALES CHECK ================= */
 async function hasSalesForDay(date, location) {
-  const sales = await fetchJSONP(
-    API_URL +
-      `?type=dailySalesReport&date=${date}&location=${location}`
-  );
-  return sales.length > 0;
+  const res = await jsonp({
+    type: "dailySalesReport",
+    date,
+    location
+  });
+  return res.length > 0;
 }
 
 /* ================= VIEW GROUP ================= */
@@ -195,19 +196,16 @@ window.viewDailyGroup = async function (date, location) {
     </div>
   `;
 
-  for (const entry of entries) {
+  for (const e of entries) {
     html += `
-      <div style="margin-bottom:14px;padding:12px;border:1px solid #ddd;border-radius:8px">
-        <button class="btn-view">
+      <div style="margin-bottom:12px;padding:10px;border:1px solid #ddd;border-radius:6px">
+        <button class="btn-view" onclick="viewDaily('${e.daily_id}')">
           View Details
         </button>
-
         ${
-          isToday(entry.date) && !salesExist
-            ? `<button class="btn-edit">Edit</button>`
-            : `<div style="color:#999;margin-top:6px">
-                 Editing locked (sales already recorded)
-               </div>`
+          isToday(e.date) && !salesExist
+            ? `<button class="btn-edit" onclick="editDaily('${e.daily_id}')">Edit</button>`
+            : `<div style="color:#999;margin-top:6px">Editing locked</div>`
         }
       </div>
     `;
@@ -222,16 +220,62 @@ window.viewDailyGroup = async function (date, location) {
   openModal(html, true);
 };
 
-/* ================= ADD / EDIT MODAL (FIXED) ================= */
-function openAddEditModal() {
+/* ======================================================
+   ✅ ORIGINAL ADD DAILY INVENTORY UI (RESTORED)
+====================================================== */
+window.openAddEditModal = async function () {
+  inventoryItems = await jsonp({ type: "inventoryItems" });
+
+  let rows = inventoryItems.map(i => `
+    <tr>
+      <td>${i.item_name}</td>
+      <td>${i.unit || ""}</td>
+      <td>
+        <input type="number" min="0" value="0"
+          onchange="quantities['${i.item_id}']=Number(this.value)">
+      </td>
+    </tr>
+  `).join("");
+
   openModal(`
     <div class="modal-header">Add Today's Inventory</div>
-    <p style="color:#666">
-      Inventory entry modal is working.
-      (You can now safely build the item selector here.)
-    </p>
+    <table class="category-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Unit</th>
+          <th>Quantity</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
     <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
+      <button class="btn-danger" onclick="saveDailyInventory()">Save</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
-  `);
-}
+  `, true);
+};
+
+window.saveDailyInventory = function () {
+  const items = Object.entries(quantities)
+    .filter(([_, q]) => q > 0)
+    .map(([item_id, qty]) => ({
+      item_id,
+      qty,
+      total: 0,
+      capital: 0,
+      earnings: 0
+    }));
+
+  if (!items.length) return alert("No quantities entered");
+
+  jsonp({
+    action: "addDailyInventory",
+    items: JSON.stringify(items),
+    location: localStorage.getItem("userLocation"),
+    created_by: localStorage.getItem("userName")
+  }).then(() => {
+    closeModal();
+    loadDailyInventory();
+  });
+};
