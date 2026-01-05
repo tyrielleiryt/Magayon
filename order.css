@@ -105,7 +105,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 14px;
-  align-content: start;
+  align-content: start; /* PREVENT vertical stretching */
 }
 
 /* ================= PRODUCT CARD ================= */
@@ -115,10 +115,8 @@ body {
   overflow: hidden;
   cursor: pointer;
   border: 1px solid #e0e0e0;
-
   display: flex;
   flex-direction: column;
-
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -128,7 +126,7 @@ body {
 }
 
 .product-card.disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   pointer-events: none;
 }
 
@@ -139,7 +137,7 @@ body {
 /* ================= IMAGE ================= */
 .product-img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1; /* Keeps card compact */
   background: #f6f6f6;
   position: relative;
 }
@@ -150,7 +148,7 @@ body {
   object-fit: cover;
 }
 
-/* ================= OUT OF STOCK (IMAGE ONLY) ================= */
+/* ================= OUT OF STOCK OVERLAY ================= */
 .sold-out {
   position: absolute;
   inset: 0;
@@ -180,14 +178,13 @@ body {
   text-transform: uppercase;
 }
 
-/* Product Name */
+/* Product Name (max 2 lines) */
 .product-name {
   font-size: 14px;
   font-weight: 700;
   color: #1f2937;
   line-height: 1.25;
   margin-bottom: 4px;
-
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
