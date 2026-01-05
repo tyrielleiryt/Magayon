@@ -1,8 +1,12 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* ================= API ================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
+/* ================= FIX: EXPOSE MODAL CLOSE ================= */
+window.closeModal = closeModal;
 
 /* ================= STATE ================= */
 let products = [];
@@ -71,11 +75,8 @@ async function loadProducts() {
   products = await res.json();
 
   selected = null;
-
-  const editBtn = document.getElementById("editBtn");
-  const deleteBtn = document.getElementById("deleteBtn");
-  if (editBtn) editBtn.disabled = true;
-  if (deleteBtn) deleteBtn.disabled = true;
+  document.getElementById("editBtn").disabled = true;
+  document.getElementById("deleteBtn").disabled = true;
 
   renderTable();
 }
