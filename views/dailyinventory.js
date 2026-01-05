@@ -154,11 +154,11 @@ function renderTable() {
 async function hasSalesForDay(date, location) {
   const res = await fetch(
     API_URL +
-      `?type=dailyRemainingInventory&date=${date}&location=${location}`
-  ).then(r => r.json());
+      `?type=dailySalesReport&date=${date}&location=${location}`
+  );
+  const sales = await res.json();
 
-  // If ANY remaining is less than total IN → sales occurred
-  return res.some(r => Number(r.remaining) < 0);
+  return sales.length > 0;
 }
 
 /* ================= VIEW GROUP ================= */

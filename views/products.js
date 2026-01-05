@@ -132,6 +132,8 @@ async function openProductModal(product = {}) {
   openModal(`
     <div class="modal-header">${product.product_id ? "Edit" : "Add"} Product</div>
 
+    <label>Product Code</label>
+    <input id="productCode" value="${product.product_code || ""}">  
     <label>Product Name</label>
     <input id="productName" value="${product.product_name || ""}">
 
@@ -240,13 +242,40 @@ function bindRecipeEvents(row) {
 
 /* ================= SAVE PRODUCT ================= */
 window.saveProduct = function () {
+  const code = document.getElementById("productCode").value.trim();
+  const name = document.getElementById("productName").value.trim();
+  const category = document.getElementById("category").value;
+  const price = document.getElementById("price").value;
+  const image = document.getElementById("image").value;
+
+  if (!code || !name || !price) {
+    alert("Product code, name, and price are required.");
+    return;
+  }
+
   const recipe = Array.from(document.querySelectorAll(".recipe-row")).map(r => ({
     item_id: r.querySelector(".recipe-item").value,
     qty_used: Number(r.querySelector(".recipe-qty").value)
   }));
 
-  console.log("Saving product with recipe:", recipe);
+  let url =
+    API_URL +
+    `?action=saveProduct` +
+    `&product_code=${encodeURIComponent(code)}` +
+    `&product_name=${encodeURIComponent(name)}` +
+    `&category_id=${encodeURIComponent(category)}` +
+    `&price=${encodeURIComponent(price)}` +
+    `&image_url=${encodeURIComponent(image)}` +
+    `&recipe=${encodeURIComponent(JSON.stringify(recipe))}`;
+
+  if (selected?.product_id) {
+    url += `&product_id=${selected.product_id}`;
+  }
+
+  new Image().src = url;
+
   closeModal();
+  setTimeout(loadProducts, 600);
 };
 
 /* ================= DELETE ================= */
