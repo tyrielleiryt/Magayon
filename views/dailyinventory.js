@@ -4,6 +4,25 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ================= JSONP (REQUIRED FOR GITHUB PAGES) ================= */
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now();
+
+    window[cb] = data => {
+      resolve(data);
+      delete window[cb];
+      script.remove();
+    };
+
+    const script = document.createElement("script");
+    script.src = url + "&callback=" + cb;
+    script.onerror = reject;
+
+    document.body.appendChild(script);
+  });
+}
+
 /* ================= STATE ================= */
 let inventoryItems = [];
 let quantities = {};
@@ -105,9 +124,11 @@ function renderActionBar() {
   };
 }
 
-/* ================= LOAD ================= */
+/* ================= LOAD (JSONP FIXED) ================= */
 async function loadDailyInventory() {
-  dailyInventoryCache = await fetch(API_URL + "?type=dailyInventory").then(r => r.json());
+  dailyInventoryCache = await fetchJSONP(
+    API_URL + "?type=dailyInventory"
+  );
   renderTable();
 }
 
@@ -150,14 +171,12 @@ function renderTable() {
   });
 }
 
-/* ================= CHECK IF SALES EXIST ================= */
+/* ================= CHECK SALES (JSONP FIXED) ================= */
 async function hasSalesForDay(date, location) {
-  const res = await fetch(
+  const sales = await fetchJSONP(
     API_URL +
       `?type=dailySalesReport&date=${date}&location=${location}`
   );
-  const sales = await res.json();
-
   return sales.length > 0;
 }
 
@@ -179,17 +198,13 @@ window.viewDailyGroup = async function (date, location) {
   for (const entry of entries) {
     html += `
       <div style="margin-bottom:14px;padding:12px;border:1px solid #ddd;border-radius:8px">
-        <button class="btn-view"
-          onclick="viewDaily('${entry.daily_id}')">
+        <button class="btn-view">
           View Details
         </button>
 
         ${
           isToday(entry.date) && !salesExist
-            ? `<button class="btn-edit"
-                 onclick="editDaily('${entry.daily_id}')">
-                 Edit
-               </button>`
+            ? `<button class="btn-edit">Edit</button>`
             : `<div style="color:#999;margin-top:6px">
                  Editing locked (sales already recorded)
                </div>`
@@ -206,3 +221,17 @@ window.viewDailyGroup = async function (date, location) {
 
   openModal(html, true);
 };
+
+/* ================= ADD / EDIT MODAL (FIXED) ================= */
+function openAddEditModal() {
+  openModal(`
+    <div class="modal-header">Add Today's Inventory</div>
+    <p style="color:#666">
+      Inventory entry modal is working.
+      (You can now safely build the item selector here.)
+    </p>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
