@@ -322,3 +322,87 @@ html, body {
   background: #f3f3f3;
   cursor: not-allowed;
 }
+
+/* Modal body layout */
+.inventory-modal-body {
+  display: flex;
+  flex-direction: column;
+  height: 60vh;
+  padding: 12px;
+}
+
+/* Search */
+.inventory-search {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+
+/* Scrollable list */
+.inventory-scroll {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+/* Inventory row */
+.inventory-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.inventory-row:last-child {
+  border-bottom: none;
+}
+
+/* Name */
+.inv-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inv-name small {
+  display: block;
+  font-size: 11px;
+  color: #888;
+}
+
+/* Controls */
+.inv-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inv-controls button {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  background: #f0f2f8;
+}
+
+.inv-controls span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Sticky footer */
+.inventory-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+}

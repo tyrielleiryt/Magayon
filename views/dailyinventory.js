@@ -4,7 +4,7 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= JSONP HELPER ================= */
+/* ================= JSONP ================= */
 function jsonp(params) {
   return new Promise((resolve, reject) => {
     const cb = "cb_" + Date.now();
@@ -120,7 +120,6 @@ function renderActionBar() {
   };
 
   el("addTodayBtn").onclick = () => {
-    editDailyId = null;
     quantities = {};
     openAddEditModal();
   };
@@ -171,91 +170,73 @@ function renderTable() {
   });
 }
 
-/* ================= SALES CHECK ================= */
-async function hasSalesForDay(date, location) {
-  const res = await jsonp({
-    type: "dailySalesReport",
-    date,
-    location
-  });
-  return res.length > 0;
-}
-
-/* ================= VIEW GROUP ================= */
-window.viewDailyGroup = async function (date, location) {
-  const entries = dailyInventoryCache.filter(d =>
-    new Date(d.date).toDateString() === new Date(date).toDateString() &&
-    (d.location || "") === (location || "")
-  );
-
-  const salesExist = await hasSalesForDay(date, location);
-
-  let html = `
-    <div class="modal-header">
-      Inventory for ${formatDate(date)} — ${location}
-    </div>
-  `;
-
-  for (const e of entries) {
-    html += `
-      <div style="margin-bottom:12px;padding:10px;border:1px solid #ddd;border-radius:6px">
-        <button class="btn-view" onclick="viewDaily('${e.daily_id}')">
-          View Details
-        </button>
-        ${
-          isToday(e.date) && !salesExist
-            ? `<button class="btn-edit" onclick="editDaily('${e.daily_id}')">Edit</button>`
-            : `<div style="color:#999;margin-top:6px">Editing locked</div>`
-        }
-      </div>
-    `;
-  }
-
-  html += `
-    <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
-    </div>
-  `;
-
-  openModal(html, true);
-};
-
-/* ======================================================
-   ✅ ORIGINAL ADD DAILY INVENTORY UI (RESTORED)
-====================================================== */
+/* ================= ADD DAILY INVENTORY (IMPROVED UI) ================= */
 window.openAddEditModal = async function () {
   inventoryItems = await jsonp({ type: "inventoryItems" });
 
-  let rows = inventoryItems.map(i => `
-    <tr>
-      <td>${i.item_name}</td>
-      <td>${i.unit || ""}</td>
-      <td>
-        <input type="number" min="0" value="0"
-          onchange="quantities['${i.item_id}']=Number(this.value)">
-      </td>
-    </tr>
-  `).join("");
-
   openModal(`
-    <div class="modal-header">Add Today's Inventory</div>
-    <table class="category-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Unit</th>
-          <th>Quantity</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="modal-actions">
-      <button class="btn-danger" onclick="saveDailyInventory()">Save</button>
+    <div class="modal-header">📦 Add Today's Inventory</div>
+
+    <div class="inventory-modal-body">
+      <input
+        id="inventorySearch"
+        placeholder="Search inventory..."
+        class="inventory-search"
+      />
+
+      <div class="inventory-scroll" id="inventoryList"></div>
+    </div>
+
+    <div class="inventory-modal-footer">
       <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" onclick="saveDailyInventory()">Confirm</button>
     </div>
   `, true);
+
+  renderInventoryRows();
 };
 
+/* ================= INVENTORY ROWS ================= */
+function renderInventoryRows() {
+  const list = el("inventoryList");
+  const keyword = el("inventorySearch")?.value.toLowerCase() || "";
+
+  list.innerHTML = "";
+
+  inventoryItems
+    .filter(i => i.item_name.toLowerCase().includes(keyword))
+    .forEach(i => {
+      quantities[i.item_id] ??= 0;
+
+      const row = document.createElement("div");
+      row.className = "inventory-row";
+
+      row.innerHTML = `
+        <div class="inv-name">
+          ${i.item_name}
+          <small>${i.unit || ""}</small>
+        </div>
+
+        <div class="inv-controls">
+          <button onclick="updateQty('${i.item_id}', -1)">−</button>
+          <span>${quantities[i.item_id]}</span>
+          <button onclick="updateQty('${i.item_id}', 1)">+</button>
+        </div>
+      `;
+
+      list.appendChild(row);
+    });
+
+  el("inventorySearch").oninput = renderInventoryRows;
+}
+
+/* ================= QTY CONTROL ================= */
+window.updateQty = function (id, delta) {
+  quantities[id] = Math.max(0, (quantities[id] || 0) + delta);
+  renderInventoryRows();
+};
+
+/* ================= SAVE ================= */
 window.saveDailyInventory = function () {
   const items = Object.entries(quantities)
     .filter(([_, q]) => q > 0)
