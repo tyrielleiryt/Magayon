@@ -141,9 +141,9 @@ window.viewDailyInventory = async function (date, location) {
 
   try {
     const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${encodeURIComponent(
-        date
-      )}&location=${encodeURIComponent(location)}`
+      `${API_URL}?type=dailyRemainingInventory` +
+      `&date=${encodeURIComponent(date)}` +
+      `&location=${encodeURIComponent(location)}`
     );
 
     const items = await res.json();
@@ -159,23 +159,25 @@ window.viewDailyInventory = async function (date, location) {
           <thead>
             <tr>
               <th>Item</th>
-              <th>Qty</th>
               <th>Remaining</th>
             </tr>
           </thead>
           <tbody>
             ${
-              !items.length
-                ? `<tr><td colspan="3" style="text-align:center;color:#888">No data</td></tr>`
+              !Array.isArray(items) || !items.length
+                ? `<tr>
+                     <td colspan="2" style="text-align:center;color:#888">
+                       No data
+                     </td>
+                   </tr>`
                 : items
                     .map(
                       i => `
-                <tr>
-                  <td>${i.item_id}</td>
-                  <td>${i.qty}</td>
-                  <td>${i.remaining}</td>
-                </tr>
-              `
+                      <tr>
+                        <td>${i.item_id}</td>
+                        <td>${i.remaining}</td>
+                      </tr>
+                    `
                     )
                     .join("")
             }
