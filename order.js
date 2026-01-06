@@ -15,23 +15,6 @@ if (!LOCATION || !STAFF_ID) {
   window.location.replace("index.html");
 }
 
-/* ================= JSONP ================= */
-function jsonp(params) {
-  const cb = "cb_" + Date.now();
-  return new Promise(resolve => {
-    window[cb] = data => {
-      delete window[cb];
-      resolve(data);
-    };
-    const qs = Object.entries({ ...params, callback: cb })
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
-    const s = document.createElement("script");
-    s.src = `${API_URL}?${qs}`;
-    document.body.appendChild(s);
-  });
-}
-
 /* =========================================================
    STATE
 ========================================================= */
@@ -55,22 +38,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderProducts();
   renderCart();
 
-  /* 🔗 BUTTON WIRING (CRITICAL FIX) */
-  document.querySelector(".checkout")?.addEventListener("click", checkoutPOS);
-
-  document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
+  document.querySelector(".checkout").onclick = checkoutPOS;
+  document.getElementById("clearOrderBtn").onclick = () => {
     cart = [];
     renderCart();
-  });
+    renderProducts();
+  };
+  document.querySelector(".btn-print").onclick = () => window.print();
 
-  document.querySelector(".btn-print")?.addEventListener("click", () => {
-    window.print();
-  });
-
-  document.getElementById("searchInput")?.addEventListener("input", e => {
-    const k = e.target.value.toLowerCase();
-    renderProducts(k);
-  });
+  document.getElementById("searchInput").oninput = e => {
+    renderProducts(e.target.value.toLowerCase());
+  };
 });
 
 /* =========================================================
@@ -92,18 +70,22 @@ async function loadAllData() {
   ).then(r => r.json());
 
   inventory = {};
-  rows.forEach(r => (inventory[r.item_id] = Number(r.remaining)));
+  rows.forEach(r => inventory[r.item_id] = Number(r.remaining));
 }
 
 /* =========================================================
-   STOCK CHECK
+   INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
   const rec = recipes[product.product_id];
-  if (!rec || !rec.length) return true; // allow click even without inventory
-  return rec.every(r =>
-    (inventory[r.item_id] || 0) >= Number(r.qty_used) * qty
-  );
+  if (!rec || !rec.length) return false;
+  if (!Object.keys(inventory).length) return false;
+
+  return rec.every(r => {
+    const available = inventory[r.item_id] || 0;
+    const needed = Number(r.qty_used) * qty;
+    return available >= needed;
+  });
 }
 
 /* =========================================================
@@ -113,29 +95,33 @@ function renderCategories() {
   const el = document.querySelector(".categories-panel");
   el.innerHTML = "";
 
-  const allBtn = document.createElement("button");
-  allBtn.className = "category-btn active";
-  allBtn.textContent = "All";
-  allBtn.onclick = () => {
-    activeCategoryId = null;
-    renderProducts();
-  };
+  const allBtn = createCategoryBtn("All", null);
+  allBtn.classList.add("active");
   el.appendChild(allBtn);
 
   categories.forEach(c => {
-    const b = document.createElement("button");
-    b.className = "category-btn";
-    b.textContent = c.category_name;
-    b.onclick = () => {
-      activeCategoryId = c.category_id;
-      renderProducts();
-    };
-    el.appendChild(b);
+    el.appendChild(createCategoryBtn(c.category_name, c.category_id));
   });
 }
 
+function createCategoryBtn(name, id) {
+  const btn = document.createElement("button");
+  btn.className = "category-btn";
+  btn.textContent = name;
+
+  btn.onclick = () => {
+    activeCategoryId = id;
+    document
+      .querySelectorAll(".category-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderProducts();
+  };
+  return btn;
+}
+
 /* =========================================================
-   PRODUCTS (CLICKABLE FIX)
+   PRODUCTS
 ========================================================= */
 function renderProducts(search = "") {
   const grid = document.getElementById("productGrid");
@@ -145,19 +131,14 @@ function renderProducts(search = "") {
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
     .filter(p =>
-      `${p.product_name} ${p.product_code}`
-        .toLowerCase()
-        .includes(search)
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
     )
     .forEach(p => {
-      const card = document.createElement("div");
-      card.className = "product-card";
-      card.style.cursor = "pointer";
+      const disabled = !canSell(p);
+      const img = p.image_url?.trim() || "images/placeholder.png";
 
-      const img =
-        p.image_url && p.image_url.trim()
-          ? p.image_url
-          : "images/placeholder.png";
+      const card = document.createElement("div");
+      card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
         <div class="product-img">
@@ -170,7 +151,10 @@ function renderProducts(search = "") {
         </div>
       `;
 
-      card.onclick = () => addToCart(p);
+      if (!disabled) {
+        card.onclick = () => addToCart(p);
+      }
+
       grid.appendChild(card);
     });
 }
@@ -182,6 +166,10 @@ function addToCart(p) {
   const existing = cart.find(i => i.product_id === p.product_id);
 
   if (existing) {
+    if (!canSell(p, existing.qty + 1)) {
+      alert("❌ Not enough stock");
+      return;
+    }
     existing.qty++;
     existing.total = existing.qty * existing.price;
   } else {
@@ -195,11 +183,9 @@ function addToCart(p) {
   }
 
   renderCart();
+  renderProducts();
 }
 
-/* =========================================================
-   CART UI
-========================================================= */
 function renderCart() {
   const tbody = document.getElementById("orderTable");
   const sumEl = document.getElementById("sumTotal");
