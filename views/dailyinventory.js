@@ -24,6 +24,7 @@ function hideLoader() {
 let dailyInventoryCache = [];
 let inventoryItems = [];
 let locations = [];
+let quantities = {};              // ✅ FIX: was missing
 let searchDate = "";
 let searchLocation = "";
 
@@ -101,8 +102,13 @@ function renderTable() {
   tbody.innerHTML = "";
 
   const filtered = dailyInventoryCache.filter(d =>
-    (!searchDate || new Date(d.date).toLocaleDateString().toLowerCase().includes(searchDate)) &&
-    (!searchLocation || (d.location || "").toLowerCase().includes(searchLocation))
+    (!searchDate ||
+      new Date(d.date)
+        .toLocaleDateString()
+        .toLowerCase()
+        .includes(searchDate)) &&
+    (!searchLocation ||
+      (d.location || "").toLowerCase().includes(searchLocation))
   );
 
   if (!filtered.length) {
@@ -128,18 +134,22 @@ function renderTable() {
 
 /* ================= ADD TODAY INVENTORY ================= */
 async function openAddTodayModal() {
-  showLoader("Loading inventory form…");
+  showLoader("Loading inventory & locations…");
 
   try {
     const [items, locs] = await Promise.all([
       fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
-      fetch(`${API_URL}?type=locations`).then(r => r.json())
+      loadLocationsSafe()
     ]);
 
-    inventoryItems = items;
-    locations = locs.filter(l => l.active);
+    if (!Array.isArray(items) || !Array.isArray(locs) || !locs.length) {
+      alert("Inventory or locations failed to load.");
+      return;
+    }
 
-    hideLoader();
+    inventoryItems = items;
+    locations = locs;
+    quantities = {};
 
     openModal(
       `
@@ -148,7 +158,12 @@ async function openAddTodayModal() {
       <label>Location</label>
       <select id="dailyLocation">
         ${locations
-          .map(l => `<option value="${l.location_id}">${l.location_name}</option>`)
+          .map(
+            l =>
+              `<option value="${l.location_id}">
+                ${l.location_name}
+              </option>`
+          )
           .join("")}
       </select>
 
@@ -172,32 +187,32 @@ async function openAddTodayModal() {
         <button class="btn-danger" id="saveDaily">Save</button>
         <button class="btn-back" onclick="closeModal()">Cancel</button>
       </div>
-    `,
+      `,
       true
     );
 
     document.getElementById("saveDaily").onclick = saveDailyInventory;
 
   } catch (err) {
-    hideLoader();
     console.error(err);
-    alert("Failed to load inventory form");
+    alert("Failed to load inventory or locations.");
+  } finally {
+    hideLoader();
   }
 }
 
 /* ================= SAVE DAILY INVENTORY ================= */
 function saveDailyInventory() {
-  const location = document.getElementById("dailyLocation").value;
+  const location = document.getElementById("dailyLocation")?.value;
+  if (!location) return alert("Please select a location");
+
   const inputs = document.querySelectorAll("[data-id]");
   const items = [];
 
   inputs.forEach(i => {
     const qty = Number(i.value);
     if (qty > 0) {
-      items.push({
-        item_id: i.dataset.id,
-        qty
-      });
+      items.push({ item_id: i.dataset.id, qty });
     }
   });
 
@@ -216,6 +231,18 @@ function saveDailyInventory() {
 
   closeModal();
   setTimeout(loadDailyInventory, 700);
+}
+
+/* ================= LOAD LOCATIONS (SAFE) ================= */
+async function loadLocationsSafe() {
+  const res = await fetch(`${API_URL}?type=locations`).then(r => r.json());
+
+  if (!Array.isArray(res)) {
+    console.error("Invalid locations response:", res);
+    return [];
+  }
+
+  return res.filter(l => l.active);
 }
 
 /* ================= JSONP ================= */
