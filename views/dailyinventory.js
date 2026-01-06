@@ -85,8 +85,16 @@ async function loadDailyInventory() {
 
   try {
     const res = await fetch(`${API_URL}?type=dailyInventory`);
-    dailyInventory = await res.json();
-    renderTable();
+const data = await res.json();
+
+if (!Array.isArray(data)) {
+  console.error("Invalid dailyInventory response:", data);
+  dailyInventory = [];
+} else {
+  dailyInventory = data;
+}
+
+renderTable();
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory");
