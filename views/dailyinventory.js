@@ -132,7 +132,10 @@ function renderTable() {
         <td>${new Date(d.date).toLocaleDateString()}</td>
         <td>
           <button class="btn-view"
-            onclick="viewDailyInventory('${d.date}','${d.location}')">
+            onclick="viewDailyInventory(
+  '${new Date(d.date).toISOString().slice(0,10)}',
+  '${d.location}'
+)"
             View
           </button>
         </td>
