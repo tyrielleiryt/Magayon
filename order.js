@@ -34,8 +34,8 @@ function hideLoader() {
 ========================================================= */
 let products = [];
 let categories = [];
-let recipes = {};      // product_id → recipe[]
-let inventory = {};    // item_id → remaining
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining qty
 let cart = [];
 let activeCategoryId = null;
 
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOAD ALL DATA (FAST – 4 REQUESTS TOTAL)
+   LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
   const today = new Date().toISOString().slice(0, 10);
@@ -98,8 +98,8 @@ async function loadAllData() {
     ).then(r => r.json())
   ]);
 
-  categories = categoriesData;
-  products = productsData;
+  categories = categoriesData || [];
+  products = productsData || [];
   recipes = recipesData || {};
 
   inventory = {};
@@ -109,14 +109,16 @@ async function loadAllData() {
 }
 
 /* =========================================================
-   INVENTORY CHECK (CLIENT-SIDE PRECHECK ONLY)
+   INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
-    const available = inventory[r.item_id] || 0;
+    const available = inventory[r.item_id];
+    if (available === undefined) return false;
+
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
   });
@@ -143,7 +145,8 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn")
+    document
+      .querySelectorAll(".category-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
@@ -243,7 +246,7 @@ function renderCart() {
 }
 
 /* =========================================================
-   ✅ FINAL CHECKOUT (FAST + INVENTORY-SAFE)
+   FINAL CHECKOUT
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) {
@@ -282,11 +285,20 @@ async function checkoutPOS() {
       throw new Error(data.error || "Checkout failed");
     }
 
-    // ✅ Reset UI
+    /* ✅ IMMEDIATE LOCAL DEDUCTION (CRITICAL FIX) */
+    cart.forEach(item => {
+      const recipe = recipes[item.product_id] || [];
+      recipe.forEach(r => {
+        inventory[r.item_id] -= Number(r.qty_used) * Number(item.qty);
+      });
+    });
+
     cart = [];
-    await loadAllData();
     renderProducts();
     renderCart();
+
+    // Background refresh (safe)
+    loadAllData();
 
     alert("✅ Order completed");
 
