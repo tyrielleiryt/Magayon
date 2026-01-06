@@ -121,8 +121,19 @@ async function loadDailyInventory() {
   showLoader("Loading daily inventory…");
 
   try {
-    dailyInventoryCache = await jsonp({ type: "dailyInventory" });
+    const res = await jsonp({ type: "dailyInventory" });
+
+    // 🛡️ HARD GUARD
+    if (!Array.isArray(res)) {
+      console.error("Invalid dailyInventory response:", res);
+      dailyInventoryCache = [];
+      alert("Failed to load inventory data.");
+      return;
+    }
+
+    dailyInventoryCache = res;
     renderTable();
+
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory.");
