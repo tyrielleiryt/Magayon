@@ -1,11 +1,13 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* =========================================================
+   CONFIG
+========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 const STAFF_ID = localStorage.getItem("staff_id");
-const LOCATION = localStorage.getItem("userLocation");
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -21,7 +23,7 @@ function hideLoader() {
 /* ================= STATE ================= */
 let dailyInventoryCache = [];
 let inventoryItems = [];
-let quantities = {};
+let locations = [];
 let searchDate = "";
 let searchLocation = "";
 
@@ -77,7 +79,7 @@ function renderActionBar() {
   el("addTodayBtn").onclick = openAddTodayModal;
 }
 
-/* ================= LOAD ================= */
+/* ================= LOAD DAILY INVENTORY ================= */
 async function loadDailyInventory() {
   showLoader("Loading daily inventory…");
 
@@ -85,6 +87,9 @@ async function loadDailyInventory() {
     const res = await jsonp({ type: "dailyInventory" });
     dailyInventoryCache = Array.isArray(res) ? res : [];
     renderTable();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load daily inventory");
   } finally {
     hideLoader();
   }
@@ -95,12 +100,20 @@ function renderTable() {
   const tbody = el("dailyInventoryBody");
   tbody.innerHTML = "";
 
-  if (!dailyInventoryCache.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888">No data</td></tr>`;
+  const filtered = dailyInventoryCache.filter(d =>
+    (!searchDate || new Date(d.date).toLocaleDateString().toLowerCase().includes(searchDate)) &&
+    (!searchLocation || (d.location || "").toLowerCase().includes(searchLocation))
+  );
+
+  if (!filtered.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:#888">No data</td>
+      </tr>`;
     return;
   }
 
-  dailyInventoryCache.forEach((d, i) => {
+  filtered.forEach((d, i) => {
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
@@ -113,47 +126,68 @@ function renderTable() {
   });
 }
 
-/* ================= ADD TODAY ================= */
+/* ================= ADD TODAY INVENTORY ================= */
 async function openAddTodayModal() {
-  showLoader("Loading inventory items…");
-  inventoryItems = await fetch(`${API_URL}?type=inventoryItems`).then(r => r.json());
-  hideLoader();
+  showLoader("Loading inventory form…");
 
-  quantities = {};
+  try {
+    const [items, locs] = await Promise.all([
+      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
+      fetch(`${API_URL}?type=locations`).then(r => r.json())
+    ]);
 
-  openModal(
-    `
-    <div class="modal-header">Add Today's Inventory</div>
+    inventoryItems = items;
+    locations = locs.filter(l => l.active);
 
-    <div style="max-height:300px;overflow:auto">
-      ${inventoryItems
-        .map(
-          i => `
-        <div style="display:flex;gap:10px;margin-bottom:6px">
-          <div style="flex:1">${i.item_name}</div>
-          <input type="number" min="0"
-            data-id="${i.item_id}"
-            style="width:80px"
-            placeholder="Qty">
-        </div>
+    hideLoader();
+
+    openModal(
       `
-        )
-        .join("")}
-    </div>
+      <div class="modal-header">Add Today's Inventory</div>
 
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveDaily">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
-  `,
-    true
-  );
+      <label>Location</label>
+      <select id="dailyLocation">
+        ${locations
+          .map(l => `<option value="${l.location_id}">${l.location_name}</option>`)
+          .join("")}
+      </select>
 
-  document.getElementById("saveDaily").onclick = saveDailyInventory;
+      <div style="max-height:300px;overflow:auto;margin-top:10px">
+        ${inventoryItems
+          .map(
+            i => `
+          <div style="display:flex;gap:10px;margin-bottom:6px">
+            <div style="flex:1">${i.item_name}</div>
+            <input type="number" min="0"
+              data-id="${i.item_id}"
+              style="width:80px"
+              placeholder="Qty">
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="saveDaily">Save</button>
+        <button class="btn-back" onclick="closeModal()">Cancel</button>
+      </div>
+    `,
+      true
+    );
+
+    document.getElementById("saveDaily").onclick = saveDailyInventory;
+
+  } catch (err) {
+    hideLoader();
+    console.error(err);
+    alert("Failed to load inventory form");
+  }
 }
 
-/* ================= SAVE ================= */
+/* ================= SAVE DAILY INVENTORY ================= */
 function saveDailyInventory() {
+  const location = document.getElementById("dailyLocation").value;
   const inputs = document.querySelectorAll("[data-id]");
   const items = [];
 
@@ -176,8 +210,8 @@ function saveDailyInventory() {
 
   new Image().src =
     `${API_URL}?action=addDailyInventory` +
-    `&location=${LOCATION}` +
-    `&created_by=${STAFF_ID}` +
+    `&location=${encodeURIComponent(location)}` +
+    `&created_by=${encodeURIComponent(STAFF_ID)}` +
     `&items=${encodeURIComponent(JSON.stringify(items))}`;
 
   closeModal();
