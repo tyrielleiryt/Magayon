@@ -67,6 +67,14 @@ function groupByDateAndLocation(data) {
   return Object.values(map);
 }
 
+function getStaffId() {
+  return localStorage.getItem("staff_id") || "ADMIN";
+}
+
+function getLocationId() {
+  return localStorage.getItem("userLocation") || "";
+}
+
 /* =========================================================
    ENTRY
 ========================================================= */
@@ -122,7 +130,7 @@ function renderActionBar() {
 }
 
 /* =========================================================
-   LOAD DAILY INVENTORY (ROBUST)
+   LOAD DAILY INVENTORY
 ========================================================= */
 async function loadDailyInventory() {
   showLoader("Loading daily inventory…");
@@ -130,30 +138,19 @@ async function loadDailyInventory() {
   try {
     const res = await jsonp({ type: "dailyInventory" });
 
-    // 🔴 GAS ERROR RESPONSE
     if (res?.success === false) {
-      console.error("GAS error:", res.error);
+      alert(res.error);
       dailyInventoryCache = [];
-      alert("Daily inventory backend error:\n" + res.error);
-      renderTable();
-      return;
+    } else if (Array.isArray(res)) {
+      dailyInventoryCache = res;
+    } else {
+      dailyInventoryCache = [];
     }
 
-    // 🛡️ NOT ARRAY
-    if (!Array.isArray(res)) {
-      console.error("Invalid dailyInventory response:", res);
-      dailyInventoryCache = [];
-      alert("Invalid daily inventory response from server.");
-      renderTable();
-      return;
-    }
-
-    dailyInventoryCache = res;
     renderTable();
-
   } catch (err) {
     console.error(err);
-    alert("Failed to load daily inventory.");
+    alert("Failed to load daily inventory");
   } finally {
     hideLoader();
   }
@@ -227,7 +224,7 @@ function jsonp(params) {
    VIEW DAILY GROUP
 ========================================================= */
 window.viewDailyGroup = async function (date, locationId) {
-  showLoader("Loading daily inventory…");
+  showLoader("Loading remaining inventory…");
 
   try {
     const res = await fetch(
@@ -241,14 +238,14 @@ window.viewDailyGroup = async function (date, locationId) {
     renderDailyInventoryModal(data, decodeURIComponent(date));
   } catch (err) {
     console.error(err);
-    alert("Failed to load daily inventory");
+    alert("Failed to load remaining inventory");
   } finally {
     hideLoader();
   }
 };
 
 /* =========================================================
-   MODAL
+   MODAL — REMAINING INVENTORY
 ========================================================= */
 function renderDailyInventoryModal(data, date) {
   openModal(
@@ -268,7 +265,7 @@ function renderDailyInventoryModal(data, date) {
         <tbody>
           ${
             !Array.isArray(data) || !data.length
-              ? `<tr><td colspan="2" style="text-align:center;color:#888">No remaining inventory</td></tr>`
+              ? `<tr><td colspan="2" style="text-align:center;color:#888">No data</td></tr>`
               : data.map(
                   i => `
                   <tr>
@@ -291,19 +288,94 @@ function renderDailyInventoryModal(data, date) {
 }
 
 /* =========================================================
-   ADD DAILY INVENTORY (PLACEHOLDER)
+   ADD TODAY'S INVENTORY (FULLY WORKING)
 ========================================================= */
-function openAddEditModal() {
-  openModal(
-    `
-    <div class="modal-header">Add Today's Inventory</div>
-    <p style="font-size:14px;color:#555">
-      Daily inventory entry is not yet implemented.
-    </p>
-    <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
-    </div>
-  `,
-    true
-  );
+async function openAddEditModal() {
+  showLoader("Loading inventory items…");
+
+  try {
+    const items = await fetch(`${API_URL}?type=inventoryItems`).then(r => r.json());
+
+    openModal(
+      `
+      <div class="modal-header">Add Today's Inventory</div>
+
+      <div class="inventory-scroll" style="max-height:60vh">
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(i => `
+              <tr>
+                <td>${i.item_name}</td>
+                <td>
+                  <input type="number"
+                         min="0"
+                         class="daily-qty"
+                         data-item="${i.item_id}"
+                         style="width:80px">
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-danger" onclick="submitDailyInventory()">Save</button>
+        <button class="btn-back" onclick="closeModal()">Cancel</button>
+      </div>
+    `,
+      true
+    );
+  } finally {
+    hideLoader();
+  }
 }
+
+window.submitDailyInventory = async function () {
+  const inputs = document.querySelectorAll(".daily-qty");
+  const items = [];
+
+  inputs.forEach(i => {
+    const qty = Number(i.value);
+    if (qty > 0) {
+      items.push({
+        item_id: i.dataset.item,
+        qty
+      });
+    }
+  });
+
+  if (!items.length) {
+    alert("Please enter at least one quantity");
+    return;
+  }
+
+  showLoader("Saving inventory…");
+
+  try {
+    const qs = [
+      `action=addDailyInventory`,
+      `location=${encodeURIComponent(getLocationId())}`,
+      `created_by=${encodeURIComponent(getStaffId())}`,
+      `items=${encodeURIComponent(JSON.stringify(items))}`
+    ].join("&");
+
+    const res = await fetch(`${API_URL}?${qs}`).then(r => r.json());
+
+    if (!res.success) throw new Error(res.error);
+
+    closeModal();
+    loadDailyInventory();
+    alert("✅ Daily inventory saved");
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    hideLoader();
+  }
+};
