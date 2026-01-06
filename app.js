@@ -4,13 +4,8 @@ import {
   getAuth,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===== GAS CONFIG ===== */
+/* ===== CONFIG ===== */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
@@ -23,7 +18,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
 /* ===== ELEMENTS ===== */
 const loginBtn = document.getElementById("loginBtn");
@@ -47,7 +41,11 @@ function jsonp(params) {
 
     const script = document.createElement("script");
     script.src = `${API_URL}?${qs}`;
-    script.onerror = reject;
+    script.onerror = () => {
+      delete window[cb];
+      reject(new Error("Server connection failed"));
+    };
+
     document.body.appendChild(script);
   });
 }
@@ -60,7 +58,7 @@ async function handleLogin() {
   errorMsg.textContent = "";
 
   if (!email || !password) {
-    errorMsg.textContent = "Please enter both email and password.";
+    errorMsg.textContent = "Please enter email and password.";
     return;
   }
 
@@ -69,45 +67,47 @@ async function handleLogin() {
 
   try {
     /* 🔐 FIREBASE AUTH */
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const user = cred.user;
+    await signInWithEmailAndPassword(auth, email, password);
 
-    /* 🔎 FIRESTORE PROFILE */
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (!snap.exists()) throw new Error("User profile not found.");
+    /* 🔎 STAFF AUTHORIZATION */
+    const staffList = await jsonp({ type: "staff" });
 
-    const data = snap.data();
+    const staff = staffList.find(
+      s => s.email === email && s.active === true
+    );
 
-    if (data.active !== true) {
-      throw new Error("Account is disabled.");
+    if (!staff) {
+      throw new Error("Account is not registered as active staff.");
     }
 
-    /* 🚫 POS ACCESS GUARD */
-    if (data.role === "cashier" && data.can_pos !== true) {
-      throw new Error("You are not authorized to access POS.");
+    if (
+      staff.position.toLowerCase() === "cashier" &&
+      staff.can_pos !== true
+    ) {
+      throw new Error("You are not authorized to use POS.");
     }
 
     /* ✅ SAVE SESSION */
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("userRole", data.role);
+    localStorage.setItem("staff_id", staff.staff_id);
     localStorage.setItem("userEmail", email);
-    localStorage.setItem("userName", data.name || "");
-    localStorage.setItem("userPosition", data.position || "");
-    localStorage.setItem("userLocation", data.location || "");
-    localStorage.setItem("canPOS", data.can_pos ? "true" : "false");
-    localStorage.setItem("staff_id", data.staff_id || "");
+    localStorage.setItem(
+      "userName",
+      `${staff.first_name} ${staff.last_name}`
+    );
+    localStorage.setItem("userPosition", staff.position);
+    localStorage.setItem("userLocation", staff.location_id);
+    localStorage.setItem("canPOS", staff.can_pos);
 
-    /* ⏱ START SHIFT (CASHIER ONLY) */
-    if (data.role === "cashier" && data.staff_id) {
-      jsonp({
-        action: "startShift",
-        staff_id: data.staff_id,
-        location: data.location
-      });
-    }
+    /* ⏱ START SHIFT (BLOCKING) */
+    await jsonp({
+      action: "startShift",
+      staff_id: staff.staff_id,
+      location: staff.location_id
+    });
 
-    /* 🚦 ROUTING */
-    if (data.role === "admin") {
+    /* 🚦 ROUTE */
+    if (staff.position.toLowerCase() === "admin") {
       window.location.replace("main.html");
     } else {
       window.location.replace("order.html");
@@ -115,7 +115,9 @@ async function handleLogin() {
 
   } catch (err) {
     console.error(err);
-    errorMsg.textContent = err.message || "Invalid email or password.";
+    errorMsg.textContent =
+      err.message || "Login failed. Please try again.";
+
     loginBtn.disabled = false;
     loginBtn.textContent = "Sign In";
   }
