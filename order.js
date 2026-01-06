@@ -103,10 +103,15 @@ async function loadAllData() {
   recipes = recipesData || {};
 
   inventory = {};
-  inventoryRows.forEach(r => {
-    inventory[r.item_id] = Number(r.remaining) || 0;
-  });
+
+if (!Array.isArray(inventoryRows)) {
+  console.error("Invalid inventory response:", inventoryRows);
+  return;
 }
+
+inventoryRows.forEach(r => {
+  inventory[r.item_id] = Number(r.remaining) || 0;
+});
 
 /* =========================================================
    INVENTORY CHECK
