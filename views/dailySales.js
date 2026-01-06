@@ -4,6 +4,24 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* =========================================================
+   LOADER HELPERS (STEP 4)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
 /* ================= ENTRY ================= */
 export default function loadDailySalesView() {
   renderActionBar();
@@ -24,13 +42,11 @@ function renderActionBar() {
     </button>
   `;
 
-  // Manual load
   document.getElementById("loadSalesBtn").onclick = loadSales;
-
-  // 🔥 AUTO-LOAD improvements
   document.getElementById("salesDate").onchange = loadSales;
   document.getElementById("salesLocation").oninput = debounce(loadSales, 500);
 }
+
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
@@ -81,8 +97,10 @@ async function loadSales() {
 
   if (!date) {
     alert("Please select a date");
-    return;
+    return hookup();
   }
+
+  showLoader("Loading sales report…");
 
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = `
@@ -112,6 +130,8 @@ async function loadSales() {
         </td>
       </tr>
     `;
+  } finally {
+    hideLoader();
   }
 }
 
@@ -169,57 +189,66 @@ function updateTotals(gross, capital, net) {
 window.viewRemainingStock = async function () {
   const date = document.getElementById("salesDate").value;
   const location = document.getElementById("salesLocation").value.trim();
-
   if (!date) return;
 
-  const res = await fetch(
-    API_URL +
-      `?type=dailyRemainingInventory` +
-      `&date=${date}` +
-      `&location=${encodeURIComponent(location)}`
-  );
+  showLoader("Loading remaining inventory…");
 
-  const data = await res.json();
+  try {
+    const res = await fetch(
+      API_URL +
+        `?type=dailyRemainingInventory` +
+        `&date=${date}` +
+        `&location=${encodeURIComponent(location)}`
+    );
 
-  openModal(
-    `
-    <div class="modal-header">Remaining Inventory</div>
+    const data = await res.json();
 
-    <div class="inventory-scroll">
-      <table class="inventory-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Remaining</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${
-            !data.length
-              ? `<tr><td colspan="2" style="text-align:center;color:#888">No data</td></tr>`
-              : data
-                  .map(
-                    i => `
+    openModal(
+      `
+      <div class="modal-header">Remaining Inventory</div>
+
+      <div class="inventory-scroll">
+        <table class="inventory-table">
+          <thead>
             <tr>
-              <td>${i.item_name || i.item_id}</td>
-              <td>${i.remaining}</td>
+              <th>Item</th>
+              <th>Remaining</th>
             </tr>
-          `
-                  )
-                  .join("")
-          }
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            ${
+              !data.length
+                ? `<tr><td colspan="2" style="text-align:center;color:#888">No data</td></tr>`
+                : data
+                    .map(
+                      i => `
+              <tr>
+                <td>${i.item_name || i.item_id}</td>
+                <td>${i.remaining}</td>
+              </tr>
+            `
+                    )
+                    .join("")
+            }
+          </tbody>
+        </table>
+      </div>
 
-    <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
-    </div>
-  `,
-    true
-  );
+      <div class="modal-actions">
+        <button class="btn-back" onclick="closeModal()">Close</button>
+      </div>
+    `,
+      true
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load remaining inventory");
+  } finally {
+    hideLoader();
+  }
 };
 
+/* ================= DEBOUNCE ================= */
 function debounce(fn, delay = 400) {
   let timer;
   return (...args) => {

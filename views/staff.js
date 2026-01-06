@@ -1,23 +1,60 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* =========================================================
+   CONFIG
+========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= STATE ================= */
+/* =========================================================
+   LOADER HELPERS (GLOBAL)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
+/* =========================================================
+   STATE
+========================================================= */
 let staffList = [];
 let locations = [];
 let selected = null;
 
-/* ================= ENTRY ================= */
+/* =========================================================
+   ENTRY
+========================================================= */
 export default async function loadStaffView() {
   renderActionBar();
   renderTableLayout();
-  await loadLocations();
-  await loadStaff();
+
+  showLoader("Loading staff & locations…");
+
+  try {
+    await loadLocations();
+    await loadStaff();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load staff data.");
+  } finally {
+    hideLoader();
+  }
 }
 
-/* ================= ACTION BAR ================= */
+/* =========================================================
+   ACTION BAR
+========================================================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
     <button class="category-action-btn" id="addStaffBtn">➕ Add Staff</button>
@@ -30,7 +67,9 @@ function renderActionBar() {
   deleteStaffBtn.onclick = deleteStaff;
 }
 
-/* ================= TABLE ================= */
+/* =========================================================
+   TABLE LAYOUT
+========================================================= */
 function renderTableLayout() {
   const box = document.getElementById("contentBox");
 
@@ -58,7 +97,9 @@ function renderTableLayout() {
   bindDataBoxScroll(box);
 }
 
-/* ================= LOADERS ================= */
+/* =========================================================
+   LOADERS
+========================================================= */
 async function loadStaff() {
   staffList = await fetch(API_URL + "?type=staff").then(r => r.json());
   selected = null;
@@ -71,7 +112,9 @@ async function loadLocations() {
   locations = await fetch(API_URL + "?type=locations").then(r => r.json());
 }
 
-/* ================= RENDER ================= */
+/* =========================================================
+   RENDER TABLE
+========================================================= */
 function renderTable() {
   const tbody = document.getElementById("staffBody");
   tbody.innerHTML = "";
@@ -102,8 +145,10 @@ function renderTable() {
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#staffBody tr")
+      document
+        .querySelectorAll("#staffBody tr")
         .forEach(r => r.classList.remove("selected"));
+
       tr.classList.add("selected");
       selected = s;
       editStaffBtn.disabled = false;
@@ -114,7 +159,9 @@ function renderTable() {
   });
 }
 
-/* ================= MODAL ================= */
+/* =========================================================
+   MODAL
+========================================================= */
 function openStaffModal(staff = {}) {
   openModal(`
     <div class="modal-header">
@@ -129,13 +176,16 @@ function openStaffModal(staff = {}) {
 
     <label>Location</label>
     <select id="location">
-      ${locations.map(l =>
-        `<option value="${l.location_id}" ${
-          l.location_id === staff.location_id ? "selected" : ""
-        }>
+      ${locations
+        .map(
+          l => `
+        <option value="${l.location_id}" ${
+            l.location_id === staff.location_id ? "selected" : ""
+          }>
           ${l.location_name}
         </option>`
-      ).join("")}
+        )
+        .join("")}
     </select>
 
     <label>Position</label>
@@ -155,8 +205,12 @@ function openStaffModal(staff = {}) {
   window.saveStaff = () => saveStaff(staff);
 }
 
-/* ================= SAVE ================= */
+/* =========================================================
+   SAVE
+========================================================= */
 function saveStaff(existing = {}) {
+  showLoader("Saving staff…");
+
   const params = {
     action: existing.staff_id ? "editStaff" : "addStaff",
     rowIndex: existing.rowIndex,
@@ -178,16 +232,20 @@ function saveStaff(existing = {}) {
     .then(() => {
       closeModal();
       loadStaff();
-    });
+    })
+    .finally(hideLoader);
 }
 
-/* ================= DELETE ================= */
+/* =========================================================
+   DELETE
+========================================================= */
 function deleteStaff() {
   if (!selected) return;
   if (!confirm("Deactivate this staff member?")) return;
 
-  fetch(
-    API_URL +
-      `?action=deleteStaff&rowIndex=${selected.rowIndex}`
-  ).then(() => loadStaff());
+  showLoader("Updating staff status…");
+
+  fetch(`${API_URL}?action=deleteStaff&rowIndex=${selected.rowIndex}`)
+    .then(() => loadStaff())
+    .finally(hideLoader);
 }

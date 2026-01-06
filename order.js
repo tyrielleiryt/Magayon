@@ -6,13 +6,27 @@ const API_URL =
 
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
-const CASHIER_NAME = localStorage.getItem("userName");
-const CASHIER_POSITION = localStorage.getItem("userPosition");
+const CASHIER_NAME = localStorage.getItem("userName") || "";
+const CASHIER_POSITION = localStorage.getItem("userPosition") || "";
 
 /* ================= ACCESS GUARD ================= */
 if (!LOCATION || !STAFF_ID) {
   alert("Unauthorized POS access");
   window.location.replace("index.html");
+}
+
+/* ================= LOADER HELPERS ================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+  loader.classList.add("hidden");
 }
 
 /* =========================================================
@@ -33,22 +47,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
   document.getElementById("cashierLocation").textContent = LOCATION;
 
-  await loadAllData();
-  renderCategories();
-  renderProducts();
-  renderCart();
+  showLoader("Loading POS data…");
 
-  document.querySelector(".checkout").onclick = checkoutPOS;
-  document.getElementById("clearOrderBtn").onclick = () => {
+  try {
+    await loadAllData();
+    renderCategories();
+    renderProducts();
+    renderCart();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load POS data.");
+  } finally {
+    hideLoader();
+  }
+
+  document.querySelector(".checkout")?.addEventListener("click", checkoutPOS);
+
+  document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
     cart = [];
     renderCart();
     renderProducts();
-  };
-  document.querySelector(".btn-print").onclick = () => window.print();
+  });
 
-  document.getElementById("searchInput").oninput = e => {
+  document.querySelector(".btn-print")?.addEventListener("click", () => {
+    window.print();
+  });
+
+  document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
-  };
+  });
 });
 
 /* =========================================================
@@ -58,6 +85,7 @@ async function loadAllData() {
   categories = await fetch(`${API_URL}?type=categories`).then(r => r.json());
   products = await fetch(`${API_URL}?type=products`).then(r => r.json());
 
+  recipes = {};
   for (const p of products) {
     recipes[p.product_id] = await fetch(
       `${API_URL}?type=productRecipes&product_id=${p.product_id}`
@@ -70,18 +98,18 @@ async function loadAllData() {
   ).then(r => r.json());
 
   inventory = {};
-  rows.forEach(r => inventory[r.item_id] = Number(r.remaining));
+  rows.forEach(r => (inventory[r.item_id] = Number(r.remaining)));
 }
 
 /* =========================================================
    INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
-  const rec = recipes[product.product_id];
-  if (!rec || !rec.length) return false;
+  const recipe = recipes[product.product_id];
+  if (!recipe || !recipe.length) return false;
   if (!Object.keys(inventory).length) return false;
 
-  return rec.every(r => {
+  return recipe.every(r => {
     const available = inventory[r.item_id] || 0;
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
@@ -95,28 +123,26 @@ function renderCategories() {
   const el = document.querySelector(".categories-panel");
   el.innerHTML = "";
 
-  const allBtn = createCategoryBtn("All", null);
-  allBtn.classList.add("active");
-  el.appendChild(allBtn);
+  el.appendChild(createCategoryBtn("All", null, true));
 
   categories.forEach(c => {
     el.appendChild(createCategoryBtn(c.category_name, c.category_id));
   });
 }
 
-function createCategoryBtn(name, id) {
+function createCategoryBtn(name, id, active = false) {
   const btn = document.createElement("button");
-  btn.className = "category-btn";
+  btn.className = "category-btn" + (active ? " active" : "");
   btn.textContent = name;
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document
-      .querySelectorAll(".category-btn")
+    document.querySelectorAll(".category-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
+
   return btn;
 }
 
@@ -135,7 +161,8 @@ function renderProducts(search = "") {
     )
     .forEach(p => {
       const disabled = !canSell(p);
-      const img = p.image_url?.trim() || "images/placeholder.png";
+      const img =
+        p.image_url?.trim() || "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
@@ -151,10 +178,7 @@ function renderProducts(search = "") {
         </div>
       `;
 
-      if (!disabled) {
-        card.onclick = () => addToCart(p);
-      }
-
+      if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
     });
 }
@@ -215,23 +239,30 @@ function renderCart() {
 async function checkoutPOS() {
   if (!cart.length) return alert("No items in cart");
 
+  showLoader("Processing order…");
+
   const ref = "ORD-" + Date.now();
 
-  for (const l of cart) {
-    new Image().src =
-      `${API_URL}?action=recordPosOrderItem` +
-      `&product_id=${l.product_id}` +
-      `&qty=${l.qty}` +
-      `&price=${l.price}` +
-      `&total=${l.total}` +
-      `&ref_id=${ref}` +
-      `&location=${LOCATION}` +
-      `&staff_id=${STAFF_ID}`;
-  }
+  try {
+    for (const l of cart) {
+      new Image().src =
+        `${API_URL}?action=recordPosOrderItem` +
+        `&product_id=${l.product_id}` +
+        `&qty=${l.qty}` +
+        `&price=${l.price}` +
+        `&total=${l.total}` +
+        `&ref_id=${ref}` +
+        `&location=${LOCATION}` +
+        `&staff_id=${STAFF_ID}`;
+    }
 
-  alert("✅ Order completed");
-  cart = [];
-  await loadAllData();
-  renderProducts();
-  renderCart();
+    cart = [];
+    await loadAllData();
+    renderProducts();
+    renderCart();
+
+    alert("✅ Order completed");
+  } finally {
+    hideLoader();
+  }
 }

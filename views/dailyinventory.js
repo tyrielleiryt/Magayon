@@ -1,40 +1,44 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
+/* =========================================================
+   CONFIG
+========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= JSONP ================= */
-function jsonp(params) {
-  return new Promise((resolve, reject) => {
-    const cb = "cb_" + Date.now();
-    window[cb] = data => {
-      delete window[cb];
-      script.remove();
-      resolve(data);
-    };
+/* =========================================================
+   LOADER HELPERS (GLOBAL)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
 
-    const qs = Object.entries({ ...params, callback: cb })
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
-
-    const script = document.createElement("script");
-    script.src = `${API_URL}?${qs}`;
-    script.onerror = reject;
-    document.body.appendChild(script);
-  });
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
 }
 
-/* ================= STATE ================= */
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
+/* =========================================================
+   STATE
+========================================================= */
 let inventoryItems = [];
-let locations = [];
 let dailyInventoryCache = [];
 let quantities = {};
+let editDailyId = null;
 
 let searchDate = "";
 let searchLocation = "";
 
-/* ================= HELPERS ================= */
+/* =========================================================
+   HELPERS
+========================================================= */
 const el = id => document.getElementById(id);
 
 function formatDate(d) {
@@ -62,7 +66,9 @@ function groupByDateAndLocation(data) {
   return Object.values(map);
 }
 
-/* ================= ENTRY ================= */
+/* =========================================================
+   ENTRY POINT
+========================================================= */
 export default function loadDailyInventoryView() {
   renderActionBar();
 
@@ -86,10 +92,12 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(document.querySelector(".data-box"));
-  loadDailyInventory();
+  loadDailyInventory(); // 🔥 loader is inside
 }
 
-/* ================= ACTION BAR ================= */
+/* =========================================================
+   ACTION BAR
+========================================================= */
 function renderActionBar() {
   el("actionBar").innerHTML = `
     <input id="searchDateInput" placeholder="Search date (e.g. December)" />
@@ -115,13 +123,26 @@ function renderActionBar() {
   };
 }
 
-/* ================= LOAD ================= */
+/* =========================================================
+   LOAD DATA (WITH LOADER)
+========================================================= */
 async function loadDailyInventory() {
-  dailyInventoryCache = await jsonp({ type: "dailyInventory" });
-  renderTable();
+  showLoader("Loading daily inventory…");
+
+  try {
+    dailyInventoryCache = await jsonp({ type: "dailyInventory" });
+    renderTable();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load daily inventory.");
+  } finally {
+    hideLoader();
+  }
 }
 
-/* ================= TABLE ================= */
+/* =========================================================
+   TABLE RENDER
+========================================================= */
 function renderTable() {
   const tbody = el("dailyInventoryBody");
   tbody.innerHTML = "";
@@ -148,7 +169,8 @@ function renderTable() {
         <td>${i + 1}</td>
         <td>${formatDate(g.date)}</td>
         <td>
-          <button class="btn-view">
+          <button class="btn-view"
+            onclick="viewDailyGroup('${g.date}','${g.location}')">
             View (${g.entries.length})
           </button>
         </td>
@@ -159,118 +181,25 @@ function renderTable() {
   });
 }
 
-/* ======================================================
-   ADD DAILY INVENTORY — LOCATION AWARE (IMPROVED UI)
-====================================================== */
-window.openAddEditModal = async function () {
-  inventoryItems = await jsonp({ type: "inventoryItems" });
-  locations = await jsonp({ type: "locations" });
+/* =========================================================
+   JSONP HELPER
+========================================================= */
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now();
+    window[cb] = data => {
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
 
-  openModal(`
-    <div class="modal-header">📦 Add Today's Inventory</div>
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
 
-    <label>Location</label>
-    <select id="dailyLocation">
-      <option value="">-- Select Location --</option>
-      ${locations
-        .filter(l => l.active)
-        .map(l =>
-          `<option value="${l.location_id}">
-            ${l.location_name}
-          </option>`
-        ).join("")}
-    </select>
-
-    <div class="inventory-modal-body">
-      <input
-        id="inventorySearch"
-        placeholder="Search inventory..."
-        class="inventory-search"
-      />
-
-      <div class="inventory-scroll" id="inventoryList"></div>
-    </div>
-
-    <div class="inventory-modal-footer">
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-      <button class="btn-danger" onclick="saveDailyInventory()">Confirm</button>
-    </div>
-  `, true);
-
-  renderInventoryRows();
-};
-
-/* ================= INVENTORY ROWS ================= */
-function renderInventoryRows() {
-  const list = el("inventoryList");
-  const keyword = el("inventorySearch")?.value.toLowerCase() || "";
-
-  list.innerHTML = "";
-
-  inventoryItems
-    .filter(i => i.item_name.toLowerCase().includes(keyword))
-    .forEach(i => {
-      quantities[i.item_id] ??= 0;
-
-      const row = document.createElement("div");
-      row.className = "inventory-row";
-
-      row.innerHTML = `
-        <div class="inv-name">
-          ${i.item_name}
-          <small>${i.unit || ""}</small>
-        </div>
-
-        <div class="inv-controls">
-          <button onclick="updateQty('${i.item_id}', -1)">−</button>
-          <span>${quantities[i.item_id]}</span>
-          <button onclick="updateQty('${i.item_id}', 1)">+</button>
-        </div>
-      `;
-
-      list.appendChild(row);
-    });
-
-  el("inventorySearch").oninput = renderInventoryRows;
-}
-
-/* ================= QTY CONTROL ================= */
-window.updateQty = function (id, delta) {
-  quantities[id] = Math.max(0, (quantities[id] || 0) + delta);
-  renderInventoryRows();
-};
-
-/* ================= SAVE ================= */
-window.saveDailyInventory = function () {
-  const location = el("dailyLocation").value;
-
-  if (!location) {
-    alert("Please select a location");
-    return;
-  }
-
-  const items = Object.entries(quantities)
-    .filter(([_, q]) => q > 0)
-    .map(([item_id, qty]) => ({
-      item_id,
-      qty,
-      total: 0,
-      capital: 0,
-      earnings: 0
-    }));
-
-  if (!items.length) {
-    alert("No quantities entered");
-    return;
-  }
-
-  jsonp({
-    action: "addDailyInventory",
-    items: JSON.stringify(items),
-    location: location,
-    created_by: localStorage.getItem("userName")
-  }).then(() => {
-    closeModal();
-    loadDailyInventory();
+    const script = document.createElement("script");
+    script.src = `${API_URL}?${qs}`;
+    script.onerror = reject;
+    document.body.appendChild(script);
   });
-};
+}

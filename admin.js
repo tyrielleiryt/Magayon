@@ -3,6 +3,22 @@ if (localStorage.getItem("isLoggedIn") !== "true") {
   window.location.replace("index.html");
 }
 
+/* ================= LOADER HELPERS ================= */
+export function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+export function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
 /* ================= DATE & TIME ================= */
 function updateDateTime() {
   const el = document.getElementById("datetime");
@@ -24,14 +40,11 @@ setInterval(updateDateTime, 60000);
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   if (!confirm("Are you sure you want to logout?")) return;
 
-  // ⏱ End shift if cashier
   const staffId = localStorage.getItem("staff_id");
   if (staffId) {
     const API_URL =
       "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
-
-    const img = new Image();
-    img.src = `${API_URL}?action=endShift&staff_id=${staffId}`;
+    new Image().src = `${API_URL}?action=endShift&staff_id=${staffId}`;
   }
 
   localStorage.clear();
@@ -47,12 +60,14 @@ import loadProductsView from "./views/products.js";
 import loadDailySalesView from "./views/dailySales.js";
 import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
+import loadDashboardView from "./views/dashboard.js";
 
-/* ================= SPA NAV ================= */
+/* ================= SPA NAV (WITH LOADER) ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.onclick = () => {
+  btn.onclick = async () => {
     // Active state
-    document.querySelectorAll(".nav-btn")
+    document
+      .querySelectorAll(".nav-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
@@ -62,44 +77,46 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
-    // Route
-    switch (btn.dataset.view) {
-      case "categories":
-        loadCategoriesView();
-        break;
+    // 🔥 SHOW LOADER
+    showLoader("Loading module…");
 
-      case "products":
-        loadProductsView();
-        break;
+    try {
+      switch (btn.dataset.view) {
+        case "categories":
+          await loadCategoriesView();
+          break;
 
-      case "inventory":
-        loadInventoryItemsView();
-        break;
+        case "products":
+          await loadProductsView();
+          break;
 
-      case "dailyInventory":
-        loadDailyInventoryView();
-        break;
+        case "inventory":
+          await loadInventoryItemsView();
+          break;
 
-      case "dailySales":
-        loadDailySalesView();
-        break;
+        case "dailyInventory":
+          await loadDailyInventoryView();
+          break;
 
-      case "locations":
-        loadLocationsView();
-        break;
+        case "dailySales":
+          await loadDailySalesView();
+          break;
 
-      case "staff":
-        loadStaffView();
-        break;
+        case "locations":
+          await loadLocationsView();
+          break;
 
-      case "dashboard":
-      default:
-        contentBox.innerHTML = `
-          <h2>Dashboard</h2>
-          <p style="color:#666">
-            Select a module from the sidebar.
-          </p>
-        `;
+        case "staff":
+          await loadStaffView();
+          break;
+
+        case "dashboard":
+        default:
+          await loadDashboardView();
+      }
+    } finally {
+      // ✅ ALWAYS hide loader
+      requestAnimationFrame(hideLoader);
     }
   };
 });
@@ -109,8 +126,6 @@ export function bindDataBoxScroll(container) {
   if (!container) return;
   const scrollArea = container.querySelector(".data-scroll");
   if (!scrollArea) return;
-
-  // Placeholder for future enhancements
 }
 
 /* ================= MODAL CONTAINER ================= */
@@ -121,7 +136,6 @@ function ensureModal() {
   overlay.id = "modalOverlay";
   overlay.className = "hidden";
   overlay.innerHTML = `<div id="modalBox"></div>`;
-
   document.body.appendChild(overlay);
 }
 ensureModal();

@@ -4,6 +4,24 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* =========================================================
+   LOADER HELPERS (STEP 4)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
 /* ================= STATE ================= */
 let categories = [];
 let selected = null;
@@ -13,10 +31,16 @@ const PAGE_SIZE = 10;
 let searchQuery = "";
 
 /* ================= ENTRY ================= */
-export default function loadCategoriesView() {
+export default async function loadCategoriesView() {
   renderActionBar();
   renderTableLayout();
-  loadCategories();
+
+  showLoader("Loading categories…");
+  try {
+    await loadCategories();
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= ACTION BAR ================= */
@@ -70,6 +94,7 @@ function renderTableLayout() {
 async function loadCategories() {
   const res = await fetch(API_URL + "?type=categories");
   categories = await res.json();
+
   clearSelection();
   renderTable();
 }
@@ -97,7 +122,11 @@ function renderTable() {
 
   if (!filtered.length) {
     tbody.innerHTML = `
-      <tr><td colspan="3" style="text-align:center;color:#888">No categories</td></tr>
+      <tr>
+        <td colspan="3" style="text-align:center;color:#888">
+          No categories
+        </td>
+      </tr>
     `;
     return;
   }
@@ -133,11 +162,13 @@ function renderTable() {
     btn.textContent = i;
     btn.className = "btn-view";
     if (i === currentPage) btn.style.background = "#f3c84b";
+
     btn.onclick = () => {
       currentPage = i;
       clearSelection();
       renderTable();
     };
+
     pagination.appendChild(btn);
   }
 }
@@ -165,6 +196,8 @@ function openCategoryModal(c = null) {
 
     if (!name) return alert("Category name required");
 
+    showLoader(c ? "Saving changes…" : "Adding category…");
+
     new Image().src =
       API_URL +
       `?action=${c ? "editCategory" : "addCategory"}` +
@@ -173,7 +206,10 @@ function openCategoryModal(c = null) {
       `&description=${encodeURIComponent(desc)}`;
 
     closeModal();
-    setTimeout(loadCategories, 500);
+    setTimeout(() => {
+      loadCategories();
+      hideLoader();
+    }, 600);
   };
 }
 
@@ -184,6 +220,7 @@ function openDeleteModal() {
   openModal(`
     <div class="modal-header">Delete Category</div>
     <p>Delete <b>${selected.category_name}</b>?</p>
+
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
@@ -191,10 +228,15 @@ function openDeleteModal() {
   `);
 
   document.getElementById("confirmDelete").onclick = () => {
+    showLoader("Deleting category…");
+
     new Image().src =
       API_URL + `?action=deleteCategory&rowIndex=${selected.rowIndex}`;
 
     closeModal();
-    setTimeout(loadCategories, 500);
+    setTimeout(() => {
+      loadCategories();
+      hideLoader();
+    }, 600);
   };
 }

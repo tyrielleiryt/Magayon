@@ -5,6 +5,24 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* =========================================================
+   LOADER HELPERS (STEP 4)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
 /* ================= STATE ================= */
 let inventoryItems = [];
 let selected = null;
@@ -14,10 +32,16 @@ const PAGE_SIZE = 10;
 let searchQuery = "";
 
 /* ================= ENTRY ================= */
-export default function loadInventoryItemsView() {
+export default async function loadInventoryItemsView() {
   renderActionBar();
   renderTableLayout();
-  loadInventoryItems();
+
+  showLoader("Loading inventory items…");
+  try {
+    await loadInventoryItems();
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= ACTION BAR ================= */
@@ -90,10 +114,8 @@ async function loadInventoryItems() {
 /* ================= HELPERS ================= */
 function clearSelection() {
   selected = null;
-  const editBtn = document.getElementById("editItemBtn");
-  const delBtn = document.getElementById("deleteItemBtn");
-  if (editBtn) editBtn.disabled = true;
-  if (delBtn) delBtn.disabled = true;
+  document.getElementById("editItemBtn").disabled = true;
+  document.getElementById("deleteItemBtn").disabled = true;
 }
 
 /* ================= RENDER TABLE ================= */
@@ -113,7 +135,7 @@ function renderTable() {
   if (!filtered.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align:center;color:#888">
+        <td colspan="7" style="text-align:center;color:#888">
           No inventory items found
         </td>
       </tr>
@@ -126,34 +148,33 @@ function renderTable() {
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
   pageItems.forEach((item, i) => {
-  const tr = document.createElement("tr");
+    const tr = document.createElement("tr");
 
-  tr.innerHTML = `
-    <td>${start + i + 1}</td>
-    <td>${item.item_name}</td>
-    <td>${item.description || ""}</td>
-    <td>${item.quantity_per_serving || ""}</td>
-    <td>${item.capital}</td>
-    <td>${item.selling_price}</td>
-    <td>${item.unit || ""}</td>
-  `;
+    tr.innerHTML = `
+      <td>${start + i + 1}</td>
+      <td>${item.item_name}</td>
+      <td>${item.description || ""}</td>
+      <td>${item.quantity_per_serving || ""}</td>
+      <td>${item.capital}</td>
+      <td>${item.selling_price}</td>
+      <td>${item.unit || ""}</td>
+    `;
 
-  tr.onclick = () => {
-    document
-      .querySelectorAll("#inventoryTableBody tr")
-      .forEach(r => r.classList.remove("selected"));
+    tr.onclick = () => {
+      document
+        .querySelectorAll("#inventoryTableBody tr")
+        .forEach(r => r.classList.remove("selected"));
 
-    tr.classList.add("selected");
-    selected = item;
+      tr.classList.add("selected");
+      selected = item;
 
-    document.getElementById("editItemBtn").disabled = false;
-    document.getElementById("deleteItemBtn").disabled = false;
-  };
+      document.getElementById("editItemBtn").disabled = false;
+      document.getElementById("deleteItemBtn").disabled = false;
+    };
 
-  tbody.appendChild(tr);
-});
+    tbody.appendChild(tr);
+  });
 
-  /* Pagination */
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
@@ -174,25 +195,12 @@ function renderTable() {
 function openAddItemModal() {
   openModal(`
     <div class="modal-header">➕ Add Inventory Item</div>
-
-    <label>Item Name</label>
-    <input id="itemName">
-
-    <label>Description</label>
-    <textarea id="itemDesc"></textarea>
-
-    <label>Quantity per Serving</label>
-    <input type="number" id="itemQtyServing">
-
-    <label>Unit (e.g. g, ml, pcs)</label>
-    <input id="itemUnit">
-
-    <label>Capital</label>
-    <input type="number" id="itemCap">
-
-    <label>Selling Price</label>
-    <input type="number" id="itemPrice">
-
+    <label>Item Name</label><input id="itemName">
+    <label>Description</label><textarea id="itemDesc"></textarea>
+    <label>Quantity per Serving</label><input type="number" id="itemQtyServing">
+    <label>Unit</label><input id="itemUnit">
+    <label>Capital</label><input type="number" id="itemCap">
+    <label>Selling Price</label><input type="number" id="itemPrice">
     <div class="modal-actions">
       <button class="btn-danger" id="saveItem">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
@@ -200,18 +208,23 @@ function openAddItemModal() {
   `);
 
   document.getElementById("saveItem").onclick = () => {
+    showLoader("Adding inventory item…");
+
     new Image().src =
       API_URL +
       `?action=addInventoryItem` +
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
-      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
+      `&capital=${itemCap.value}` +
+      `&selling_price=${itemPrice.value}` +
+      `&quantity_per_serving=${itemQtyServing.value}` +
       `&unit=${encodeURIComponent(itemUnit.value)}`;
 
     closeModal();
-    setTimeout(loadInventoryItems, 500);
+    setTimeout(() => {
+      loadInventoryItems();
+      hideLoader();
+    }, 600);
   };
 }
 
@@ -221,25 +234,12 @@ function openEditItemModal() {
 
   openModal(`
     <div class="modal-header">✏️ Edit Inventory Item</div>
-
-    <label>Item Name</label>
-    <input id="itemName" value="${selected.item_name}">
-
-    <label>Description</label>
-    <textarea id="itemDesc">${selected.description || ""}</textarea>
-
-    <label>Quantity per Serving</label>
-    <input type="number" id="itemQtyServing" value="${selected.quantity_per_serving || ""}">
-
-    <label>Unit (e.g. g, ml, pcs)</label>
-    <input id="itemUnit" value="${selected.unit || ""}">
-
-    <label>Capital</label>
-    <input type="number" id="itemCap" value="${selected.capital}">
-
-    <label>Selling Price</label>
-    <input type="number" id="itemPrice" value="${selected.selling_price}">
-
+    <label>Item Name</label><input id="itemName" value="${selected.item_name}">
+    <label>Description</label><textarea id="itemDesc">${selected.description || ""}</textarea>
+    <label>Quantity per Serving</label><input type="number" id="itemQtyServing" value="${selected.quantity_per_serving || ""}">
+    <label>Unit</label><input id="itemUnit" value="${selected.unit || ""}">
+    <label>Capital</label><input type="number" id="itemCap" value="${selected.capital}">
+    <label>Selling Price</label><input type="number" id="itemPrice" value="${selected.selling_price}">
     <div class="modal-actions">
       <button class="btn-danger" id="saveEdit">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
@@ -247,19 +247,24 @@ function openEditItemModal() {
   `);
 
   document.getElementById("saveEdit").onclick = () => {
+    showLoader("Saving changes…");
+
     new Image().src =
       API_URL +
       `?action=editInventoryItem` +
       `&rowIndex=${selected.rowIndex}` +
       `&item_name=${encodeURIComponent(itemName.value)}` +
       `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${encodeURIComponent(itemCap.value)}` +
-      `&selling_price=${encodeURIComponent(itemPrice.value)}` +
-      `&quantity_per_serving=${encodeURIComponent(itemQtyServing.value)}` +
+      `&capital=${itemCap.value}` +
+      `&selling_price=${itemPrice.value}` +
+      `&quantity_per_serving=${itemQtyServing.value}` +
       `&unit=${encodeURIComponent(itemUnit.value)}`;
 
     closeModal();
-    setTimeout(loadInventoryItems, 500);
+    setTimeout(() => {
+      loadInventoryItems();
+      hideLoader();
+    }, 600);
   };
 }
 
@@ -269,9 +274,7 @@ function openDeleteItemModal() {
 
   openModal(`
     <div class="modal-header danger">🗑️ Delete Inventory Item</div>
-
     <p>Are you sure you want to delete <b>${selected.item_name}</b>?</p>
-
     <div class="modal-actions">
       <button class="btn-danger" id="confirmDelete">Delete</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
@@ -279,11 +282,16 @@ function openDeleteItemModal() {
   `);
 
   document.getElementById("confirmDelete").onclick = () => {
+    showLoader("Deleting item…");
+
     new Image().src =
       API_URL +
       `?action=deleteInventoryItem&rowIndex=${selected.rowIndex}`;
 
     closeModal();
-    setTimeout(loadInventoryItems, 500);
+    setTimeout(() => {
+      loadInventoryItems();
+      hideLoader();
+    }, 600);
   };
 }

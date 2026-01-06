@@ -1,10 +1,24 @@
 const overlay = document.getElementById("modalOverlay");
 const box = document.getElementById("modalBox");
 
+/* =========================================================
+   LOADER HELPERS (SAFE IMPORT-LESS VERSION)
+   - modal.js should NOT depend on admin.js imports
+========================================================= */
+function hideLoaderIfVisible() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  // Prevent loader + modal overlap
+  loader.classList.add("hidden");
+}
+
 /* ================= OPEN MODAL ================= */
 export function openModal(html, large = false) {
-  box.innerHTML = html;
+  // 🔒 Safety: never show loader over modal
+  hideLoaderIfVisible();
 
+  box.innerHTML = html;
   box.classList.toggle("large", large);
 
   overlay.classList.remove("hidden");

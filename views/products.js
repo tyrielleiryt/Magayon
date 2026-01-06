@@ -6,6 +6,24 @@ const API_URL =
 
 window.closeModal = closeModal;
 
+/* =========================================================
+   LOADER HELPERS (STEP 4)
+========================================================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+
+  loader.classList.add("hidden");
+}
+
 /* ================= STATE ================= */
 let products = [];
 let categories = [];
@@ -16,8 +34,15 @@ let selected = null;
 export default async function loadProductsView() {
   renderActionBar();
   renderTableLayout();
-  await loadCategories();
-  await loadProducts();
+
+  showLoader("Loading products…");
+
+  try {
+    await loadCategories();
+    await loadProducts();
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= ACTION BAR ================= */
@@ -31,7 +56,8 @@ function renderActionBar() {
   `;
 
   document.getElementById("addBtn").onclick = () => openProductModal();
-  document.getElementById("editBtn").onclick = () => selected && openProductModal(selected);
+  document.getElementById("editBtn").onclick = () =>
+    selected && openProductModal(selected);
   document.getElementById("deleteBtn").onclick = deleteProduct;
 }
 
@@ -83,7 +109,9 @@ function renderTable() {
   if (!products.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align:center;color:#888">No products found</td>
+        <td colspan="6" style="text-align:center;color:#888">
+          No products found
+        </td>
       </tr>
     `;
     return;
@@ -103,7 +131,9 @@ function renderTable() {
     `;
 
     tr.onclick = () => {
-      document.querySelectorAll("#productBody tr").forEach(r => r.classList.remove("selected"));
+      document
+        .querySelectorAll("#productBody tr")
+        .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       selected = p;
       document.getElementById("editBtn").disabled = false;
@@ -117,7 +147,9 @@ function renderTable() {
 /* ================= MODAL ================= */
 async function openProductModal(product = {}) {
   openModal(`
-    <div class="modal-header">${product.product_id ? "Edit" : "Add"} Product</div>
+    <div class="modal-header">
+      ${product.product_id ? "Edit" : "Add"} Product
+    </div>
 
     <label>Product Code</label>
     <input id="productCode" value="${product.product_code || ""}">
@@ -127,11 +159,17 @@ async function openProductModal(product = {}) {
 
     <label>Category</label>
     <select id="categorySelect">
-      ${categories.map(c =>
-        `<option value="${c.category_id}" ${c.category_id === product.category_id ? "selected" : ""}>
+      ${categories
+        .map(
+          c => `
+        <option value="${c.category_id}" ${
+            c.category_id === product.category_id ? "selected" : ""
+          }>
           ${c.category_name}
-        </option>`
-      ).join("")}
+        </option>
+      `
+        )
+        .join("")}
     </select>
 
     <label>Price</label>
@@ -154,12 +192,16 @@ async function openProductModal(product = {}) {
     </div>
   `);
 
-  await loadInventory();
+  showLoader("Loading inventory…");
 
-  document.getElementById("addIngredientBtn").onclick = addRecipeRow;
-  document.getElementById("saveProductBtn").onclick = saveProduct;
-
-  addRecipeRow();
+  try {
+    await loadInventory();
+    document.getElementById("addIngredientBtn").onclick = addRecipeRow;
+    document.getElementById("saveProductBtn").onclick = saveProduct;
+    addRecipeRow();
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= INVENTORY ================= */
@@ -209,8 +251,14 @@ function bindRecipeEvents(row) {
     cost.textContent = `₱${(item.capital * Number(qty.value)).toFixed(2)}`;
   }
 
-  row.querySelector(".plus").onclick = () => { qty.value++; update(); };
-  row.querySelector(".minus").onclick = () => { qty.value = Math.max(1, qty.value - 1); update(); };
+  row.querySelector(".plus").onclick = () => {
+    qty.value++;
+    update();
+  };
+  row.querySelector(".minus").onclick = () => {
+    qty.value = Math.max(1, qty.value - 1);
+    update();
+  };
   qty.oninput = update;
   select.onchange = update;
 
@@ -219,14 +267,17 @@ function bindRecipeEvents(row) {
 
 /* ================= SAVE ================= */
 function saveProduct() {
-  const code = document.getElementById("productCode").value.trim();
-  const name = document.getElementById("productName").value.trim();
-  const category = document.getElementById("categorySelect").value;
-  const price = Number(document.getElementById("priceInput").value);
-  const image = document.getElementById("imageInput").value.trim();
+  showLoader("Saving product…");
+
+  const code = productCode.value.trim();
+  const name = productName.value.trim();
+  const category = categorySelect.value;
+  const price = Number(priceInput.value);
+  const image = imageInput.value.trim();
 
   if (!code || !name || !price) {
     alert("Product Code, Name, and Price are required.");
+    hideLoader();
     return;
   }
 
@@ -256,7 +307,8 @@ function saveProduct() {
       }
       closeModal();
       setTimeout(loadProducts, 500);
-    });
+    })
+    .finally(hideLoader);
 }
 
 /* ================= DELETE ================= */
@@ -264,6 +316,11 @@ function deleteProduct() {
   if (!selected) return;
   if (!confirm(`Delete ${selected.product_name}?`)) return;
 
-  fetch(API_URL + `?action=deleteProduct&product_id=${selected.product_id}`);
-  setTimeout(loadProducts, 500);
+  showLoader("Deleting product…");
+
+  fetch(API_URL + `?action=deleteProduct&product_id=${selected.product_id}`)
+    .finally(() => {
+      setTimeout(loadProducts, 500);
+      hideLoader();
+    });
 }
