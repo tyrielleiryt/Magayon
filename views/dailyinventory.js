@@ -85,8 +85,16 @@ async function loadDailyInventory() {
 
   try {
     const res = await jsonp({ type: "dailyInventory" });
-    dailyInventoryCache = Array.isArray(res) ? res : [];
+
+    if (!Array.isArray(res)) {
+      console.error("Invalid response:", res);
+      dailyInventoryCache = [];
+    } else {
+      dailyInventoryCache = res;
+    }
+
     renderTable();
+
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory");
