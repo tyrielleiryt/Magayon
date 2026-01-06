@@ -15,7 +15,7 @@ if (!LOCATION || !STAFF_ID) {
   window.location.replace("index.html");
 }
 
-/* ================= LOADER HELPERS ================= */
+/* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
   if (!loader) return;
@@ -24,9 +24,7 @@ function showLoader(text = "Loading data…") {
 }
 
 function hideLoader() {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-  loader.classList.add("hidden");
+  document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
 /* =========================================================
@@ -35,7 +33,7 @@ function hideLoader() {
 let products = [];
 let categories = [];
 let recipes = {};        // product_id → recipe[]
-let inventory = {};      // item_id → remaining qty
+let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
@@ -69,10 +67,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderProducts();
   });
 
-  document.querySelector(".btn-print")?.addEventListener("click", () => {
-    window.print();
-  });
-
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
@@ -94,24 +88,25 @@ async function loadAllData() {
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
     fetch(
-      `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
     ).then(r => r.json())
   ]);
 
-  categories = categoriesData || [];
-  products = productsData || [];
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
   recipes = recipesData || {};
 
   inventory = {};
 
-if (!Array.isArray(inventoryRows)) {
-  console.error("Invalid inventory response:", inventoryRows);
-  return;
-}
+  if (!Array.isArray(inventoryRows)) {
+    console.error("Invalid inventory response:", inventoryRows);
+    return;
+  }
 
-inventoryRows.forEach(r => {
-  inventory[r.item_id] = Number(r.remaining) || 0;
-});
+  inventoryRows.forEach(r => {
+    inventory[r.item_id] = Number(r.remaining) || 0;
+  });
+}
 
 /* =========================================================
    INVENTORY CHECK
@@ -121,9 +116,7 @@ function canSell(product, qty = 1) {
   if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
-    const available = inventory[r.item_id];
-    if (available === undefined) return false;
-
+    const available = inventory[r.item_id] || 0;
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
   });
@@ -150,8 +143,7 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document
-      .querySelectorAll(".category-btn")
+    document.querySelectorAll(".category-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
@@ -175,10 +167,9 @@ function renderProducts(search = "") {
     )
     .forEach(p => {
       const disabled = !canSell(p);
-      const img =
-        p.image_url && p.image_url.trim()
-          ? p.image_url
-          : "images/placeholder.png";
+      const img = p.image_url?.trim()
+        ? p.image_url
+        : "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
@@ -251,7 +242,7 @@ function renderCart() {
 }
 
 /* =========================================================
-   FINAL CHECKOUT
+   CHECKOUT
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) {
@@ -269,14 +260,7 @@ async function checkoutPOS() {
       ref_id: ref,
       staff_id: STAFF_ID,
       location: LOCATION,
-      items: JSON.stringify(
-        cart.map(i => ({
-          product_id: i.product_id,
-          qty: i.qty,
-          price: i.price,
-          total: i.total
-        }))
-      )
+      items: JSON.stringify(cart)
     };
 
     const qs = Object.entries(payload)
@@ -290,26 +274,16 @@ async function checkoutPOS() {
       throw new Error(data.error || "Checkout failed");
     }
 
-    /* ✅ IMMEDIATE LOCAL DEDUCTION (CRITICAL FIX) */
-    cart.forEach(item => {
-      const recipe = recipes[item.product_id] || [];
-      recipe.forEach(r => {
-        inventory[r.item_id] -= Number(r.qty_used) * Number(item.qty);
-      });
-    });
-
     cart = [];
+    await loadAllData();
     renderProducts();
     renderCart();
-
-    // Background refresh (safe)
-    loadAllData();
 
     alert("✅ Order completed");
 
   } catch (err) {
     console.error(err);
-    alert("❌ Checkout failed. Please retry.");
+    alert("❌ Checkout failed");
   } finally {
     hideLoader();
   }
