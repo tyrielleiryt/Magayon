@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   showLoader("Loading POS data…");
 
   try {
-    await loadAllData();
+    await refreshInventory();
     renderCategories();
     renderProducts();
     renderCart();
@@ -73,9 +73,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOAD ALL DATA
+   LOAD + REFRESH INVENTORY (CRITICAL)
 ========================================================= */
-async function loadAllData() {
+async function refreshInventory() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [
@@ -88,7 +88,7 @@ async function loadAllData() {
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
     fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+      `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
     ).then(r => r.json())
   ]);
 
@@ -99,7 +99,7 @@ async function loadAllData() {
   inventory = {};
 
   if (!Array.isArray(inventoryRows)) {
-    console.error("Invalid inventory response:", inventoryRows);
+    console.warn("No daily inventory found for today/location");
     return;
   }
 
@@ -109,14 +109,14 @@ async function loadAllData() {
 }
 
 /* =========================================================
-   INVENTORY CHECK
+   INVENTORY CHECK (RECIPE-BASED)
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
-    const available = inventory[r.item_id] || 0;
+    const available = inventory[r.item_id] ?? 0;
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
   });
@@ -275,7 +275,7 @@ async function checkoutPOS() {
     }
 
     cart = [];
-    await loadAllData();
+    await refreshInventory();
     renderProducts();
     renderCart();
 
