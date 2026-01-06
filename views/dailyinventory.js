@@ -8,12 +8,11 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 /* =========================================================
-   LOADER HELPERS (GLOBAL)
+   LOADER HELPERS (STEP 4)
 ========================================================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
   if (!loader) return;
-
   loader.querySelector(".loader-text").textContent = text;
   loader.classList.remove("hidden");
 }
@@ -21,18 +20,13 @@ function showLoader(text = "Loading data…") {
 function hideLoader() {
   const loader = document.getElementById("globalLoader");
   if (!loader) return;
-
   loader.classList.add("hidden");
 }
 
 /* =========================================================
    STATE
 ========================================================= */
-let inventoryItems = [];
 let dailyInventoryCache = [];
-let quantities = {};
-let editDailyId = null;
-
 let searchDate = "";
 let searchLocation = "";
 
@@ -57,7 +51,7 @@ function groupByDateAndLocation(data) {
       map[key] = {
         date: d.date,
         location: d.location || "",
-        created_by: d.created_by,
+        created_by: d.created_by || "",
         entries: []
       };
     }
@@ -67,7 +61,7 @@ function groupByDateAndLocation(data) {
 }
 
 /* =========================================================
-   ENTRY POINT
+   ENTRY
 ========================================================= */
 export default function loadDailyInventoryView() {
   renderActionBar();
@@ -92,7 +86,7 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(document.querySelector(".data-box"));
-  loadDailyInventory(); // 🔥 loader is inside
+  loadDailyInventory();
 }
 
 /* =========================================================
@@ -117,14 +111,11 @@ function renderActionBar() {
     renderTable();
   };
 
-  el("addTodayBtn").onclick = () => {
-    quantities = {};
-    openAddEditModal();
-  };
+  el("addTodayBtn").onclick = openAddEditModal;
 }
 
 /* =========================================================
-   LOAD DATA (WITH LOADER)
+   LOAD DAILY INVENTORY (WITH LOADER)
 ========================================================= */
 async function loadDailyInventory() {
   showLoader("Loading daily inventory…");
@@ -141,7 +132,7 @@ async function loadDailyInventory() {
 }
 
 /* =========================================================
-   TABLE RENDER
+   TABLE
 ========================================================= */
 function renderTable() {
   const tbody = el("dailyInventoryBody");
@@ -170,19 +161,19 @@ function renderTable() {
         <td>${formatDate(g.date)}</td>
         <td>
           <button class="btn-view"
-            onclick="viewDailyGroup('${g.date}','${g.location}')">
+            onclick="viewDailyGroup('${encodeURIComponent(g.date)}','${encodeURIComponent(g.location)}')">
             View (${g.entries.length})
           </button>
         </td>
-        <td>${g.location}</td>
-        <td>${g.created_by}</td>
+        <td>${g.location || "-"}</td>
+        <td>${g.created_by || "-"}</td>
       </tr>
     `;
   });
 }
 
 /* =========================================================
-   JSONP HELPER
+   JSONP
 ========================================================= */
 function jsonp(params) {
   return new Promise((resolve, reject) => {
@@ -202,4 +193,102 @@ function jsonp(params) {
     script.onerror = reject;
     document.body.appendChild(script);
   });
+}
+
+/* =========================================================
+   VIEW DAILY GROUP (GLOBAL)
+========================================================= */
+window.viewDailyGroup = async function (date, locationId) {
+  showLoader("Loading daily inventory…");
+
+  try {
+    const res = await fetch(
+      API_URL +
+        `?type=dailyRemainingInventory` +
+        `&date=${decodeURIComponent(date)}` +
+        `&location=${decodeURIComponent(locationId)}`
+    );
+
+    const data = await res.json();
+    renderDailyInventoryModal(data, decodeURIComponent(date));
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load daily inventory");
+  } finally {
+    hideLoader();
+  }
+};
+
+/* =========================================================
+   MODAL — VIEW REMAINING
+========================================================= */
+function renderDailyInventoryModal(data, date) {
+  openModal(
+    `
+    <div class="modal-header">
+      Remaining Inventory — ${formatDate(date)}
+    </div>
+
+    <div class="inventory-scroll">
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Remaining</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            !data || !data.length
+              ? `<tr><td colspan="2" style="text-align:center;color:#888">No remaining inventory</td></tr>`
+              : data
+                  .map(
+                    i => `
+                    <tr>
+                      <td>${i.item_name || i.item_id}</td>
+                      <td>${i.remaining}</td>
+                    </tr>
+                  `
+                  )
+                  .join("")
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `,
+    true
+  );
+}
+
+/* =========================================================
+   ADD / EDIT DAILY INVENTORY (MINIMAL SAFE FIX)
+========================================================= */
+function openAddEditModal() {
+  openModal(
+    `
+    <div class="modal-header">
+      Add Today's Inventory
+    </div>
+
+    <p style="font-size:14px;color:#555">
+      Daily inventory entry is not yet implemented.
+      <br><br>
+      This will allow:
+      <ul style="margin-left:18px">
+        <li>Beginning stock per item</li>
+        <li>Inventory locking per day</li>
+        <li>POS stock validation</li>
+      </ul>
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `,
+    true
+  );
 }
