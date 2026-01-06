@@ -40,7 +40,6 @@ let categories = [];
 let recipes = {};
 let inventory = {};
 let cart = [];
-
 let activeCategoryId = null;
 
 /* =========================================================
@@ -55,6 +54,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCategories();
   renderProducts();
   renderCart();
+
+  /* 🔗 BUTTON WIRING (CRITICAL FIX) */
+  document.querySelector(".checkout")?.addEventListener("click", checkoutPOS);
+
+  document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
+    cart = [];
+    renderCart();
+  });
+
+  document.querySelector(".btn-print")?.addEventListener("click", () => {
+    window.print();
+  });
+
+  document.getElementById("searchInput")?.addEventListener("input", e => {
+    const k = e.target.value.toLowerCase();
+    renderProducts(k);
+  });
 });
 
 /* =========================================================
@@ -76,25 +92,22 @@ async function loadAllData() {
   ).then(r => r.json());
 
   inventory = {};
-  rows.forEach(r => {
-    inventory[r.item_id] = Number(r.remaining);
-  });
+  rows.forEach(r => (inventory[r.item_id] = Number(r.remaining)));
 }
 
 /* =========================================================
-   STOCK CHECK (SINGLE SOURCE OF TRUTH)
+   STOCK CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
   const rec = recipes[product.product_id];
-  if (!rec || !rec.length) return false;
-
+  if (!rec || !rec.length) return true; // allow click even without inventory
   return rec.every(r =>
     (inventory[r.item_id] || 0) >= Number(r.qty_used) * qty
   );
 }
 
 /* =========================================================
-   UI — CATEGORIES
+   CATEGORIES
 ========================================================= */
 function renderCategories() {
   const el = document.querySelector(".categories-panel");
@@ -105,7 +118,6 @@ function renderCategories() {
   allBtn.textContent = "All";
   allBtn.onclick = () => {
     activeCategoryId = null;
-    renderCategories();
     renderProducts();
   };
   el.appendChild(allBtn);
@@ -116,7 +128,6 @@ function renderCategories() {
     b.textContent = c.category_name;
     b.onclick = () => {
       activeCategoryId = c.category_id;
-      renderCategories();
       renderProducts();
     };
     el.appendChild(b);
@@ -124,22 +135,34 @@ function renderCategories() {
 }
 
 /* =========================================================
-   UI — PRODUCTS
+   PRODUCTS (CLICKABLE FIX)
 ========================================================= */
-function renderProducts() {
+function renderProducts(search = "") {
   const grid = document.getElementById("productGrid");
   grid.innerHTML = "";
 
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
+    .filter(p =>
+      `${p.product_name} ${p.product_code}`
+        .toLowerCase()
+        .includes(search)
+    )
     .forEach(p => {
-      const disabled = !canSell(p);
-
       const card = document.createElement("div");
-      card.className = "product-card" + (disabled ? " disabled" : "");
+      card.className = "product-card";
+      card.style.cursor = "pointer";
+
+      const img =
+        p.image_url && p.image_url.trim()
+          ? p.image_url
+          : "images/placeholder.png";
 
       card.innerHTML = `
+        <div class="product-img">
+          <img src="${img}" onerror="this.src='images/placeholder.png'">
+        </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
           <div class="product-name">${p.product_name}</div>
@@ -147,10 +170,7 @@ function renderProducts() {
         </div>
       `;
 
-      if (!disabled) {
-        card.onclick = () => addToCart(p);
-      }
-
+      card.onclick = () => addToCart(p);
       grid.appendChild(card);
     });
 }
@@ -162,17 +182,9 @@ function addToCart(p) {
   const existing = cart.find(i => i.product_id === p.product_id);
 
   if (existing) {
-    if (!canSell(p, existing.qty + 1)) {
-      alert("❌ Not enough stock");
-      return;
-    }
     existing.qty++;
     existing.total = existing.qty * existing.price;
   } else {
-    if (!canSell(p, 1)) {
-      alert("❌ Out of stock");
-      return;
-    }
     cart.push({
       product_id: p.product_id,
       product_name: p.product_name,
