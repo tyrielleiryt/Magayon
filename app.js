@@ -4,11 +4,10 @@ import {
   getAuth,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ===== CONFIG ===== */
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 /* ===== FIREBASE CONFIG ===== */
 const firebaseConfig = {
@@ -19,7 +18,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
 /* ===== ELEMENTS ===== */
 const loginBtn = document.getElementById("loginBtn");
@@ -27,9 +25,30 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("errorMsg");
 
+/* ===== JSONP HELPER (GAS SAFE) ===== */
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now();
+    window[cb] = data => {
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
+
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
+
+    const script = document.createElement("script");
+    script.src = `${API_URL}?${qs}`;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
 /* ===== LOGIN FUNCTION ===== */
 async function handleLogin() {
-  const email = emailInput.value.trim();
+  const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
 
   errorMsg.textContent = "";
@@ -43,34 +62,49 @@ async function handleLogin() {
   loginBtn.textContent = "Signing in...";
 
   try {
-    // 🔐 Firebase Auth
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const user = cred.user;
+    /* 🔐 FIREBASE AUTH */
+    await signInWithEmailAndPassword(auth, email, password);
 
-    // 🔎 Firestore user profile
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (!snap.exists()) throw new Error("User profile not found");
+    /* 🔎 STAFF AUTHORIZATION (GAS) */
+    const staffList = await jsonp({ type: "staff" });
 
-    const data = snap.data();
+    const staff = staffList.find(
+      s => s.email?.toLowerCase() === email && s.active === true
+    );
 
-    if (data.active !== true) {
-      throw new Error("Account is disabled");
+    if (!staff) {
+      throw new Error("You are not registered as active staff.");
     }
 
-    // ✅ SAVE SESSION
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("userRole", data.role);
-    localStorage.setItem("userEmail", email);
-    localStorage.setItem("userName", data.name || "");
-    localStorage.setItem("userLocation", data.location || "");
+    /* 🚫 CASHIER WITHOUT POS */
+    if (staff.position.toLowerCase() === "cashier" && !staff.can_pos) {
+      throw new Error("You are not authorized to access POS.");
+    }
 
-    // 🚦 ROUTE BY ROLE
-    if (data.role === "admin") {
+    jsonp({
+  action: "startShift",
+  staff_id: staff.staff_id,
+  location: staff.location_id
+});
+
+jsonp({
+  action: "endShift",
+  staff_id: localStorage.getItem("staff_id")
+});
+
+    /* ✅ SAVE SESSION */
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("userName", `${staff.first_name} ${staff.last_name}`);
+    localStorage.setItem("userPosition", staff.position);
+    localStorage.setItem("userLocation", staff.location_id);
+    localStorage.setItem("canPOS", staff.can_pos);
+
+    /* 🚦 ROUTING */
+    if (staff.position.toLowerCase() === "admin") {
       window.location.replace("main.html");
-    } else if (data.role === "cashier") {
-      window.location.replace("order.html");
     } else {
-      throw new Error("Invalid role");
+      window.location.replace("order.html");
     }
 
   } catch (err) {

@@ -4,35 +4,15 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= JSONP ================= */
-function jsonp(params) {
-  return new Promise(resolve => {
-    const cb = "cb_" + Date.now();
-    window[cb] = data => {
-      delete window[cb];
-      script.remove();
-      resolve(data);
-    };
-
-    const qs = Object.entries({ ...params, callback: cb })
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
-
-    const script = document.createElement("script");
-    script.src = `${API_URL}?${qs}`;
-    document.body.appendChild(script);
-  });
-}
-
 /* ================= STATE ================= */
-let staff = [];
+let staffList = [];
 let locations = [];
 let selected = null;
 
 /* ================= ENTRY ================= */
 export default async function loadStaffView() {
   renderActionBar();
-  renderLayout();
+  renderTableLayout();
   await loadLocations();
   await loadStaff();
 }
@@ -40,18 +20,18 @@ export default async function loadStaffView() {
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <button class="category-action-btn" id="addBtn">➕ Add Staff</button>
-    <button class="category-action-btn" id="editBtn" disabled>✏️ Edit</button>
-    <button class="category-action-btn" id="deleteBtn" disabled>🗑️ Deactivate</button>
+    <button class="category-action-btn" id="addStaffBtn">➕ Add Staff</button>
+    <button class="category-action-btn" id="editStaffBtn" disabled>✏️ Edit</button>
+    <button class="category-action-btn" id="deleteStaffBtn" disabled>🗑️ Delete</button>
   `;
 
-  document.getElementById("addBtn").onclick = () => openStaffModal();
-  document.getElementById("editBtn").onclick = () => selected && openStaffModal(selected);
-  document.getElementById("deleteBtn").onclick = deleteStaff;
+  addStaffBtn.onclick = () => openStaffModal();
+  editStaffBtn.onclick = () => selected && openStaffModal(selected);
+  deleteStaffBtn.onclick = deleteStaff;
 }
 
-/* ================= LAYOUT ================= */
-function renderLayout() {
+/* ================= TABLE ================= */
+function renderTableLayout() {
   const box = document.getElementById("contentBox");
 
   box.innerHTML = `
@@ -61,10 +41,11 @@ function renderLayout() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Staff Name</th>
-              <th>Position</th>
+              <th>Last Name</th>
+              <th>First Name</th>
               <th>Location</th>
-              <th>POS Access</th>
+              <th>Position</th>
+              <th>POS</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -74,49 +55,48 @@ function renderLayout() {
     </div>
   `;
 
-  bindDataBoxScroll(box.querySelector(".data-box"));
+  bindDataBoxScroll(box);
 }
 
 /* ================= LOADERS ================= */
-async function loadLocations() {
-  locations = await jsonp({ type: "locations" });
-}
-
 async function loadStaff() {
-  staff = await jsonp({ type: "staff" });
-
+  staffList = await fetch(API_URL + "?type=staff").then(r => r.json());
   selected = null;
-  document.getElementById("editBtn").disabled = true;
-  document.getElementById("deleteBtn").disabled = true;
-
+  editStaffBtn.disabled = true;
+  deleteStaffBtn.disabled = true;
   renderTable();
 }
 
-/* ================= TABLE ================= */
+async function loadLocations() {
+  locations = await fetch(API_URL + "?type=locations").then(r => r.json());
+}
+
+/* ================= RENDER ================= */
 function renderTable() {
   const tbody = document.getElementById("staffBody");
   tbody.innerHTML = "";
 
-  if (!staff.length) {
+  if (!staffList.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align:center;color:#888">
-          No staff records
+        <td colspan="7" style="text-align:center;color:#888">
+          No staff found
         </td>
       </tr>
     `;
     return;
   }
 
-  staff.forEach((s, i) => {
+  staffList.forEach((s, i) => {
     const loc = locations.find(l => l.location_id === s.location_id);
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${s.last_name}, ${s.first_name}</td>
+      <td>${s.last_name}</td>
+      <td>${s.first_name}</td>
+      <td>${loc ? loc.location_name : ""}</td>
       <td>${s.position}</td>
-      <td>${loc ? loc.location_name : "—"}</td>
       <td>${s.can_pos ? "✔" : "—"}</td>
       <td>${s.active ? "Active" : "Inactive"}</td>
     `;
@@ -124,12 +104,10 @@ function renderTable() {
     tr.onclick = () => {
       document.querySelectorAll("#staffBody tr")
         .forEach(r => r.classList.remove("selected"));
-
       tr.classList.add("selected");
       selected = s;
-
-      document.getElementById("editBtn").disabled = false;
-      document.getElementById("deleteBtn").disabled = false;
+      editStaffBtn.disabled = false;
+      deleteStaffBtn.disabled = false;
     };
 
     tbody.appendChild(tr);
@@ -137,84 +115,79 @@ function renderTable() {
 }
 
 /* ================= MODAL ================= */
-function openStaffModal(staffData = {}) {
+function openStaffModal(staff = {}) {
   openModal(`
-    <div class="modal-header">${staffData.staff_id ? "Edit" : "Add"} Staff</div>
+    <div class="modal-header">
+      ${staff.staff_id ? "Edit" : "Add"} Staff
+    </div>
 
     <label>Last Name</label>
-    <input id="lastName" value="${staffData.last_name || ""}">
+    <input id="lastName" value="${staff.last_name || ""}">
 
     <label>First Name</label>
-    <input id="firstName" value="${staffData.first_name || ""}">
+    <input id="firstName" value="${staff.first_name || ""}">
 
     <label>Location</label>
     <select id="location">
-      ${locations
-        .filter(l => l.active)
-        .map(l =>
-          `<option value="${l.location_id}"
-            ${l.location_id === staffData.location_id ? "selected" : ""}>
-            ${l.location_name}
-          </option>`
-        ).join("")}
+      ${locations.map(l =>
+        `<option value="${l.location_id}" ${
+          l.location_id === staff.location_id ? "selected" : ""
+        }>
+          ${l.location_name}
+        </option>`
+      ).join("")}
     </select>
 
     <label>Position</label>
-    <input id="position" value="${staffData.position || ""}">
-
-    <label>Start Date</label>
-    <input type="date" id="startDate"
-      value="${staffData.start_date ? staffData.start_date.split("T")[0] : ""}">
+    <input id="position" value="${staff.position || ""}">
 
     <label>
-      <input type="checkbox" id="canPOS" ${staffData.can_pos ? "checked" : ""}>
-      POS Access (Cashier)
-    </label>
-
-    <label>
-      <input type="checkbox" id="active"
-        ${staffData.active !== false ? "checked" : ""}>
-      Active
+      <input type="checkbox" id="canPOS" ${staff.can_pos ? "checked" : ""}>
+      Allow POS Access
     </label>
 
     <div class="modal-actions">
-      <button class="btn-danger" id="saveBtn">Save</button>
+      <button class="btn-danger" onclick="saveStaff()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 
-  document.getElementById("saveBtn").onclick = () =>
-    saveStaff(staffData.staff_id, staffData.rowIndex);
+  window.saveStaff = () => saveStaff(staff);
 }
 
 /* ================= SAVE ================= */
-function saveStaff(staffId, rowIndex) {
-  const data = {
-    action: staffId ? "editStaff" : "addStaff",
-    staff_id: staffId,
-    rowIndex,
+function saveStaff(existing = {}) {
+  const params = {
+    action: existing.staff_id ? "editStaff" : "addStaff",
+    rowIndex: existing.rowIndex,
     last_name: lastName.value.trim(),
     first_name: firstName.value.trim(),
     location_id: location.value,
     position: position.value.trim(),
-    start_date: startDate.value,
-    can_pos: canPOS.checked,
-    active: active.checked
+    start_date: new Date().toISOString().slice(0, 10),
+    can_pos: canPOS.checked
   };
 
-  jsonp(data).then(() => {
-    closeModal();
-    loadStaff();
-  });
+  const qs = Object.entries(params)
+    .filter(([_, v]) => v !== undefined)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join("&");
+
+  fetch(API_URL + "?" + qs)
+    .then(r => r.json())
+    .then(() => {
+      closeModal();
+      loadStaff();
+    });
 }
 
 /* ================= DELETE ================= */
 function deleteStaff() {
   if (!selected) return;
-  if (!confirm(`Deactivate ${selected.first_name} ${selected.last_name}?`)) return;
+  if (!confirm("Deactivate this staff member?")) return;
 
-  jsonp({
-    action: "deleteStaff",
-    rowIndex: selected.rowIndex
-  }).then(loadStaff);
+  fetch(
+    API_URL +
+      `?action=deleteStaff&rowIndex=${selected.rowIndex}`
+  ).then(() => loadStaff());
 }

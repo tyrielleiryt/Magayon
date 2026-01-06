@@ -1,338 +1,141 @@
-/* =========================================================
-   CONFIG
-========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 const LOCATION = localStorage.getItem("userLocation");
-const CASHIER_NAME = localStorage.getItem("userName") || "CASHIER";
-const CASHIER_POSITION = localStorage.getItem("userPosition") || "";
+const STAFF_ID = localStorage.getItem("staff_id");
+const CASHIER_NAME = localStorage.getItem("userName");
+const CASHIER_POSITION = localStorage.getItem("userPosition");
 const LOW_STOCK_THRESHOLD = 5;
 
-/* ================= ACCESS GUARDS ================= */
-if (!LOCATION) {
-  alert("❌ No branch assigned. Please contact admin.");
+/* ================= ACCESS GUARD ================= */
+if (!LOCATION || !STAFF_ID) {
+  alert("Unauthorized POS access");
   window.location.replace("index.html");
 }
 
-if (localStorage.getItem("canPOS") !== "true") {
-  alert("❌ You are not authorized to use POS.");
-  window.location.replace("index.html");
+/* ================= JSONP ================= */
+function jsonp(params) {
+  const cb = "cb_" + Date.now();
+  return new Promise(resolve => {
+    window[cb] = data => {
+      delete window[cb];
+      resolve(data);
+    };
+    const qs = Object.entries({ ...params, callback: cb })
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
+    const s = document.createElement("script");
+    s.src = `${API_URL}?${qs}`;
+    document.body.appendChild(s);
+  });
 }
 
-/* =========================================================
-   STATE
-========================================================= */
-let products = [];
-let categories = [];
-let recipesByProduct = {};
-let inventoryRemaining = {};
-let reservedInventory = {};
-let cart = [];
-
-let activeCategoryId = null;
-let searchKeyword = "";
-let isLoaded = false;
-
-/* =========================================================
-   INIT
-========================================================= */
+/* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  document.body.classList.add("loading");
-
-  // Header info
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
   document.getElementById("cashierLocation").textContent = LOCATION;
 
   await loadAllData();
-
-  isLoaded = true;
   renderCategories();
   renderProducts();
-
-  document.getElementById("searchInput").addEventListener("input", e => {
-    searchKeyword = e.target.value.toLowerCase();
-    renderProducts();
-  });
-
-  document.getElementById("clearOrderBtn").onclick = clearCart;
-  document.querySelector(".checkout").onclick = checkoutPOS;
-
-  document.body.classList.remove("loading");
 });
 
-/* =========================================================
-   LOADERS
-========================================================= */
+/* ================= DATA ================= */
+let products = [], categories = [], recipes = {}, inventory = {}, cart = [];
+let activeCategoryId = null, keyword = "";
+
+/* ================= LOADERS ================= */
 async function loadAllData() {
-  await loadCategories();
-  await loadProducts();
-  await loadProductRecipes();
-  await loadInventoryRemaining();
-}
-
-async function loadCategories() {
   categories = await fetch(`${API_URL}?type=categories`).then(r => r.json());
-}
-
-async function loadProducts() {
   products = await fetch(`${API_URL}?type=products`).then(r => r.json());
-}
 
-async function loadProductRecipes() {
-  recipesByProduct = {};
   for (const p of products) {
-    recipesByProduct[p.product_id] = await fetch(
+    recipes[p.product_id] = await fetch(
       `${API_URL}?type=productRecipes&product_id=${p.product_id}`
     ).then(r => r.json());
   }
-}
 
-async function loadInventoryRemaining() {
   const today = new Date().toISOString().slice(0, 10);
-
   const rows = await fetch(
     `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
   ).then(r => r.json());
 
-  inventoryRemaining = {};
-  rows.forEach(r => {
-    inventoryRemaining[r.item_id] = Number(r.remaining);
-  });
-
-  // Default missing inventory to zero
-  products.forEach(p => {
-    (recipesByProduct[p.product_id] || []).forEach(r => {
-      if (!(r.item_id in inventoryRemaining)) {
-        inventoryRemaining[r.item_id] = 0;
-      }
-    });
-  });
-
-  reservedInventory = {};
+  inventory = {};
+  rows.forEach(r => inventory[r.item_id] = r.remaining);
 }
 
-/* =========================================================
-   CATEGORY RENDERING
-========================================================= */
+/* ================= STOCK ================= */
+function canSell(product, qty = 1) {
+  const rec = recipes[product.product_id];
+  if (!rec?.length) return false;
+
+  return rec.every(r =>
+    (inventory[r.item_id] || 0) >= r.qty_used * qty
+  );
+}
+
+/* ================= UI ================= */
 function renderCategories() {
-  if (!isLoaded) return;
-
-  const panel = document.querySelector(".categories-panel");
-  panel.innerHTML = "";
-
-  const allBtn = document.createElement("button");
-  allBtn.className = "category-btn" + (activeCategoryId === null ? " active" : "");
-  allBtn.textContent = "All Categories";
-  allBtn.onclick = () => {
-    activeCategoryId = null;
-    renderCategories();
-    renderProducts();
-  };
-  panel.appendChild(allBtn);
-
+  const el = document.querySelector(".categories-panel");
+  el.innerHTML = `<button class="category-btn active">All</button>`;
   categories.forEach(c => {
-    const btn = document.createElement("button");
-    btn.className =
-      "category-btn" + (activeCategoryId === c.category_id ? " active" : "");
-    btn.textContent = c.category_name;
-    btn.onclick = () => {
+    const b = document.createElement("button");
+    b.className = "category-btn";
+    b.textContent = c.category_name;
+    b.onclick = () => {
       activeCategoryId = c.category_id;
-      renderCategories();
       renderProducts();
     };
-    panel.appendChild(btn);
+    el.appendChild(b);
   });
 }
 
-/* =========================================================
-   STOCK LOGIC
-========================================================= */
-function getProductStockStatus(product, qty = 1) {
-  const recipe = recipesByProduct[product.product_id];
-  if (!recipe || !recipe.length) {
-    return { status: "block", reason: "NO_RECIPE" };
-  }
-
-  let low = false;
-
-  for (const r of recipe) {
-    const needed = qty * Number(r.qty_used || 0);
-    const available =
-      (inventoryRemaining[r.item_id] || 0) -
-      (reservedInventory[r.item_id] || 0);
-
-    if (available < needed) return { status: "block" };
-    if (available <= LOW_STOCK_THRESHOLD) low = true;
-  }
-
-  return { status: low ? "low" : "ok" };
-}
-
-/* =========================================================
-   PRODUCT GRID
-========================================================= */
 function renderProducts() {
-  if (!isLoaded) return;
-
   const grid = document.getElementById("productGrid");
   grid.innerHTML = "";
 
-  let filtered = products.filter(p => p.active);
-
-  if (activeCategoryId) {
-    filtered = filtered.filter(p => p.category_id === activeCategoryId);
-  }
-
-  if (searchKeyword) {
-    filtered = filtered.filter(p =>
-      `${p.product_name} ${p.product_code}`.toLowerCase().includes(searchKeyword)
-    );
-  }
-
-  filtered.forEach(p => {
-    const stock = getProductStockStatus(p, 1);
-
-    const card = document.createElement("div");
-    card.className = "product-card";
-    if (stock.status === "block") card.classList.add("disabled");
-    if (stock.status === "low") card.classList.add("low-stock");
-
-    card.innerHTML = `
-      <div class="product-img">
-        <img src="${p.image_url || "placeholder.png"}">
-        ${
-          stock.status === "block"
-            ? `<div class="sold-out">${
-                stock.reason === "NO_RECIPE" ? "NO RECIPE" : "OUT OF STOCK"
-              }</div>`
-            : ""
-        }
-      </div>
-      <div class="product-info">
-        <div class="product-code">${p.product_code}</div>
-        <div class="product-name">${p.product_name}</div>
-        <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
-      </div>
-    `;
-
-    if (stock.status !== "block") {
-      card.onclick = () => addToCart(p);
-    }
-
-    grid.appendChild(card);
-  });
-}
-
-/* =========================================================
-   CART
-========================================================= */
-function addToCart(product) {
-  const existing = cart.find(i => i.product_id === product.product_id);
-  const newQty = (existing?.qty || 0) + 1;
-
-  const stock = getProductStockStatus(product, newQty);
-  if (stock.status === "block") {
-    alert("❌ Not enough inventory");
-    return;
-  }
-
-  recipesByProduct[product.product_id].forEach(r => {
-    reservedInventory[r.item_id] =
-      (reservedInventory[r.item_id] || 0) + Number(r.qty_used);
-  });
-
-  if (existing) {
-    existing.qty++;
-    existing.total = existing.qty * existing.price;
-  } else {
-    cart.push({
-      product_id: product.product_id,
-      product_code: product.product_code,
-      product_name: product.product_name,
-      price: Number(product.price),
-      qty: 1,
-      total: Number(product.price)
+  products
+    .filter(p => p.active)
+    .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
+    .forEach(p => {
+      const disabled = !canSell(p);
+      const d = document.createElement("div");
+      d.className = "product-card" + (disabled ? " disabled" : "");
+      d.innerHTML = `
+        <div class="product-info">
+          <div class="product-code">${p.product_code}</div>
+          <div class="product-name">${p.product_name}</div>
+          <div class="product-price">₱${p.price}</div>
+        </div>`;
+      if (!disabled) d.onclick = () => addToCart(p);
+      grid.appendChild(d);
     });
-  }
-
-  renderCart();
-  renderProducts();
 }
 
-function renderCart() {
-  const tbody = document.getElementById("orderTable");
-  const sumEl = document.getElementById("sumTotal");
-
-  tbody.innerHTML = "";
-  let sum = 0;
-
-  cart.forEach((item, i) => {
-    sum += item.total;
-    tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${item.product_name} <small>(${item.product_code})</small></td>
-        <td>${item.qty}</td>
-        <td>₱${item.price.toFixed(2)}</td>
-        <td>₱${item.total.toFixed(2)}</td>
-      </tr>
-    `;
-  });
-
-  sumEl.textContent = sum.toFixed(2);
+/* ================= CART ================= */
+function addToCart(p) {
+  const item = cart.find(i => i.product_id === p.product_id);
+  if (item) item.qty++;
+  else cart.push({ ...p, qty: 1, total: p.price });
 }
 
-function clearCart() {
-  cart = [];
-  reservedInventory = {};
-  renderCart();
-  renderProducts();
-}
-
-/* =========================================================
-   CHECKOUT
-========================================================= */
+/* ================= CHECKOUT ================= */
 async function checkoutPOS() {
-  if (!cart.length) return;
+  const ref = "ORD-" + Date.now();
 
-  await loadInventoryRemaining();
-
-  for (const line of cart) {
-    const product = products.find(p => p.product_id === line.product_id);
-    const stock = getProductStockStatus(product, line.qty);
-    if (stock.status === "block") {
-      alert("❌ Stock changed. Please recheck your order.");
-      return;
-    }
-  }
-
-  const refId = "ORD-" + Date.now();
-
-  for (const line of cart) {
+  for (const l of cart) {
     new Image().src =
       `${API_URL}?action=recordPosOrderItem` +
-      `&product_id=${line.product_id}` +
-      `&qty=${line.qty}` +
-      `&price=${line.price}` +
-      `&total=${line.total}` +
-      `&ref_id=${refId}` +
-      `&location=${LOCATION}`;
-
-    recipesByProduct[line.product_id].forEach(r => {
-      new Image().src =
-        `${API_URL}?action=stockOut` +
-        `&item_id=${r.item_id}` +
-        `&qty=${r.qty_used * line.qty}` +
-        `&location=${LOCATION}` +
-        `&source=POS` +
-        `&ref_id=${refId}`;
-    });
+      `&product_id=${l.product_id}` +
+      `&qty=${l.qty}` +
+      `&price=${l.price}` +
+      `&total=${l.qty * l.price}` +
+      `&ref_id=${ref}` +
+      `&location=${LOCATION}` +
+      `&staff_id=${STAFF_ID}`;
   }
 
-  alert("✅ Order completed");
-  clearCart();
-  await loadInventoryRemaining();
-  renderProducts();
+  alert("Order complete");
+  cart = [];
 }
