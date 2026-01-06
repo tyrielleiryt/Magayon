@@ -34,8 +34,8 @@ function hideLoader() {
 ========================================================= */
 let products = [];
 let categories = [];
-let recipes = {};
-let inventory = {};
+let recipes = {};        // product_id -> recipe[]
+let inventory = {};      // item_id -> remaining
 let cart = [];
 let activeCategoryId = null;
 
@@ -79,35 +79,41 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOADERS
+   LOAD ALL DATA (FAST)
 ========================================================= */
 async function loadAllData() {
-  categories = await fetch(`${API_URL}?type=categories`).then(r => r.json());
-  products = await fetch(`${API_URL}?type=products`).then(r => r.json());
-
-  recipes = {};
-  for (const p of products) {
-    recipes[p.product_id] = await fetch(
-      `${API_URL}?type=productRecipes&product_id=${p.product_id}`
-    ).then(r => r.json());
-  }
-
   const today = new Date().toISOString().slice(0, 10);
-  const rows = await fetch(
-    `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
-  ).then(r => r.json());
+
+  const [
+    categoriesData,
+    productsData,
+    recipesData,
+    inventoryRows
+  ] = await Promise.all([
+    fetch(`${API_URL}?type=categories`).then(r => r.json()),
+    fetch(`${API_URL}?type=products`).then(r => r.json()),
+    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
+    fetch(
+      `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
+    ).then(r => r.json())
+  ]);
+
+  categories = categoriesData;
+  products = productsData;
+  recipes = recipesData || {};
 
   inventory = {};
-  rows.forEach(r => (inventory[r.item_id] = Number(r.remaining)));
+  inventoryRows.forEach(r => {
+    inventory[r.item_id] = Number(r.remaining) || 0;
+  });
 }
 
 /* =========================================================
-   INVENTORY CHECK
+   INVENTORY CHECK (SINGLE SOURCE OF TRUTH)
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
-  if (!Object.keys(inventory).length) return false;
 
   return recipe.every(r => {
     const available = inventory[r.item_id] || 0;
@@ -137,7 +143,8 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn")
+    document
+      .querySelectorAll(".category-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
@@ -162,14 +169,17 @@ function renderProducts(search = "") {
     .forEach(p => {
       const disabled = !canSell(p);
       const img =
-        p.image_url?.trim() || "images/placeholder.png";
+        p.image_url && p.image_url.trim()
+          ? p.image_url
+          : "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
         <div class="product-img">
-          <img src="${img}" onerror="this.src='images/placeholder.png'">
+          <img src="${img}" loading="lazy"
+               onerror="this.src='images/placeholder.png'">
         </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
@@ -178,7 +188,10 @@ function renderProducts(search = "") {
         </div>
       `;
 
-      if (!disabled) card.onclick = () => addToCart(p);
+      if (!disabled) {
+        card.onclick = () => addToCart(p);
+      }
+
       grid.appendChild(card);
     });
 }
@@ -234,7 +247,7 @@ function renderCart() {
 }
 
 /* =========================================================
-   CHECKOUT
+   CHECKOUT (STEP 3 WILL EXTEND THIS)
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) return alert("No items in cart");
