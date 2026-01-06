@@ -4,8 +4,13 @@ import {
   getAuth,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===== CONFIG ===== */
+/* ===== GAS CONFIG ===== */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
@@ -13,11 +18,12 @@ const API_URL =
 const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
   authDomain: "magayon.firebaseapp.com",
-  projectId: "magayon",
+  projectId: "magayon"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 /* ===== ELEMENTS ===== */
 const loginBtn = document.getElementById("loginBtn");
@@ -25,7 +31,7 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("errorMsg");
 
-/* ===== JSONP HELPER (GAS SAFE) ===== */
+/* ===== JSONP (GAS SAFE) ===== */
 function jsonp(params) {
   return new Promise((resolve, reject) => {
     const cb = "cb_" + Date.now();
@@ -46,7 +52,7 @@ function jsonp(params) {
   });
 }
 
-/* ===== LOGIN FUNCTION ===== */
+/* ===== LOGIN ===== */
 async function handleLogin() {
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
@@ -63,45 +69,45 @@ async function handleLogin() {
 
   try {
     /* 🔐 FIREBASE AUTH */
-    await signInWithEmailAndPassword(auth, email, password);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const user = cred.user;
 
-    /* 🔎 STAFF AUTHORIZATION (GAS) */
-    const staffList = await jsonp({ type: "staff" });
+    /* 🔎 FIRESTORE PROFILE */
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists()) throw new Error("User profile not found.");
 
-    const staff = staffList.find(
-      s => s.email?.toLowerCase() === email && s.active === true
-    );
+    const data = snap.data();
 
-    if (!staff) {
-      throw new Error("You are not registered as active staff.");
+    if (data.active !== true) {
+      throw new Error("Account is disabled.");
     }
 
-    /* 🚫 CASHIER WITHOUT POS */
-    if (staff.position.toLowerCase() === "cashier" && !staff.can_pos) {
+    /* 🚫 POS ACCESS GUARD */
+    if (data.role === "cashier" && data.can_pos !== true) {
       throw new Error("You are not authorized to access POS.");
     }
 
-    jsonp({
-  action: "startShift",
-  staff_id: staff.staff_id,
-  location: staff.location_id
-});
-
-jsonp({
-  action: "endShift",
-  staff_id: localStorage.getItem("staff_id")
-});
-
     /* ✅ SAVE SESSION */
     localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userRole", data.role);
     localStorage.setItem("userEmail", email);
-    localStorage.setItem("userName", `${staff.first_name} ${staff.last_name}`);
-    localStorage.setItem("userPosition", staff.position);
-    localStorage.setItem("userLocation", staff.location_id);
-    localStorage.setItem("canPOS", staff.can_pos);
+    localStorage.setItem("userName", data.name || "");
+    localStorage.setItem("userPosition", data.position || "");
+    localStorage.setItem("userLocation", data.location || "");
+    localStorage.setItem("canPOS", data.can_pos ? "true" : "false");
+    localStorage.setItem("staff_id", data.staff_id || "");
+
+    /* ⏱ START SHIFT (CASHIER ONLY) */
+    if (data.role === "cashier" && data.staff_id) {
+      jsonp({
+        action: "startShift",
+        staff_id: data.staff_id,
+        location: data.location
+      });
+    }
 
     /* 🚦 ROUTING */
-    if (staff.position.toLowerCase() === "admin") {
+    if (data.role === "admin") {
       window.location.replace("main.html");
     } else {
       window.location.replace("order.html");
