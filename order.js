@@ -34,8 +34,8 @@ function hideLoader() {
 ========================================================= */
 let products = [];
 let categories = [];
-let recipes = {};        // product_id -> recipe[]
-let inventory = {};      // item_id -> remaining
+let recipes = {};      // product_id → recipe[]
+let inventory = {};    // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOAD ALL DATA (FAST)
+   LOAD ALL DATA (FAST – 4 REQUESTS TOTAL)
 ========================================================= */
 async function loadAllData() {
   const today = new Date().toISOString().slice(0, 10);
@@ -109,7 +109,7 @@ async function loadAllData() {
 }
 
 /* =========================================================
-   INVENTORY CHECK (SINGLE SOURCE OF TRUTH)
+   INVENTORY CHECK (CLIENT-SIDE PRECHECK ONLY)
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
@@ -143,8 +143,7 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document
-      .querySelectorAll(".category-btn")
+    document.querySelectorAll(".category-btn")
       .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
@@ -188,10 +187,7 @@ function renderProducts(search = "") {
         </div>
       `;
 
-      if (!disabled) {
-        card.onclick = () => addToCart(p);
-      }
-
+      if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
     });
 }
@@ -247,34 +243,56 @@ function renderCart() {
 }
 
 /* =========================================================
-   CHECKOUT (STEP 3 WILL EXTEND THIS)
+   ✅ FINAL CHECKOUT (FAST + INVENTORY-SAFE)
 ========================================================= */
 async function checkoutPOS() {
-  if (!cart.length) return alert("No items in cart");
+  if (!cart.length) {
+    alert("No items in cart");
+    return;
+  }
 
   showLoader("Processing order…");
 
   const ref = "ORD-" + Date.now();
 
   try {
-    for (const l of cart) {
-      new Image().src =
-        `${API_URL}?action=recordPosOrderItem` +
-        `&product_id=${l.product_id}` +
-        `&qty=${l.qty}` +
-        `&price=${l.price}` +
-        `&total=${l.total}` +
-        `&ref_id=${ref}` +
-        `&location=${LOCATION}` +
-        `&staff_id=${STAFF_ID}`;
+    const payload = {
+      action: "checkoutOrder",
+      ref_id: ref,
+      staff_id: STAFF_ID,
+      location: LOCATION,
+      items: JSON.stringify(
+        cart.map(i => ({
+          product_id: i.product_id,
+          qty: i.qty,
+          price: i.price,
+          total: i.total
+        }))
+      )
+    };
+
+    const qs = Object.entries(payload)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
+
+    const res = await fetch(`${API_URL}?${qs}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Checkout failed");
     }
 
+    // ✅ Reset UI
     cart = [];
     await loadAllData();
     renderProducts();
     renderCart();
 
     alert("✅ Order completed");
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Checkout failed. Please retry.");
   } finally {
     hideLoader();
   }
