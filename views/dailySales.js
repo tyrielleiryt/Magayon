@@ -4,22 +4,15 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* =========================================================
-   LOADER HELPERS (STEP 4)
-========================================================= */
-function showLoader(text = "Loading data…") {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-
-  loader.querySelector(".loader-text").textContent = text;
-  loader.classList.remove("hidden");
+/* ================= LOADER ================= */
+function showLoader(text = "Loading…") {
+  const l = document.getElementById("globalLoader");
+  if (!l) return;
+  l.querySelector(".loader-text").textContent = text;
+  l.classList.remove("hidden");
 }
-
 function hideLoader() {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-
-  loader.classList.add("hidden");
+  document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
 /* ================= ENTRY ================= */
@@ -27,8 +20,7 @@ export default function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
-  // ✅ Default to today
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
 }
 
@@ -43,8 +35,6 @@ function renderActionBar() {
   `;
 
   document.getElementById("loadSalesBtn").onclick = loadSales;
-  document.getElementById("salesDate").onchange = loadSales;
-  document.getElementById("salesLocation").oninput = debounce(loadSales, 500);
 }
 
 /* ================= LAYOUT ================= */
@@ -66,7 +56,7 @@ function renderLayout() {
           <tbody id="salesBody">
             <tr>
               <td colspan="6" style="text-align:center;color:#888">
-                Select a date and click “Load Report”
+                Select a date and click Load Report
               </td>
             </tr>
           </tbody>
@@ -77,12 +67,6 @@ function renderLayout() {
         <div>Gross: ₱<span id="sumGross">0.00</span></div>
         <div>Capital: ₱<span id="sumCapital">0.00</span></div>
         <div><b>Net:</b> ₱<span id="sumNet">0.00</span></div>
-      </div>
-
-      <div style="text-align:right;margin-top:12px">
-        <button class="btn-view" onclick="viewRemainingStock()">
-          View Remaining Inventory
-        </button>
       </div>
     </div>
   `;
@@ -95,63 +79,39 @@ async function loadSales() {
   const date = document.getElementById("salesDate").value;
   const location = document.getElementById("salesLocation").value.trim();
 
-  if (!date) {
-    alert("Please select a date");
-    return hookup();
-  }
+  if (!date) return alert("Select a date");
 
   showLoader("Loading sales report…");
 
-  const tbody = document.getElementById("salesBody");
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="6" style="text-align:center;color:#888">
-        Loading sales report…
-      </td>
-    </tr>
-  `;
-
   try {
     const res = await fetch(
-      API_URL +
-        `?type=dailySalesReport` +
-        `&date=${date}` +
-        `&location=${encodeURIComponent(location)}`
+      `${API_URL}?type=dailySalesReport&date=${date}&location=${encodeURIComponent(location)}`
     );
 
     const data = await res.json();
     renderTable(data);
   } catch (err) {
     console.error(err);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center;color:#c0392b">
-          Failed to load report
-        </td>
-      </tr>
-    `;
+    alert("Failed to load report");
   } finally {
     hideLoader();
   }
 }
 
-/* ================= RENDER TABLE ================= */
+/* ================= RENDER ================= */
 function renderTable(rows) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
-  let gross = 0;
-  let capital = 0;
-  let net = 0;
+  let gross = 0, capital = 0, net = 0;
 
-  if (!rows || !rows.length) {
+  if (!rows.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align:center;color:#888">
-          No sales recorded for this day
+          No sales found
         </td>
-      </tr>
-    `;
+      </tr>`;
     updateTotals(0, 0, 0);
     return;
   }
@@ -164,7 +124,7 @@ function renderTable(rows) {
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
-        <td>${r.product_name || r.product_id}</td>
+        <td>${r.product_name}</td>
         <td>${r.qty}</td>
         <td>₱${r.gross.toFixed(2)}</td>
         <td>₱${r.capital.toFixed(2)}</td>
@@ -179,80 +139,8 @@ function renderTable(rows) {
 }
 
 /* ================= TOTALS ================= */
-function updateTotals(gross, capital, net) {
-  document.getElementById("sumGross").textContent = gross.toFixed(2);
-  document.getElementById("sumCapital").textContent = capital.toFixed(2);
-  document.getElementById("sumNet").textContent = net.toFixed(2);
-}
-
-/* ================= REMAINING INVENTORY ================= */
-window.viewRemainingStock = async function () {
-  const date = document.getElementById("salesDate").value;
-  const location = document.getElementById("salesLocation").value.trim();
-  if (!date) return;
-
-  showLoader("Loading remaining inventory…");
-
-  try {
-    const res = await fetch(
-      API_URL +
-        `?type=dailyRemainingInventory` +
-        `&date=${date}` +
-        `&location=${encodeURIComponent(location)}`
-    );
-
-    const data = await res.json();
-
-    openModal(
-      `
-      <div class="modal-header">Remaining Inventory</div>
-
-      <div class="inventory-scroll">
-        <table class="inventory-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Remaining</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              !data.length
-                ? `<tr><td colspan="2" style="text-align:center;color:#888">No data</td></tr>`
-                : data
-                    .map(
-                      i => `
-              <tr>
-                <td>${i.item_name || i.item_id}</td>
-                <td>${i.remaining}</td>
-              </tr>
-            `
-                    )
-                    .join("")
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-back" onclick="closeModal()">Close</button>
-      </div>
-    `,
-      true
-    );
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load remaining inventory");
-  } finally {
-    hideLoader();
-  }
-};
-
-/* ================= DEBOUNCE ================= */
-function debounce(fn, delay = 400) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
+function updateTotals(g, c, n) {
+  document.getElementById("sumGross").textContent = g.toFixed(2);
+  document.getElementById("sumCapital").textContent = c.toFixed(2);
+  document.getElementById("sumNet").textContent = n.toFixed(2);
 }
