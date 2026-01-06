@@ -20,34 +20,18 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-/* ================= JSONP ================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
-
-function jsonp(params) {
-  const cb = "cb_" + Date.now();
-  return new Promise(resolve => {
-    window[cb] = data => {
-      delete window[cb];
-      resolve(data);
-    };
-    const qs = Object.entries({ ...params, callback: cb })
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
-
-    const s = document.createElement("script");
-    s.src = `${API_URL}?${qs}`;
-    document.body.appendChild(s);
-  });
-}
-
 /* ================= LOGOUT ================= */
-document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
   if (!confirm("Are you sure you want to logout?")) return;
 
+  // ⏱ End shift if cashier
   const staffId = localStorage.getItem("staff_id");
   if (staffId) {
-    await jsonp({ action: "endShift", staff_id: staffId });
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
+    const img = new Image();
+    img.src = `${API_URL}?action=endShift&staff_id=${staffId}`;
   }
 
   localStorage.clear();
@@ -67,37 +51,82 @@ import loadStaffView from "./views/staff.js";
 /* ================= SPA NAV ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    // Active state
+    document.querySelectorAll(".nav-btn")
+      .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
+    // Reset UI
     const actionBar = document.getElementById("actionBar");
     const contentBox = document.getElementById("contentBox");
     actionBar.innerHTML = "";
     contentBox.innerHTML = "";
 
+    // Route
     switch (btn.dataset.view) {
-      case "categories": loadCategoriesView(); break;
-      case "products": loadProductsView(); break;
-      case "inventory": loadInventoryItemsView(); break;
-      case "dailyInventory": loadDailyInventoryView(); break;
-      case "dailySales": loadDailySalesView(); break;
-      case "locations": loadLocationsView(); break;
-      case "staff": loadStaffView(); break;
+      case "categories":
+        loadCategoriesView();
+        break;
+
+      case "products":
+        loadProductsView();
+        break;
+
+      case "inventory":
+        loadInventoryItemsView();
+        break;
+
+      case "dailyInventory":
+        loadDailyInventoryView();
+        break;
+
+      case "dailySales":
+        loadDailySalesView();
+        break;
+
+      case "locations":
+        loadLocationsView();
+        break;
+
+      case "staff":
+        loadStaffView();
+        break;
+
+      case "dashboard":
       default:
-        contentBox.innerHTML = `<h2>Dashboard</h2>`;
+        contentBox.innerHTML = `
+          <h2>Dashboard</h2>
+          <p style="color:#666">
+            Select a module from the sidebar.
+          </p>
+        `;
     }
   };
 });
 
-/* ================= MODAL ================= */
+/* ================= SCROLL HELPER (EXPORTED) ================= */
+export function bindDataBoxScroll(container) {
+  if (!container) return;
+  const scrollArea = container.querySelector(".data-scroll");
+  if (!scrollArea) return;
+
+  // Placeholder for future enhancements
+}
+
+/* ================= MODAL CONTAINER ================= */
 function ensureModal() {
   if (document.getElementById("modalOverlay")) return;
-  document.body.insertAdjacentHTML(
-    "beforeend",
-    `<div id="modalOverlay" class="hidden"><div id="modalBox"></div></div>`
-  );
+
+  const overlay = document.createElement("div");
+  overlay.id = "modalOverlay";
+  overlay.className = "hidden";
+  overlay.innerHTML = `<div id="modalBox"></div>`;
+
+  document.body.appendChild(overlay);
 }
 ensureModal();
 
-/* ================= LOAD DEFAULT ================= */
-document.querySelector('.nav-btn[data-view="dashboard"]')?.click();
+/* ================= LOAD DEFAULT VIEW ================= */
+document
+  .querySelector('.nav-btn[data-view="dashboard"]')
+  ?.click();
