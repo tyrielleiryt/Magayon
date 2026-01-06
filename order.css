@@ -278,3 +278,42 @@ body {
   opacity: 0.4;
   pointer-events: none;
 }
+
+/* ================= GLOBAL LOADER ================= */
+.loader {
+  position: fixed;
+  inset: 0;
+  background: rgba(244, 246, 251, 0.85);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader.hidden {
+  display: none;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #dcdcdc;
+  border-top: 5px solid #2f3457;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.loader-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2f3457;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
