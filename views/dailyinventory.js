@@ -8,7 +8,7 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 /* =========================================================
-   LOADER HELPERS (STEP 4)
+   LOADER HELPERS
 ========================================================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
@@ -44,9 +44,14 @@ function formatDate(d) {
 }
 
 function groupByDateAndLocation(data) {
+  if (!Array.isArray(data)) return [];
+
   const map = {};
   data.forEach(d => {
+    if (!d || !d.date) return;
+
     const key = `${new Date(d.date).toDateString()}|${d.location || ""}`;
+
     if (!map[key]) {
       map[key] = {
         date: d.date,
@@ -55,8 +60,10 @@ function groupByDateAndLocation(data) {
         entries: []
       };
     }
+
     map[key].entries.push(d);
   });
+
   return Object.values(map);
 }
 
@@ -115,7 +122,7 @@ function renderActionBar() {
 }
 
 /* =========================================================
-   LOAD DAILY INVENTORY (WITH LOADER)
+   LOAD DAILY INVENTORY (ROBUST)
 ========================================================= */
 async function loadDailyInventory() {
   showLoader("Loading daily inventory…");
@@ -123,11 +130,21 @@ async function loadDailyInventory() {
   try {
     const res = await jsonp({ type: "dailyInventory" });
 
-    // 🛡️ HARD GUARD
+    // 🔴 GAS ERROR RESPONSE
+    if (res?.success === false) {
+      console.error("GAS error:", res.error);
+      dailyInventoryCache = [];
+      alert("Daily inventory backend error:\n" + res.error);
+      renderTable();
+      return;
+    }
+
+    // 🛡️ NOT ARRAY
     if (!Array.isArray(res)) {
       console.error("Invalid dailyInventory response:", res);
       dailyInventoryCache = [];
-      alert("Failed to load inventory data.");
+      alert("Invalid daily inventory response from server.");
+      renderTable();
       return;
     }
 
@@ -207,7 +224,7 @@ function jsonp(params) {
 }
 
 /* =========================================================
-   VIEW DAILY GROUP (GLOBAL)
+   VIEW DAILY GROUP
 ========================================================= */
 window.viewDailyGroup = async function (date, locationId) {
   showLoader("Loading daily inventory…");
@@ -231,7 +248,7 @@ window.viewDailyGroup = async function (date, locationId) {
 };
 
 /* =========================================================
-   MODAL — VIEW REMAINING
+   MODAL
 ========================================================= */
 function renderDailyInventoryModal(data, date) {
   openModal(
@@ -250,18 +267,16 @@ function renderDailyInventoryModal(data, date) {
         </thead>
         <tbody>
           ${
-            !data || !data.length
+            !Array.isArray(data) || !data.length
               ? `<tr><td colspan="2" style="text-align:center;color:#888">No remaining inventory</td></tr>`
-              : data
-                  .map(
-                    i => `
-                    <tr>
-                      <td>${i.item_name || i.item_id}</td>
-                      <td>${i.remaining}</td>
-                    </tr>
-                  `
-                  )
-                  .join("")
+              : data.map(
+                  i => `
+                  <tr>
+                    <td>${i.item_name || i.item_id}</td>
+                    <td>${i.remaining}</td>
+                  </tr>
+                `
+                ).join("")
           }
         </tbody>
       </table>
@@ -276,26 +291,15 @@ function renderDailyInventoryModal(data, date) {
 }
 
 /* =========================================================
-   ADD / EDIT DAILY INVENTORY (MINIMAL SAFE FIX)
+   ADD DAILY INVENTORY (PLACEHOLDER)
 ========================================================= */
 function openAddEditModal() {
   openModal(
     `
-    <div class="modal-header">
-      Add Today's Inventory
-    </div>
-
+    <div class="modal-header">Add Today's Inventory</div>
     <p style="font-size:14px;color:#555">
       Daily inventory entry is not yet implemented.
-      <br><br>
-      This will allow:
-      <ul style="margin-left:18px">
-        <li>Beginning stock per item</li>
-        <li>Inventory locking per day</li>
-        <li>POS stock validation</li>
-      </ul>
     </p>
-
     <div class="modal-actions">
       <button class="btn-back" onclick="closeModal()">Close</button>
     </div>
