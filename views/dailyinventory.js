@@ -88,13 +88,7 @@ async function loadDailyInventory() {
     const res = await fetch(`${API_URL}?type=dailyInventory`);
     const data = await res.json();
 
-    if (!Array.isArray(data)) {
-      console.error("Invalid dailyInventory response:", data);
-      dailyInventory = [];
-    } else {
-      dailyInventory = data;
-    }
-
+    dailyInventory = Array.isArray(data) ? data : [];
     renderTable();
   } catch (err) {
     console.error(err);
@@ -126,24 +120,24 @@ function renderTable() {
     return;
   }
 
-filtered.forEach((d, i) => {
-  const dayKey = new Date(d.date).toLocaleDateString("en-CA");
+  filtered.forEach((d, i) => {
+    const dayKey = new Date(d.date).toLocaleDateString("en-CA");
 
-  tbody.innerHTML += `
-    <tr>
-      <td>${i + 1}</td>
-      <td>${new Date(d.date).toLocaleDateString()}</td>
-      <td>
-        <button class="btn-view"
-          onclick="viewDailyInventory('${dayKey}','${d.location}')">
-          View
-        </button>
-      </td>
-      <td>${d.location}</td>
-      <td>${d.created_by || "-"}</td>
-    </tr>
-  `;
-});
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${new Date(d.date).toLocaleDateString()}</td>
+        <td>
+          <button class="btn-view"
+            onclick="viewDailyInventory('${dayKey}','${d.location}')">
+            View
+          </button>
+        </td>
+        <td>${d.location}</td>
+        <td>${d.created_by || "-"}</td>
+      </tr>
+    `;
+  });
 }
 
 /* ================= VIEW DAILY INVENTORY ITEMS ================= */
@@ -185,8 +179,8 @@ window.viewDailyInventory = async function (date, location) {
                 : items.map(i => `
                     <tr>
                       <td>${i.item_name}</td>
-                      <td>${i.qty_added}</td>
-                      <td>${i.remaining}</td>
+                      <td>${Number(i.qty_added) || 0}</td>
+                      <td>${Number(i.remaining) || 0}</td>
                     </tr>
                   `).join("")
             }
