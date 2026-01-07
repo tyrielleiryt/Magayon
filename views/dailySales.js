@@ -10,7 +10,6 @@ function showLoader(text = "Loading…") {
   l.querySelector(".loader-text").textContent = text;
   l.classList.remove("hidden");
 }
-
 function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
@@ -20,15 +19,15 @@ export default function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
-  document.getElementById("salesDate").value =
-    new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById("salesDate").value = today;
 }
 
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
     <input type="date" id="salesDate" />
-    <input type="text" id="salesLocation" placeholder="Location (optional)" />
+    <input type="text" id="salesLocation" placeholder="Location ID (optional)" />
     <button class="category-action-btn" id="loadSalesBtn">
       Load Report
     </button>
@@ -40,21 +39,22 @@ function renderActionBar() {
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box" style="height:100%;display:flex;flex-direction:column">
+    <div class="data-box" style="display:flex;flex-direction:column;height:100%">
       
-      <div class="data-scroll" style="flex:1;overflow-y:auto">
+      <div class="data-scroll" style="flex:1;overflow-y:auto;">
         <table class="category-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Transaction</th>
+              <th>Transaction / Product</th>
+              <th>Qty</th>
               <th>Cashier</th>
               <th>Total</th>
             </tr>
           </thead>
           <tbody id="salesBody">
             <tr>
-              <td colspan="4" style="text-align:center;color:#888">
+              <td colspan="5" style="text-align:center;color:#888">
                 Select a date and click Load Report
               </td>
             </tr>
@@ -62,8 +62,8 @@ function renderLayout() {
         </table>
       </div>
 
-      <div class="inventory-summary">
-        <b>Gross Sales:</b> ₱<span id="sumGross">0.00</span>
+      <div class="inventory-summary" style="margin-top:12px">
+        <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
       </div>
     </div>
   `;
@@ -74,11 +74,16 @@ function renderLayout() {
 /* ================= LOAD SALES ================= */
 async function loadSales() {
   const date = document.getElementById("salesDate").value;
-  const location = document.getElementById("salesLocation").value.trim();
+  let location = document.getElementById("salesLocation").value;
 
-  if (!date) return alert("Select a date");
+  if (!date) {
+    alert("Select a date");
+    return;
+  }
 
-  showLoader("Loading sales…");
+  location = location ? location.trim() : "";
+
+  showLoader("Loading sales report…");
 
   try {
     let url = `${API_URL}?type=dailySalesReport&date=${date}`;
@@ -87,10 +92,18 @@ async function loadSales() {
     const res = await fetch(url);
     const orders = await res.json();
 
-    renderTable(Array.isArray(orders) ? orders : []);
+    if (!Array.isArray(orders)) {
+      console.warn("Unexpected response:", orders);
+      renderTable([]);
+      return;
+    }
+
+    renderTable(orders);
+
   } catch (err) {
     console.error(err);
-    alert("Failed to load sales");
+    alert("Failed to load report");
+    renderTable([]);
   } finally {
     hideLoader();
   }
@@ -101,22 +114,23 @@ function renderTable(orders) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
-  let gross = 0;
+  let grandTotal = 0;
 
   if (!orders.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="4" style="text-align:center;color:#888">
+        <td colspan="5" style="text-align:center;color:#888">
           No sales found
         </td>
       </tr>`;
-    updateTotal(0);
+    updateTotals(0);
     return;
   }
 
   orders.forEach((o, i) => {
-    gross += Number(o.total) || 0;
+    grandTotal += Number(o.total) || 0;
 
+    // 🔹 TRANSACTION HEADER
     tbody.innerHTML += `
       <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
@@ -124,30 +138,34 @@ function renderTable(orders) {
           ${o.ref_id}<br>
           <small>
             ${new Date(o.datetime).toLocaleString()}<br>
-            ${o.location}
+            ${o.location || ""}
           </small>
         </td>
-        <td>${o.cashier}</td>
+        <td></td>
+        <td>${o.cashier || "-"}</td>
         <td>₱${Number(o.total).toFixed(2)}</td>
       </tr>
     `;
 
-    o.items.forEach(it => {
+    // 🔸 PRODUCT ROWS
+    (o.items || []).forEach(item => {
       tbody.innerHTML += `
         <tr>
           <td></td>
-          <td>${it.product_name} × ${it.qty}</td>
+          <td>${item.product_name}</td>
+          <td>${item.qty}</td>
           <td></td>
-          <td>₱${Number(it.total).toFixed(2)}</td>
+          <td>₱${Number(item.total).toFixed(2)}</td>
         </tr>
       `;
     });
   });
 
-  updateTotal(gross);
+  updateTotals(grandTotal);
 }
 
-/* ================= TOTAL ================= */
-function updateTotal(v) {
-  document.getElementById("sumGross").textContent = Number(v).toFixed(2);
+/* ================= TOTALS ================= */
+function updateTotals(total) {
+  document.getElementById("sumGross").textContent =
+    Number(total).toFixed(2);
 }
