@@ -5,22 +5,16 @@ import { openModal, closeModal } from "./modal.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* =========================================================
-   LOADER HELPERS (STEP 4)
-========================================================= */
+/* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
   if (!loader) return;
-
   loader.querySelector(".loader-text").textContent = text;
   loader.classList.remove("hidden");
 }
 
 function hideLoader() {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-
-  loader.classList.add("hidden");
+  document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
 /* ================= STATE ================= */
@@ -49,13 +43,7 @@ function renderActionBar() {
   const actionBar = document.getElementById("actionBar");
 
   actionBar.innerHTML = `
-    <input
-      type="text"
-      id="inventorySearch"
-      placeholder="Search inventory..."
-      style="padding:8px;border-radius:6px;border:1px solid #bbb"
-    />
-
+    <input id="inventorySearch" placeholder="Search inventory..." />
     <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
     <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
     <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
@@ -75,9 +63,7 @@ function renderActionBar() {
 
 /* ================= TABLE LAYOUT ================= */
 function renderTableLayout() {
-  const contentBox = document.getElementById("contentBox");
-
-  contentBox.innerHTML = `
+  document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
         <table class="category-table">
@@ -95,18 +81,17 @@ function renderTableLayout() {
           <tbody id="inventoryTableBody"></tbody>
         </table>
       </div>
-      <div id="pagination" style="padding-top:10px;text-align:center;"></div>
+      <div id="pagination"></div>
     </div>
   `;
 
-  bindDataBoxScroll(contentBox.querySelector(".data-box"));
+  bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
   inventoryItems = await res.json();
-
   clearSelection();
   renderTable();
 }
@@ -118,7 +103,7 @@ function clearSelection() {
   document.getElementById("deleteItemBtn").disabled = true;
 }
 
-/* ================= RENDER TABLE ================= */
+/* ================= RENDER TABLE (✅ FIXED) ================= */
 function renderTable() {
   const tbody = document.getElementById("inventoryTableBody");
   const pagination = document.getElementById("pagination");
@@ -154,10 +139,10 @@ function renderTable() {
       <td>${start + i + 1}</td>
       <td>${item.item_name}</td>
       <td>${item.description || ""}</td>
-      <td>${item.quantity_per_serving || ""}</td>
-      <td>${item.capital}</td>
-      <td>${item.selling_price}</td>
-      <td>${item.unit || ""}</td>
+      <td>${item.quantity_per_serving ?? item.qty_per_serving ?? ""}</td>
+      <td>${item.capital ?? item.capital_cost ?? ""}</td>
+      <td>${item.selling_price ?? item.price ?? ""}</td>
+      <td>${item.unit ?? item.unit_name ?? ""}</td>
     `;
 
     tr.onclick = () => {
@@ -180,118 +165,11 @@ function renderTable() {
     btn.textContent = i;
     btn.className = "btn-view";
     if (i === currentPage) btn.style.background = "#f3c84b";
-
     btn.onclick = () => {
       currentPage = i;
       clearSelection();
       renderTable();
     };
-
     pagination.appendChild(btn);
   }
-}
-
-/* ================= ADD ================= */
-function openAddItemModal() {
-  openModal(`
-    <div class="modal-header">➕ Add Inventory Item</div>
-    <label>Item Name</label><input id="itemName">
-    <label>Description</label><textarea id="itemDesc"></textarea>
-    <label>Quantity per Serving</label><input type="number" id="itemQtyServing">
-    <label>Unit</label><input id="itemUnit">
-    <label>Capital</label><input type="number" id="itemCap">
-    <label>Selling Price</label><input type="number" id="itemPrice">
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveItem">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
-  `);
-
-  document.getElementById("saveItem").onclick = () => {
-    showLoader("Adding inventory item…");
-
-    new Image().src =
-      API_URL +
-      `?action=addInventoryItem` +
-      `&item_name=${encodeURIComponent(itemName.value)}` +
-      `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${itemCap.value}` +
-      `&selling_price=${itemPrice.value}` +
-      `&quantity_per_serving=${itemQtyServing.value}` +
-      `&unit=${encodeURIComponent(itemUnit.value)}`;
-
-    closeModal();
-    setTimeout(() => {
-      loadInventoryItems();
-      hideLoader();
-    }, 600);
-  };
-}
-
-/* ================= EDIT ================= */
-function openEditItemModal() {
-  if (!selected) return;
-
-  openModal(`
-    <div class="modal-header">✏️ Edit Inventory Item</div>
-    <label>Item Name</label><input id="itemName" value="${selected.item_name}">
-    <label>Description</label><textarea id="itemDesc">${selected.description || ""}</textarea>
-    <label>Quantity per Serving</label><input type="number" id="itemQtyServing" value="${selected.quantity_per_serving || ""}">
-    <label>Unit</label><input id="itemUnit" value="${selected.unit || ""}">
-    <label>Capital</label><input type="number" id="itemCap" value="${selected.capital}">
-    <label>Selling Price</label><input type="number" id="itemPrice" value="${selected.selling_price}">
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveEdit">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
-  `);
-
-  document.getElementById("saveEdit").onclick = () => {
-    showLoader("Saving changes…");
-
-    new Image().src =
-      API_URL +
-      `?action=editInventoryItem` +
-      `&rowIndex=${selected.rowIndex}` +
-      `&item_name=${encodeURIComponent(itemName.value)}` +
-      `&description=${encodeURIComponent(itemDesc.value)}` +
-      `&capital=${itemCap.value}` +
-      `&selling_price=${itemPrice.value}` +
-      `&quantity_per_serving=${itemQtyServing.value}` +
-      `&unit=${encodeURIComponent(itemUnit.value)}`;
-
-    closeModal();
-    setTimeout(() => {
-      loadInventoryItems();
-      hideLoader();
-    }, 600);
-  };
-}
-
-/* ================= DELETE ================= */
-function openDeleteItemModal() {
-  if (!selected) return;
-
-  openModal(`
-    <div class="modal-header danger">🗑️ Delete Inventory Item</div>
-    <p>Are you sure you want to delete <b>${selected.item_name}</b>?</p>
-    <div class="modal-actions">
-      <button class="btn-danger" id="confirmDelete">Delete</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-    </div>
-  `);
-
-  document.getElementById("confirmDelete").onclick = () => {
-    showLoader("Deleting item…");
-
-    new Image().src =
-      API_URL +
-      `?action=deleteInventoryItem&rowIndex=${selected.rowIndex}`;
-
-    closeModal();
-    setTimeout(() => {
-      loadInventoryItems();
-      hideLoader();
-    }, 600);
-  };
 }
