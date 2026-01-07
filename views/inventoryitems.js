@@ -48,18 +48,9 @@ function renderActionBar() {
     <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
   `;
 
-  // ✅ CRITICAL FIX — NO DIRECT FUNCTION REFERENCES
-  document.getElementById("addItemBtn").addEventListener("click", () => {
-    openAddItemModal();
-  });
-
-  document.getElementById("editItemBtn").addEventListener("click", () => {
-    openEditItemModal();
-  });
-
-  document.getElementById("deleteItemBtn").addEventListener("click", () => {
-    openDeleteItemModal();
-  });
+  document.getElementById("addItemBtn").addEventListener("click", openAddItemModal);
+  document.getElementById("editItemBtn").addEventListener("click", openEditItemModal);
+  document.getElementById("deleteItemBtn").addEventListener("click", openDeleteItemModal);
 
   document.getElementById("inventorySearch").oninput = e => {
     searchQuery = e.target.value.toLowerCase();
@@ -98,18 +89,21 @@ function renderTableLayout() {
 
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
-  const res = await fetch(API_URL + "?type=inventoryItems");
+  const res = await fetch(`${API_URL}?type=inventoryItems`);
   const rows = await res.json();
 
-  // ✅ FIX "undefined" — backend returns array rows
+  // ✅ NORMALIZE ROWS → OBJECTS (MATCHES SHEET EXACTLY)
   inventoryItems = rows.map(r => ({
     rowIndex: r[0],
+    item_id: r[0],
     item_name: r[1],
     description: r[2],
     quantity_per_serving: r[3],
     unit: r[4],
     capital: r[5],
-    selling_price: r[6]
+    selling_price: r[6],
+    reorder_level: r[7],
+    active: r[8]
   }));
 
   clearSelection();
@@ -131,8 +125,8 @@ function renderTable() {
   tbody.innerHTML = "";
   pagination.innerHTML = "";
 
-  const filtered = inventoryItems.filter(item =>
-    `${item.item_name} ${item.description || ""}`
+  const filtered = inventoryItems.filter(i =>
+    `${i.item_name} ${i.description || ""}`
       .toLowerCase()
       .includes(searchQuery)
   );
@@ -149,18 +143,18 @@ function renderTable() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
-  pageItems.forEach((item, i) => {
+  filtered.slice(start, start + PAGE_SIZE).forEach((item, i) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${start + i + 1}</td>
       <td>${item.item_name}</td>
       <td>${item.description || ""}</td>
-      <td>${item.quantity_per_serving || ""}</td>
-      <td>${item.capital || ""}</td>
-      <td>${item.selling_price || ""}</td>
-      <td>${item.unit || ""}</td>
+      <td>${item.quantity_per_serving}</td>
+      <td>${item.capital}</td>
+      <td>${item.selling_price}</td>
+      <td>${item.unit}</td>
     `;
 
     tr.onclick = () => {
@@ -200,16 +194,16 @@ function openAddItemModal() {
     <label>Capital</label><input type="number" id="itemCap">
     <label>Selling Price</label><input type="number" id="itemPrice">
     <div class="modal-actions">
-      <button class="btn-danger" id="saveItem">Save</button>
+      <button class="btn-danger" onclick="closeModal()">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>
   `);
 }
 
-/* placeholders to prevent crashes */
 function openEditItemModal() {
   if (!selected) return;
 }
+
 function openDeleteItemModal() {
   if (!selected) return;
 }
