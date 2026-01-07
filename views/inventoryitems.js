@@ -48,9 +48,9 @@ function renderActionBar() {
     <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
   `;
 
-  document.getElementById("addItemBtn").addEventListener("click", openAddItemModal);
-  document.getElementById("editItemBtn").addEventListener("click", openEditItemModal);
-  document.getElementById("deleteItemBtn").addEventListener("click", openDeleteItemModal);
+  document.getElementById("addItemBtn").onclick = openAddItemModal;
+  document.getElementById("editItemBtn").onclick = openEditItemModal;
+  document.getElementById("deleteItemBtn").onclick = openDeleteItemModal;
 
   document.getElementById("inventorySearch").oninput = e => {
     searchQuery = e.target.value.toLowerCase();
@@ -90,21 +90,39 @@ function renderTableLayout() {
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
   const res = await fetch(`${API_URL}?type=inventoryItems`);
-  const rows = await res.json();
+  const data = await res.json();
 
-  // ✅ NORMALIZE ROWS → OBJECTS (MATCHES SHEET EXACTLY)
-  inventoryItems = rows.map(r => ({
-    rowIndex: r[0],
-    item_id: r[0],
-    item_name: r[1],
-    description: r[2],
-    quantity_per_serving: r[3],
-    unit: r[4],
-    capital: r[5],
-    selling_price: r[6],
-    reorder_level: r[7],
-    active: r[8]
-  }));
+  inventoryItems = (Array.isArray(data) ? data : []).map(r => {
+    // ✅ OBJECT FORMAT (CURRENT BACKEND)
+    if (!Array.isArray(r)) {
+      return {
+        rowIndex: r.rowIndex || r.item_id,
+        item_id: r.item_id,
+        item_name: r.item_name,
+        description: r.description,
+        quantity_per_serving: r.quantity_per_serving,
+        unit: r.unit,
+        capital: r.capital,
+        selling_price: r.selling_price,
+        reorder_level: r.reorder_level,
+        active: r.active
+      };
+    }
+
+    // ✅ ARRAY FORMAT (BACKWARD SAFE)
+    return {
+      rowIndex: r[0],
+      item_id: r[0],
+      item_name: r[1],
+      description: r[2],
+      quantity_per_serving: r[3],
+      unit: r[4],
+      capital: r[5],
+      selling_price: r[6],
+      reorder_level: r[7],
+      active: r[8]
+    };
+  });
 
   clearSelection();
   renderTable();
@@ -187,15 +205,10 @@ function renderTable() {
 function openAddItemModal() {
   openModal(`
     <div class="modal-header">➕ Add Inventory Item</div>
-    <label>Item Name</label><input id="itemName">
-    <label>Description</label><textarea id="itemDesc"></textarea>
-    <label>Quantity per Serving</label><input type="number" id="itemQty">
-    <label>Unit</label><input id="itemUnit">
-    <label>Capital</label><input type="number" id="itemCap">
-    <label>Selling Price</label><input type="number" id="itemPrice">
+    <label>Item Name</label><input>
+    <label>Description</label><textarea></textarea>
     <div class="modal-actions">
-      <button class="btn-danger" onclick="closeModal()">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-back" onclick="closeModal()">Close</button>
     </div>
   `);
 }
@@ -203,7 +216,6 @@ function openAddItemModal() {
 function openEditItemModal() {
   if (!selected) return;
 }
-
 function openDeleteItemModal() {
   if (!selected) return;
 }
