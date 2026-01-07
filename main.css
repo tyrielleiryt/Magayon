@@ -348,6 +348,8 @@ html, body {
   padding: 6px;
 }
 
+
+
 /* Inventory row */
 .inventory-row {
   display: flex;
@@ -446,14 +448,3 @@ html, body {
   }
 }
 
-/* Daily Sales Report Scroll Fix */
-.data-box {
-  max-height: calc(100vh - 180px);
-  display: flex;
-  flex-direction: column;
-}
-
-.data-scroll {
-  flex: 1;
-  overflow-y: auto;
-}
