@@ -71,42 +71,50 @@ function renderLayout() {
   bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
-/* ================= LOAD SALES ================= */
-async function loadSales() {
+/* ================= LOAD SALES (JSONP FIX) ================= */
+function loadSales() {
   const date = document.getElementById("salesDate").value;
-  let location = document.getElementById("salesLocation").value;
+  let location = document.getElementById("salesLocation").value || "";
 
   if (!date) {
     alert("Select a date");
     return;
   }
 
-  location = location ? location.trim() : "";
-
+  location = location.trim();
   showLoader("Loading sales report…");
 
-  try {
-    let url = `${API_URL}?type=dailySalesReport&date=${date}`;
-    if (location) url += `&location=${encodeURIComponent(location)}`;
+  // 🔥 JSONP CALLBACK (ONE-LINE CONCEPT FIX)
+  const callback = "handleDailySalesReport";
 
-    const res = await fetch(url);
-    const orders = await res.json();
+  // cleanup old callback if any
+  delete window[callback];
 
-    if (!Array.isArray(orders)) {
-      console.warn("Unexpected response:", orders);
-      renderTable([]);
-      return;
+  window[callback] = function (orders) {
+    try {
+      if (!Array.isArray(orders)) {
+        console.warn("Unexpected response:", orders);
+        renderTable([]);
+      } else {
+        renderTable(orders);
+      }
+    } finally {
+      hideLoader();
     }
+  };
 
-    renderTable(orders);
+  // remove old script if exists
+  const old = document.getElementById("salesJsonpScript");
+  if (old) old.remove();
 
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load report");
-    renderTable([]);
-  } finally {
-    hideLoader();
-  }
+  const script = document.createElement("script");
+  script.id = "salesJsonpScript";
+  script.src =
+    `${API_URL}?type=dailySalesReport&date=${date}` +
+    (location ? `&location=${encodeURIComponent(location)}` : "") +
+    `&callback=${callback}`;
+
+  document.body.appendChild(script);
 }
 
 /* ================= RENDER ================= */
