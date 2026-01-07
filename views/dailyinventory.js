@@ -169,8 +169,8 @@ window.viewDailyInventory = async function (date, location) {
         <table class="inventory-table">
           <thead>
             <tr>
-              <th>Item ID</th>
-              <th>Qty Added</th>
+              <th>Item</th>
+              <th>Total Added</th>
               <th>Remaining</th>
             </tr>
           </thead>
@@ -184,7 +184,7 @@ window.viewDailyInventory = async function (date, location) {
                    </tr>`
                 : items.map(i => `
                     <tr>
-                      <td>${i.item_id}</td>
+                      <td>${i.item_name}</td>
                       <td>${i.qty_added}</td>
                       <td>${i.remaining}</td>
                     </tr>
