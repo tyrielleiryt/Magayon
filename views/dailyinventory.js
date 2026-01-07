@@ -208,8 +208,8 @@ async function openAddTodayModal() {
 
   try {
     [inventoryItems, locations] = await Promise.all([
-      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
-      fetch(`${API_URL}?type=locations`).then(r => r.json())
+      fetch(`${API_URL}?type=inventoryItems&callback=?`).then(r => r.json()),
+      fetch(`${API_URL}?type=locations&callback=?`).then(r => r.json())
     ]);
 
     locations = locations.filter(l => l.active);
