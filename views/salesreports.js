@@ -170,23 +170,23 @@ window.viewDailySales = async function (date, location) {
             </tr>
           </thead>
           <tbody>
-            ${
-              !orders.length
-                ? `<tr>
-                     <td colspan="4" style="text-align:center;color:#888">
-                       No transactions
-                     </td>
-                   </tr>`
-                : orders.map(o => `
-                    <tr>
-                      <td>${new Date(o.datetime).toLocaleTimeString()}</td>
-                      <td>${o.ref_id}</td>
-                      <td>${o.cashier_name}</td>
-                      <td>₱${o.total.toFixed(2)}</td>
-                    </tr>
-                  `).join("")
-            }
-          </tbody>
+  ${
+    !orders.length
+      ? `<tr>
+           <td colspan="4" style="text-align:center;color:#888">
+             No transactions
+           </td>
+         </tr>`
+      : orders.map(o => `
+          <tr>
+            <td>${new Date(o.datetime).toLocaleTimeString()}</td>
+            <td>${o.ref_id}</td>
+            <td>${o.cashier}</td>
+            <td>₱${o.total.toFixed(2)}</td>
+          </tr>
+        `).join("")
+  }
+</tbody>
         </table>
       </div>
 
