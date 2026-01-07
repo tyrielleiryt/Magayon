@@ -119,7 +119,9 @@ async function refreshInventory() {
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
-  if (!recipe || !recipe.length) return false;
+
+  // ✅ Allow products with NO recipe (services, drinks, etc.)
+  if (!recipe || !recipe.length) return true;
 
   return recipe.every(r => {
     const available = inventory[r.item_id] ?? 0;
