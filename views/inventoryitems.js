@@ -91,11 +91,22 @@ function renderTableLayout() {
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
   const res = await fetch(API_URL + "?type=inventoryItems");
-  inventoryItems = await res.json();
+  const rows = await res.json();
+
+  // 🔒 NORMALIZE ARRAY ROWS → OBJECTS (BACKWARD SAFE)
+  inventoryItems = rows.map(r => ({
+    rowIndex: r[0],
+    item_name: r[1],
+    description: r[2],
+    quantity_per_serving: r[3],
+    unit: r[4],
+    capital: r[5],
+    selling_price: r[6]
+  }));
+
   clearSelection();
   renderTable();
 }
-
 /* ================= HELPERS ================= */
 function clearSelection() {
   selected = null;
