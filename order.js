@@ -99,13 +99,15 @@ async function refreshInventory() {
   inventory = {};
 
   if (!Array.isArray(inventoryRows)) {
-    console.warn("No daily inventory found for today/location");
+    console.warn("⚠️ No daily inventory found");
     return;
   }
 
   inventoryRows.forEach(r => {
-    inventory[r.item_id] = Number(r.remaining) || 0;
+    inventory[String(r.item_id).trim()] = Number(r.remaining) || 0;
   });
+
+  console.log("✅ POS INVENTORY MAP:", inventory);
 }
 
 /* =========================================================
