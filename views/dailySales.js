@@ -10,6 +10,7 @@ function showLoader(text = "Loading…") {
   l.querySelector(".loader-text").textContent = text;
   l.classList.remove("hidden");
 }
+
 function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
@@ -19,6 +20,7 @@ export default function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
+  // default to today
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
 }
@@ -39,8 +41,9 @@ function renderActionBar() {
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box">
-      <div class="data-scroll" style="max-height:65vh; overflow-y:auto;">
+    <div class="data-box" style="display:flex;flex-direction:column;height:100%">
+      
+      <div class="data-scroll" style="flex:1;overflow-y:auto;">
         <table class="category-table">
           <thead>
             <tr>
@@ -65,6 +68,7 @@ function renderLayout() {
       <div class="inventory-summary" style="margin-top:12px">
         <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
       </div>
+
     </div>
   `;
 
@@ -76,7 +80,10 @@ async function loadSales() {
   const date = document.getElementById("salesDate").value;
   const location = document.getElementById("salesLocation").value.trim();
 
-  if (!date) return alert("Select a date");
+  if (!date) {
+    alert("Select a date");
+    return;
+  }
 
   showLoader("Loading sales report…");
 
@@ -86,10 +93,20 @@ async function loadSales() {
     );
 
     const data = await res.json();
+
+    // 🔒 HARD SAFETY — never break UI
+    if (!Array.isArray(data)) {
+      console.warn("Unexpected sales response:", data);
+      renderTable([]);
+      return;
+    }
+
     renderTable(data);
+
   } catch (err) {
     console.error(err);
     alert("Failed to load report");
+    renderTable([]);
   } finally {
     hideLoader();
   }
@@ -102,7 +119,7 @@ function renderTable(orders) {
 
   let grandTotal = 0;
 
-  if (!Array.isArray(orders) || !orders.length) {
+  if (!orders.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align:center;color:#888">
@@ -114,31 +131,34 @@ function renderTable(orders) {
   }
 
   orders.forEach((o, i) => {
-    grandTotal += o.total;
+    grandTotal += Number(o.total) || 0;
 
-    // 🔹 Transaction header row
+    // 🔹 TRANSACTION HEADER
     tbody.innerHTML += `
       <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
         <td colspan="2">
           ${o.ref_id}<br>
-          <small>${new Date(o.datetime).toLocaleString()}</small>
+          <small>
+            ${new Date(o.datetime).toLocaleString()}<br>
+            ${o.location || ""}
+          </small>
         </td>
-        <td>${o.cashier}</td>
-        <td>₱${o.total.toFixed(2)}</td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${Number(o.total).toFixed(2)}</td>
         <td></td>
       </tr>
     `;
 
-    // 🔸 Product rows
-    o.items.forEach(item => {
+    // 🔸 PRODUCT ROWS
+    (o.items || []).forEach(item => {
       tbody.innerHTML += `
         <tr>
           <td></td>
           <td>${item.product_name}</td>
           <td>${item.qty}</td>
           <td></td>
-          <td>₱${item.total.toFixed(2)}</td>
+          <td>₱${Number(item.total).toFixed(2)}</td>
           <td></td>
         </tr>
       `;
@@ -150,5 +170,6 @@ function renderTable(orders) {
 
 /* ================= TOTALS ================= */
 function updateTotals(total) {
-  document.getElementById("sumGross").textContent = total.toFixed(2);
+  document.getElementById("sumGross").textContent =
+    Number(total).toFixed(2);
 }

@@ -446,3 +446,7 @@ html, body {
   }
 }
 
+.data-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
