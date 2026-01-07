@@ -40,7 +40,7 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
-      <div class="data-scroll">
+      <div class="data-scroll" style="max-height:65vh; overflow-y:auto;">
         <table class="category-table">
           <thead>
             <tr>
