@@ -127,7 +127,7 @@ function renderTable() {
   }
 
   filtered.forEach((d, i) => {
-    const dayKey = new Date(d.date).toISOString().slice(0, 10);
+    const dayKey = d.date.slice(0, 10);
 
     tbody.innerHTML += `
       <tr>
@@ -162,7 +162,7 @@ window.viewDailyInventory = async function (date, location) {
     openModal(
       `
       <div class="modal-header">
-        Inventory — ${new Date(date).toLocaleDateString()}
+        Inventory — ${date}
       </div>
 
       <div class="inventory-scroll">
