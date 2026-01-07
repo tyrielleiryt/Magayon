@@ -290,3 +290,6 @@ async function checkoutPOS() {
     hideLoader();
   }
 }
+
+// ✅ BACKWARD COMPATIBILITY FIX
+window.checkoutOrder = checkoutPOS;
