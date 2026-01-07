@@ -1,5 +1,4 @@
 import { bindDataBoxScroll } from "../admin.js";
-import { openModal, closeModal } from "./modal.js";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
@@ -46,11 +45,11 @@ function renderLayout() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Product</th>
-              <th>Qty Sold</th>
-              <th>Gross</th>
-              <th>Capital</th>
-              <th>Net</th>
+              <th>Product / Transaction</th>
+              <th>Qty</th>
+              <th>Cashier</th>
+              <th>Total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="salesBody">
@@ -64,9 +63,7 @@ function renderLayout() {
       </div>
 
       <div class="inventory-summary" style="margin-top:12px">
-        <div>Gross: ₱<span id="sumGross">0.00</span></div>
-        <div>Capital: ₱<span id="sumCapital">0.00</span></div>
-        <div><b>Net:</b> ₱<span id="sumNet">0.00</span></div>
+        <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
       </div>
     </div>
   `;
@@ -99,48 +96,59 @@ async function loadSales() {
 }
 
 /* ================= RENDER ================= */
-function renderTable(rows) {
+function renderTable(orders) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
-  let gross = 0, capital = 0, net = 0;
+  let grandTotal = 0;
 
-  if (!rows.length) {
+  if (!Array.isArray(orders) || !orders.length) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align:center;color:#888">
           No sales found
         </td>
       </tr>`;
-    updateTotals(0, 0, 0);
+    updateTotals(0);
     return;
   }
 
-  rows.forEach((r, i) => {
-    gross += r.gross;
-    capital += r.capital;
-    net += r.net;
+  orders.forEach((o, i) => {
+    grandTotal += o.total;
 
+    // 🔹 Transaction header row
     tbody.innerHTML += `
-      <tr>
+      <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
-        <td>${r.product_name}</td>
-        <td>${r.qty}</td>
-        <td>₱${r.gross.toFixed(2)}</td>
-        <td>₱${r.capital.toFixed(2)}</td>
-        <td style="color:${r.net >= 0 ? "#1b8f3c" : "#c0392b"}">
-          ₱${r.net.toFixed(2)}
+        <td colspan="2">
+          ${o.ref_id}<br>
+          <small>${new Date(o.datetime).toLocaleString()}</small>
         </td>
+        <td>${o.cashier}</td>
+        <td>₱${o.total.toFixed(2)}</td>
+        <td></td>
       </tr>
     `;
+
+    // 🔸 Product rows
+    o.items.forEach(item => {
+      tbody.innerHTML += `
+        <tr>
+          <td></td>
+          <td>${item.product_name}</td>
+          <td>${item.qty}</td>
+          <td></td>
+          <td>₱${item.total.toFixed(2)}</td>
+          <td></td>
+        </tr>
+      `;
+    });
   });
 
-  updateTotals(gross, capital, net);
+  updateTotals(grandTotal);
 }
 
 /* ================= TOTALS ================= */
-function updateTotals(g, c, n) {
-  document.getElementById("sumGross").textContent = g.toFixed(2);
-  document.getElementById("sumCapital").textContent = c.toFixed(2);
-  document.getElementById("sumNet").textContent = n.toFixed(2);
+function updateTotals(total) {
+  document.getElementById("sumGross").textContent = total.toFixed(2);
 }
