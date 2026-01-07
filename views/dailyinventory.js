@@ -16,7 +16,6 @@ function showLoader(text = "Loading…") {
   l.querySelector(".loader-text").textContent = text;
   l.classList.remove("hidden");
 }
-
 function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
@@ -86,10 +85,16 @@ async function loadDailyInventory() {
 
   try {
     const res = await fetch(`${API_URL}?type=dailyInventory`);
-    const data = await res.json();
+const data = await res.json();
 
-    dailyInventory = Array.isArray(data) ? data : [];
-    renderTable();
+if (!Array.isArray(data)) {
+  console.error("Invalid dailyInventory response:", data);
+  dailyInventory = [];
+} else {
+  dailyInventory = data;
+}
+
+renderTable();
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory");
@@ -121,15 +126,16 @@ function renderTable() {
   }
 
   filtered.forEach((d, i) => {
-    const dayKey = new Date(d.date).toLocaleDateString("en-CA");
-
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${new Date(d.date).toLocaleDateString()}</td>
         <td>
           <button class="btn-view"
-            onclick="viewDailyInventory('${dayKey}','${d.location}')">
+            onclick="viewDailyInventory(
+  '${new Date(d.date).toISOString().slice(0,10)}',
+  '${d.location}'
+)"
             View
           </button>
         </td>
@@ -146,7 +152,7 @@ window.viewDailyInventory = async function (date, location) {
 
   try {
     const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems` +
+      `${API_URL}?type=dailyRemainingInventory` +
       `&date=${encodeURIComponent(date)}` +
       `&location=${encodeURIComponent(location)}`
     );
@@ -156,7 +162,7 @@ window.viewDailyInventory = async function (date, location) {
     openModal(
       `
       <div class="modal-header">
-        Inventory — ${date}
+        Inventory — ${new Date(date).toLocaleDateString()}
       </div>
 
       <div class="inventory-scroll">
@@ -164,7 +170,6 @@ window.viewDailyInventory = async function (date, location) {
           <thead>
             <tr>
               <th>Item</th>
-              <th>Total Added</th>
               <th>Remaining</th>
             </tr>
           </thead>
@@ -172,17 +177,20 @@ window.viewDailyInventory = async function (date, location) {
             ${
               !Array.isArray(items) || !items.length
                 ? `<tr>
-                     <td colspan="3" style="text-align:center;color:#888">
+                     <td colspan="2" style="text-align:center;color:#888">
                        No data
                      </td>
                    </tr>`
-                : items.map(i => `
-                    <tr>
-                      <td>${i.item_name}</td>
-                      <td>${Number(i.qty_added) || 0}</td>
-                      <td>${Number(i.remaining) || 0}</td>
-                    </tr>
-                  `).join("")
+                : items
+                    .map(
+                      i => `
+                      <tr>
+                        <td>${i.item_id}</td>
+                        <td>${i.remaining}</td>
+                      </tr>
+                    `
+                    )
+                    .join("")
             }
           </tbody>
         </table>
@@ -220,13 +228,18 @@ async function openAddTodayModal() {
 
       <label>Location</label>
       <select id="dailyLocation">
-        ${locations.map(
-          l => `<option value="${l.location_id}">${l.location_name}</option>`
-        ).join("")}
+        ${locations
+          .map(
+            l =>
+              `<option value="${l.location_id}">${l.location_name}</option>`
+          )
+          .join("")}
       </select>
 
       <div style="max-height:320px;overflow:auto;margin-top:12px">
-        ${inventoryItems.map(i => `
+        ${inventoryItems
+          .map(
+            i => `
           <div style="display:flex;gap:10px;margin-bottom:6px">
             <div style="flex:1">${i.item_name}</div>
             <input type="number" min="0"
@@ -234,7 +247,9 @@ async function openAddTodayModal() {
               style="width:90px"
               placeholder="Qty">
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
       </div>
 
       <div class="modal-actions">
@@ -246,6 +261,7 @@ async function openAddTodayModal() {
     );
 
     document.getElementById("saveDaily").onclick = saveDailyInventory;
+
   } catch (err) {
     console.error(err);
     alert("Failed to load data");

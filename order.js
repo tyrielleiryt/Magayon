@@ -15,16 +15,6 @@ if (!LOCATION || !STAFF_ID) {
   window.location.replace("index.html");
 }
 
-/* =========================================================
-   STATE (⚠️ MUST BE FIRST)
-========================================================= */
-let products = [];
-let categories = [];
-let recipes = {};        // product_id → recipe[]
-let inventory = {};      // item_id → remaining
-let cart = [];
-let activeCategoryId = null;
-
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
@@ -38,6 +28,16 @@ function hideLoader() {
 }
 
 /* =========================================================
+   STATE
+========================================================= */
+let products = [];
+let categories = [];
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining
+let cart = [];
+let activeCategoryId = null;
+
+/* =========================================================
    INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
@@ -48,14 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   showLoader("Loading POS data…");
 
   try {
-    await refreshInventory();
-
-    // 🔐 HARD INVENTORY GUARD (SAFE LOCATION)
-    if (!Object.keys(inventory).length) {
-      alert("⚠️ Inventory not loaded. Please check Daily Inventory.");
-      throw new Error("POS_BLOCKED_NO_INVENTORY");
-    }
-
+    await loadAllData();
     renderCategories();
     renderProducts();
     renderCart();
@@ -80,9 +73,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* =========================================================
-   LOAD + REFRESH INVENTORY (CRITICAL)
+   LOAD ALL DATA
 ========================================================= */
-async function refreshInventory() {
+async function loadAllData() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [
@@ -94,37 +87,36 @@ async function refreshInventory() {
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`).then(r => r.json())
+    fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    ).then(r => r.json())
   ]);
 
   categories = Array.isArray(categoriesData) ? categoriesData : [];
   products = Array.isArray(productsData) ? productsData : [];
   recipes = recipesData || {};
+
   inventory = {};
 
   if (!Array.isArray(inventoryRows)) {
-    console.warn("⚠️ No daily inventory found");
+    console.error("Invalid inventory response:", inventoryRows);
     return;
   }
 
   inventoryRows.forEach(r => {
-    inventory[String(r.item_id).trim()] = Number(r.remaining) || 0;
+    inventory[r.item_id] = Number(r.remaining) || 0;
   });
-
-  console.log("✅ POS INVENTORY MAP:", inventory);
 }
 
 /* =========================================================
-   INVENTORY CHECK (RECIPE-BASED)
+   INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
-
-  // ✅ Allow products with NO recipe (services, drinks, etc.)
-  if (!recipe || !recipe.length) return true;
+  if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
-    const available = inventory[r.item_id] ?? 0;
+    const available = inventory[r.item_id] || 0;
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
   });
@@ -151,7 +143,8 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".category-btn")
+      .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
@@ -169,17 +162,22 @@ function renderProducts(search = "") {
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
-    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
+    .filter(p =>
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
+    )
     .forEach(p => {
       const disabled = !canSell(p);
-      const img = p.image_url?.trim() || "images/placeholder.png";
+      const img = p.image_url?.trim()
+        ? p.image_url
+        : "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
         <div class="product-img">
-          <img src="${img}" loading="lazy" onerror="this.src='images/placeholder.png'">
+          <img src="${img}" loading="lazy"
+               onerror="this.src='images/placeholder.png'">
         </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
@@ -272,10 +270,12 @@ async function checkoutPOS() {
     const res = await fetch(`${API_URL}?${qs}`);
     const data = await res.json();
 
-    if (!data.success) throw new Error(data.error || "Checkout failed");
+    if (!data.success) {
+      throw new Error(data.error || "Checkout failed");
+    }
 
     cart = [];
-    await refreshInventory();
+    await loadAllData();
     renderProducts();
     renderCart();
 
@@ -288,6 +288,3 @@ async function checkoutPOS() {
     hideLoader();
   }
 }
-
-// ✅ BACKWARD COMPATIBILITY
-window.checkoutOrder = checkoutPOS;
