@@ -88,9 +88,14 @@ async function loadSales() {
   showLoader("Loading sales report…");
 
   try {
-    const res = await fetch(
-      `${API_URL}?type=dailySalesReport&date=${date}&location=${encodeURIComponent(location)}`
-    );
+    
+    let url = `${API_URL}?type=dailySalesReport&date=${date}`;
+
+if (location) {
+  url += `&location=${encodeURIComponent(location)}`;
+}
+
+const res = await fetch(url);
 
     const data = await res.json();
 
