@@ -20,9 +20,8 @@ export default function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
-  // default to today
-  const today = new Date().toISOString().slice(0, 10);
-  document.getElementById("salesDate").value = today;
+  document.getElementById("salesDate").value =
+    new Date().toISOString().slice(0, 10);
 }
 
 /* ================= ACTION BAR ================= */
@@ -41,23 +40,21 @@ function renderActionBar() {
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box" style="display:flex;flex-direction:column;height:100%">
+    <div class="data-box" style="height:100%;display:flex;flex-direction:column">
       
-      <div class="data-scroll" style="flex:1;overflow-y:auto;">
+      <div class="data-scroll" style="flex:1;overflow-y:auto">
         <table class="category-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Product / Transaction</th>
-              <th>Qty</th>
+              <th>Transaction</th>
               <th>Cashier</th>
               <th>Total</th>
-              <th></th>
             </tr>
           </thead>
           <tbody id="salesBody">
             <tr>
-              <td colspan="6" style="text-align:center;color:#888">
+              <td colspan="4" style="text-align:center;color:#888">
                 Select a date and click Load Report
               </td>
             </tr>
@@ -65,10 +62,9 @@ function renderLayout() {
         </table>
       </div>
 
-      <div class="inventory-summary" style="margin-top:12px">
-        <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
+      <div class="inventory-summary">
+        <b>Gross Sales:</b> ₱<span id="sumGross">0.00</span>
       </div>
-
     </div>
   `;
 
@@ -80,38 +76,21 @@ async function loadSales() {
   const date = document.getElementById("salesDate").value;
   const location = document.getElementById("salesLocation").value.trim();
 
-  if (!date) {
-    alert("Select a date");
-    return;
-  }
+  if (!date) return alert("Select a date");
 
-  showLoader("Loading sales report…");
+  showLoader("Loading sales…");
 
   try {
-    
     let url = `${API_URL}?type=dailySalesReport&date=${date}`;
+    if (location) url += `&location=${encodeURIComponent(location)}`;
 
-if (location) {
-  url += `&location=${encodeURIComponent(location)}`;
-}
+    const res = await fetch(url);
+    const orders = await res.json();
 
-const res = await fetch(url);
-
-    const data = await res.json();
-
-    // 🔒 HARD SAFETY — never break UI
-    if (!Array.isArray(data)) {
-      console.warn("Unexpected sales response:", data);
-      renderTable([]);
-      return;
-    }
-
-    renderTable(data);
-
+    renderTable(Array.isArray(orders) ? orders : []);
   } catch (err) {
     console.error(err);
-    alert("Failed to load report");
-    renderTable([]);
+    alert("Failed to load sales");
   } finally {
     hideLoader();
   }
@@ -122,59 +101,53 @@ function renderTable(orders) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
-  let grandTotal = 0;
+  let gross = 0;
 
   if (!orders.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align:center;color:#888">
+        <td colspan="4" style="text-align:center;color:#888">
           No sales found
         </td>
       </tr>`;
-    updateTotals(0);
+    updateTotal(0);
     return;
   }
 
   orders.forEach((o, i) => {
-    grandTotal += Number(o.total) || 0;
+    gross += Number(o.total) || 0;
 
-    // 🔹 TRANSACTION HEADER
     tbody.innerHTML += `
       <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
-        <td colspan="2">
+        <td>
           ${o.ref_id}<br>
           <small>
             ${new Date(o.datetime).toLocaleString()}<br>
-            ${o.location || ""}
+            ${o.location}
           </small>
         </td>
-        <td>${o.cashier || "-"}</td>
+        <td>${o.cashier}</td>
         <td>₱${Number(o.total).toFixed(2)}</td>
-        <td></td>
       </tr>
     `;
 
-    // 🔸 PRODUCT ROWS
-    (o.items || []).forEach(item => {
+    o.items.forEach(it => {
       tbody.innerHTML += `
         <tr>
           <td></td>
-          <td>${item.product_name}</td>
-          <td>${item.qty}</td>
+          <td>${it.product_name} × ${it.qty}</td>
           <td></td>
-          <td>₱${Number(item.total).toFixed(2)}</td>
-          <td></td>
+          <td>₱${Number(it.total).toFixed(2)}</td>
         </tr>
       `;
     });
   });
 
-  updateTotals(grandTotal);
+  updateTotal(gross);
 }
 
-/* ================= TOTALS ================= */
-function updateTotals(total) {
-  document.getElementById("sumGross").textContent =
-    Number(total).toFixed(2);
+/* ================= TOTAL ================= */
+function updateTotal(v) {
+  document.getElementById("sumGross").textContent = Number(v).toFixed(2);
 }
