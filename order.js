@@ -15,6 +15,16 @@ if (!LOCATION || !STAFF_ID) {
   window.location.replace("index.html");
 }
 
+/* =========================================================
+   STATE (⚠️ MUST BE FIRST)
+========================================================= */
+let products = [];
+let categories = [];
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining
+let cart = [];
+let activeCategoryId = null;
+
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
@@ -28,16 +38,6 @@ function hideLoader() {
 }
 
 /* =========================================================
-   STATE
-========================================================= */
-let products = [];
-let categories = [];
-let recipes = {};        // product_id → recipe[]
-let inventory = {};      // item_id → remaining
-let cart = [];
-let activeCategoryId = null;
-
-/* =========================================================
    INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
@@ -49,6 +49,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     await refreshInventory();
+
+    // 🔐 HARD INVENTORY GUARD (SAFE LOCATION)
+    if (!Object.keys(inventory).length) {
+      alert("⚠️ Inventory not loaded. Please check Daily Inventory.");
+      throw new Error("POS_BLOCKED_NO_INVENTORY");
+    }
+
     renderCategories();
     renderProducts();
     renderCart();
@@ -87,15 +94,12 @@ async function refreshInventory() {
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(
-      `${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`
-    ).then(r => r.json())
+    fetch(`${API_URL}?type=dailyRemainingInventory&date=${today}&location=${LOCATION}`).then(r => r.json())
   ]);
 
   categories = Array.isArray(categoriesData) ? categoriesData : [];
   products = Array.isArray(productsData) ? productsData : [];
   recipes = recipesData || {};
-
   inventory = {};
 
   if (!Array.isArray(inventoryRows)) {
@@ -145,8 +149,7 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn")
-      .forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
@@ -164,22 +167,17 @@ function renderProducts(search = "") {
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
-    .filter(p =>
-      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
-    )
+    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
     .forEach(p => {
       const disabled = !canSell(p);
-      const img = p.image_url?.trim()
-        ? p.image_url
-        : "images/placeholder.png";
+      const img = p.image_url?.trim() || "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
         <div class="product-img">
-          <img src="${img}" loading="lazy"
-               onerror="this.src='images/placeholder.png'">
+          <img src="${img}" loading="lazy" onerror="this.src='images/placeholder.png'">
         </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
@@ -272,9 +270,7 @@ async function checkoutPOS() {
     const res = await fetch(`${API_URL}?${qs}`);
     const data = await res.json();
 
-    if (!data.success) {
-      throw new Error(data.error || "Checkout failed");
-    }
+    if (!data.success) throw new Error(data.error || "Checkout failed");
 
     cart = [];
     await refreshInventory();
@@ -291,3 +287,5 @@ async function checkoutPOS() {
   }
 }
 
+// ✅ BACKWARD COMPATIBILITY
+window.checkoutOrder = checkoutPOS;
