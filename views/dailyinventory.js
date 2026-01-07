@@ -126,24 +126,24 @@ function renderTable() {
     return;
   }
 
-  filtered.forEach((d, i) => {
-    const dayKey = d.date.slice(0, 10);
+filtered.forEach((d, i) => {
+  const dayKey = new Date(d.date).toLocaleDateString("en-CA");
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${new Date(d.date).toLocaleDateString()}</td>
-        <td>
-          <button class="btn-view"
-            onclick="viewDailyInventory('${dayKey}','${d.location}')">
-            View
-          </button>
-        </td>
-        <td>${d.location}</td>
-        <td>${d.created_by || "-"}</td>
-      </tr>
-    `;
-  });
+  tbody.innerHTML += `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${new Date(d.date).toLocaleDateString()}</td>
+      <td>
+        <button class="btn-view"
+          onclick="viewDailyInventory('${dayKey}','${d.location}')">
+          View
+        </button>
+      </td>
+      <td>${d.location}</td>
+      <td>${d.created_by || "-"}</td>
+    </tr>
+  `;
+});
 }
 
 /* ================= VIEW DAILY INVENTORY ITEMS ================= */
@@ -152,7 +152,7 @@ window.viewDailyInventory = async function (date, location) {
 
   try {
     const res = await fetch(
-      `${API_URL}?type=dailyRemainingInventory` +
+      `${API_URL}?type=dailyInventoryItems` +
       `&date=${encodeURIComponent(date)}` +
       `&location=${encodeURIComponent(location)}`
     );
@@ -169,7 +169,8 @@ window.viewDailyInventory = async function (date, location) {
         <table class="inventory-table">
           <thead>
             <tr>
-              <th>Item</th>
+              <th>Item ID</th>
+              <th>Qty Added</th>
               <th>Remaining</th>
             </tr>
           </thead>
@@ -177,13 +178,14 @@ window.viewDailyInventory = async function (date, location) {
             ${
               !Array.isArray(items) || !items.length
                 ? `<tr>
-                     <td colspan="2" style="text-align:center;color:#888">
+                     <td colspan="3" style="text-align:center;color:#888">
                        No data
                      </td>
                    </tr>`
                 : items.map(i => `
                     <tr>
                       <td>${i.item_id}</td>
+                      <td>${i.qty_added}</td>
                       <td>${i.remaining}</td>
                     </tr>
                   `).join("")
