@@ -27,11 +27,6 @@ function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
-if (!Object.keys(inventory).length) {
-  alert("⚠️ Inventory not loaded. Please check Daily Inventory.");
-  throw new Error("POS_BLOCKED_NO_INVENTORY");
-}
-
 /* =========================================================
    STATE
 ========================================================= */
@@ -296,5 +291,3 @@ async function checkoutPOS() {
   }
 }
 
-// ✅ BACKWARD COMPATIBILITY FIX
-window.checkoutOrder = checkoutPOS;
