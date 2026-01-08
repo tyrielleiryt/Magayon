@@ -188,3 +188,21 @@ function updateTotals(total) {
   document.getElementById("sumGross").textContent =
     Number(total).toFixed(2);
 }
+
+/* ================= DATE FORMAT HELPER ================= */
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  // already a Date object
+  if (value instanceof Date && !isNaN(value)) {
+    return value.toLocaleString();
+  }
+
+  // ISO string or timestamp
+  const d = new Date(value);
+  if (!isNaN(d)) {
+    return d.toLocaleString();
+  }
+
+  return "-";
+}
