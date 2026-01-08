@@ -74,7 +74,7 @@ html, body {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ================= ACTION BAR ================= */
@@ -456,4 +456,24 @@ html, body {
 .data-box,
 .data-scroll {
   min-height: 0;
+}
+
+/* ✅ FORCE CONTENT AREA TO BE SCROLLABLE */
+#contentBox {
+  height: calc(100vh - 140px); /* adjust header size if needed */
+  display: flex;
+  flex-direction: column;
+}
+
+.data-box {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.data-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
