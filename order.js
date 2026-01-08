@@ -306,6 +306,11 @@ let pendingPayment = null;
 
 function openPaymentModal(total) {
   pendingPayment = { total };
+  
+paidValue = "0";
+document.getElementById("paidDisplay").textContent = "₱0.00";
+document.getElementById("changeAmount").textContent = "₱0.00";
+
 
   document.getElementById("payTotal").textContent =
     `₱${Number(total).toFixed(2)}`;
@@ -337,7 +342,7 @@ document.getElementById("amountPaid")?.addEventListener("input", e => {
 });
 
 function confirmPayment() {
-  const paid = Number(document.getElementById("amountPaid").value);
+  const paid = Number(paidValue);
   const method = document.getElementById("paymentMethod").value;
   const ref = document.getElementById("gcashRef").value || "";
   const total = pendingPayment?.total || 0;
@@ -360,4 +365,35 @@ function confirmPayment() {
 
   // ✅ NOW perform the real checkout
   checkoutPOS();
+}
+
+let paidValue = "0";
+
+function keypadInput(val) {
+  if (val === "." && paidValue.includes(".")) return;
+
+  if (paidValue === "0" && val !== ".") {
+    paidValue = val;
+  } else {
+    paidValue += val;
+  }
+
+  updatePaidDisplay();
+}
+
+function keypadBackspace() {
+  paidValue = paidValue.slice(0, -1) || "0";
+  updatePaidDisplay();
+}
+
+function updatePaidDisplay() {
+  const paid = Number(paidValue) || 0;
+  const total = pendingPayment?.total || 0;
+
+  document.getElementById("paidDisplay").textContent =
+    `₱${paid.toFixed(2)}`;
+
+  const change = paid - total;
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
 }
