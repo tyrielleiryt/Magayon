@@ -171,7 +171,11 @@ function renderTable(orders) {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${item.product_name || "-"}</td>
+          <td>
+  ${item.product_name 
+    || productMap[item.product_id] 
+    || item.product_id}
+</td>
           <td>${item.qty || 0}</td>
           <td></td>
           <td>₱${Number(item.total || 0).toFixed(2)}</td>
