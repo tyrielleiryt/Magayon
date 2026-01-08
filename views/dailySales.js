@@ -10,6 +10,7 @@ function showLoader(text = "Loading…") {
   l.querySelector(".loader-text").textContent = text;
   l.classList.remove("hidden");
 }
+
 function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
@@ -71,7 +72,7 @@ function renderLayout() {
   bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
-/* ================= LOAD SALES (JSONP FIX) ================= */
+/* ================= LOAD SALES (ROBUST JSONP) ================= */
 function loadSales() {
   const date = document.getElementById("salesDate").value;
   let location = document.getElementById("salesLocation").value || "";
@@ -84,35 +85,42 @@ function loadSales() {
   location = location.trim();
   showLoader("Loading sales report…");
 
-  // 🔥 JSONP CALLBACK (ONE-LINE CONCEPT FIX)
-  const callback = "handleDailySalesReport";
+  const CALLBACK = "__dailySalesCallback";
 
-  // cleanup old callback if any
-  delete window[callback];
+  // cleanup old callback & script
+  if (window[CALLBACK]) delete window[CALLBACK];
+  const oldScript = document.getElementById("salesJsonpScript");
+  if (oldScript) oldScript.remove();
 
-  window[callback] = function (orders) {
+  window[CALLBACK] = function (orders) {
     try {
       if (!Array.isArray(orders)) {
-        console.warn("Unexpected response:", orders);
+        console.warn("Unexpected sales response:", orders);
         renderTable([]);
       } else {
         renderTable(orders);
       }
+    } catch (err) {
+      console.error("Render error:", err);
+      renderTable([]);
     } finally {
       hideLoader();
+      delete window[CALLBACK];
     }
   };
 
-  // remove old script if exists
-  const old = document.getElementById("salesJsonpScript");
-  if (old) old.remove();
-
   const script = document.createElement("script");
   script.id = "salesJsonpScript";
+  script.onerror = () => {
+    console.error("Sales report script failed to load");
+    hideLoader();
+    renderTable([]);
+  };
+
   script.src =
     `${API_URL}?type=dailySalesReport&date=${date}` +
     (location ? `&location=${encodeURIComponent(location)}` : "") +
-    `&callback=${callback}`;
+    `&callback=${CALLBACK}`;
 
   document.body.appendChild(script);
 }
@@ -123,6 +131,7 @@ function renderTable(orders) {
   tbody.innerHTML = "";
 
   let grandTotal = 0;
+  let rowNum = 1;
 
   if (!orders.length) {
     tbody.innerHTML = `
@@ -130,33 +139,35 @@ function renderTable(orders) {
         <td colspan="5" style="text-align:center;color:#888">
           No sales found
         </td>
-      </tr>`;
+      </tr>
+    `;
     updateTotals(0);
     return;
   }
 
-  orders.forEach((o, i) => {
-    grandTotal += Number(o.total) || 0;
+  orders.forEach(order => {
+    const orderTotal = Number(order.total) || 0;
+    grandTotal += orderTotal;
 
     // 🔹 TRANSACTION HEADER
     tbody.innerHTML += `
       <tr style="background:#f4f4f4;font-weight:600">
-        <td>${i + 1}</td>
+        <td>${rowNum++}</td>
         <td>
-          ${o.ref_id}<br>
+          ${order.ref_id}<br>
           <small>
-            ${new Date(o.datetime).toLocaleString()}<br>
-            ${o.location || ""}
+            ${new Date(order.datetime).toLocaleString()}<br>
+            ${order.location || ""}
           </small>
         </td>
         <td></td>
-        <td>${o.cashier || "-"}</td>
-        <td>₱${Number(o.total).toFixed(2)}</td>
+        <td>${order.cashier || "-"}</td>
+        <td>₱${orderTotal.toFixed(2)}</td>
       </tr>
     `;
 
     // 🔸 PRODUCT ROWS
-    (o.items || []).forEach(item => {
+    (order.items || []).forEach(item => {
       tbody.innerHTML += `
         <tr>
           <td></td>
