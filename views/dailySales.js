@@ -44,8 +44,8 @@ function renderActionBar() {
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box" style="display:flex;flex-direction:column;height:100%">
-      <div class="data-scroll" style="flex:1;overflow-y:auto;">
+    <div class="data-box" style="display:flex;flex-direction:column;height:100%;min-height:0;">
+      <div class="data-scroll" style="flex:1;overflow-y:auto;max-height:100%;">
         <table class="category-table">
           <thead>
             <tr>
