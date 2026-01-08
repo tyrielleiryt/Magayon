@@ -109,9 +109,9 @@ async function loadInventoryItems() {
       };
     }
 
-    // ✅ ARRAY FORMAT (BACKWARD SAFE)
+    // ✅ ARRAY FORMAT (MATCHES SHEET EXACTLY)
     return {
-      rowIndex: r[0],
+      rowIndex: r[0],                // item_id
       item_id: r[0],
       item_name: r[1],
       description: r[2],
