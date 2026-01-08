@@ -266,12 +266,15 @@ if (!window.__lastPayment) {
   const ref = "ORD-" + Date.now();
 
   try {
+    const payment = window.__lastPayment;
     const body = new URLSearchParams({
       action: "checkoutOrder",
       ref_id: ref,
       staff_id: STAFF_ID,
       location: LOCATION,
       items: JSON.stringify(cart)
+
+      
     });
 
     const res = await fetch(API_URL, {
@@ -294,7 +297,7 @@ if (!window.__lastPayment) {
     renderCart();
 
     alert("✅ Order completed");
-
+    delete window.__lastPayment;
   } catch (err) {
     console.error(err);
     alert("❌ Checkout failed");
@@ -396,3 +399,9 @@ function updatePaidDisplay() {
   document.getElementById("changeAmount").textContent =
     `₱${Math.max(change, 0).toFixed(2)}`;
 }
+
+// 🔓 expose keypad + modal functions to HTML
+window.keypadInput = keypadInput;
+window.keypadBackspace = keypadBackspace;
+window.confirmPayment = confirmPayment;
+window.closePaymentModal = closePaymentModal;
