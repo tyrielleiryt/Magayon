@@ -3,10 +3,6 @@ import { bindDataBoxScroll } from "../admin.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-/* ================= STATE ================= */
-let productMap = {}; // product_id → product_name
-let locationMap = {};  // location_id → location_name
-
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
   const l = document.getElementById("globalLoader");
@@ -19,16 +15,12 @@ function hideLoader() {
 }
 
 /* ================= ENTRY ================= */
-export default async function loadDailySalesView() {
+export default function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
-
-  // 🔒 SAFE: preload products for name lookup
-  await loadProducts();
-  await loadLocations();
 }
 
 /* ================= ACTION BAR ================= */
@@ -40,6 +32,7 @@ function renderActionBar() {
       Load Report
     </button>
   `;
+
   document.getElementById("loadSalesBtn").onclick = loadSales;
 }
 
@@ -67,37 +60,14 @@ function renderLayout() {
           </tbody>
         </table>
       </div>
+
       <div class="inventory-summary" style="margin-top:12px">
         <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
       </div>
     </div>
   `;
+
   bindDataBoxScroll(document.querySelector(".data-box"));
-}
-
-/* ================= LOAD PRODUCTS (SAFE) ================= */
-async function loadProducts() {
-  try {
-    const res = await fetch(`${API_URL}?type=products`);
-    const data = await res.json();
-    data.forEach(p => {
-      productMap[p.product_id] = p.product_name;
-    });
-  } catch (err) {
-    console.warn("Failed to load products for sales report", err);
-  }
-}
-
-async function loadLocations() {
-  try {
-    const res = await fetch(`${API_URL}?type=locations`);
-    const data = await res.json();
-    data.forEach(l => {
-      locationMap[l.location_id] = l.location_name;
-    });
-  } catch (err) {
-    console.warn("Failed to load locations for sales report", err);
-  }
 }
 
 /* ================= LOAD SALES (JSONP) ================= */
@@ -136,7 +106,7 @@ function loadSales() {
   document.body.appendChild(script);
 }
 
-/* ================= RENDER ================= */
+/* ================= RENDER TABLE ================= */
 function renderTable(orders) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
@@ -154,17 +124,18 @@ function renderTable(orders) {
     return;
   }
 
-  orders.forEach((o, i) => {
+  orders.forEach((o, index) => {
     grandTotal += Number(o.total) || 0;
 
+    // 🔹 TRANSACTION HEADER
     tbody.insertAdjacentHTML("beforeend", `
       <tr style="background:#f4f4f4;font-weight:600">
-        <td>${i + 1}</td>
+        <td>${index + 1}</td>
         <td>
           ${o.ref_id}<br>
           <small>
             ${formatDateTime(o.datetime)}<br>
-            ${locationMap[o.location] || o.location || "-"}
+            ${o.location || "-"}
           </small>
         </td>
         <td></td>
@@ -173,17 +144,29 @@ function renderTable(orders) {
       </tr>
     `);
 
+    // 🔸 PRODUCT ROWS (PRODUCT NAME ALREADY PROVIDED)
     (o.items || []).forEach(item => {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${productMap[item.product_id] || item.product_name || item.product_id}</td>
+          <td>${item.product_name}</td>
           <td>${item.qty}</td>
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
         </tr>
       `);
     });
+
+    // 🔹 TRANSACTION TOTAL ROW (CLEAR VISUAL)
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr style="font-weight:600;border-top:1px solid #ddd">
+        <td></td>
+        <td style="text-align:right">Transaction Total:</td>
+        <td></td>
+        <td></td>
+        <td>₱${Number(o.total).toFixed(2)}</td>
+      </tr>
+    `);
   });
 
   updateTotals(grandTotal);
@@ -198,8 +181,10 @@ function updateTotals(total) {
 /* ================= DATE FORMAT ================= */
 function formatDateTime(value) {
   if (!value) return "-";
+
   const d = new Date(value);
   if (isNaN(d.getTime())) return "-";
+
   return d.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
