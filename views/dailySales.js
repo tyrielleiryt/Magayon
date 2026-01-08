@@ -10,7 +10,6 @@ function showLoader(text = "Loading…") {
   l.querySelector(".loader-text").textContent = text;
   l.classList.remove("hidden");
 }
-
 function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
@@ -41,7 +40,6 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box" style="display:flex;flex-direction:column;height:100%">
-      
       <div class="data-scroll" style="flex:1;overflow-y:auto;">
         <table class="category-table">
           <thead>
@@ -72,7 +70,7 @@ function renderLayout() {
   bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
-/* ================= LOAD SALES (ROBUST JSONP) ================= */
+/* ================= LOAD SALES (JSONP) ================= */
 function loadSales() {
   const date = document.getElementById("salesDate").value;
   let location = document.getElementById("salesLocation").value || "";
@@ -82,56 +80,38 @@ function loadSales() {
     return;
   }
 
-  location = location.trim();
   showLoader("Loading sales report…");
 
-  const CALLBACK = "__dailySalesCallback";
+  const callback = "handleDailySalesReport";
+  delete window[callback];
 
-  // cleanup old callback & script
-  if (window[CALLBACK]) delete window[CALLBACK];
-  const oldScript = document.getElementById("salesJsonpScript");
-  if (oldScript) oldScript.remove();
-
-  window[CALLBACK] = function (orders) {
+  window[callback] = function (orders) {
     try {
-      if (!Array.isArray(orders)) {
-        console.warn("Unexpected sales response:", orders);
-        renderTable([]);
-      } else {
-        renderTable(orders);
-      }
-    } catch (err) {
-      console.error("Render error:", err);
-      renderTable([]);
+      renderTable(Array.isArray(orders) ? orders : []);
     } finally {
       hideLoader();
-      delete window[CALLBACK];
     }
   };
 
+  const old = document.getElementById("salesJsonpScript");
+  if (old) old.remove();
+
   const script = document.createElement("script");
   script.id = "salesJsonpScript";
-  script.onerror = () => {
-    console.error("Sales report script failed to load");
-    hideLoader();
-    renderTable([]);
-  };
-
   script.src =
     `${API_URL}?type=dailySalesReport&date=${date}` +
     (location ? `&location=${encodeURIComponent(location)}` : "") +
-    `&callback=${CALLBACK}`;
+    `&callback=${callback}`;
 
   document.body.appendChild(script);
 }
 
-/* ================= RENDER ================= */
+/* ================= RENDER TABLE ================= */
 function renderTable(orders) {
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
   let grandTotal = 0;
-  let rowNum = 1;
 
   if (!orders.length) {
     tbody.innerHTML = `
@@ -139,36 +119,34 @@ function renderTable(orders) {
         <td colspan="5" style="text-align:center;color:#888">
           No sales found
         </td>
-      </tr>
-    `;
+      </tr>`;
     updateTotals(0);
     return;
   }
 
-  orders.forEach(order => {
-    const orderTotal = Number(order.total) || 0;
-    grandTotal += orderTotal;
+  orders.forEach((o, index) => {
+    grandTotal += Number(o.total) || 0;
 
-    // 🔹 TRANSACTION HEADER
-    tbody.innerHTML += `
+    // TRANSACTION HEADER
+    tbody.insertAdjacentHTML("beforeend", `
       <tr style="background:#f4f4f4;font-weight:600">
-        <td>${rowNum++}</td>
+        <td>${index + 1}</td>
         <td>
-          ${order.ref_id}<br>
+          ${o.ref_id}<br>
           <small>
             ${formatDateTime(o.datetime)}<br>
-            ${order.location || ""}
+            ${o.location || ""}
           </small>
         </td>
         <td></td>
-        <td>${order.cashier || "-"}</td>
-        <td>₱${orderTotal.toFixed(2)}</td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${Number(o.total).toFixed(2)}</td>
       </tr>
-    `;
+    `);
 
-    // 🔸 PRODUCT ROWS
-    (order.items || []).forEach(item => {
-      tbody.innerHTML += `
+    // PRODUCT ROWS
+    (o.items || []).forEach(item => {
+      tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
           <td>${item.product_name}</td>
@@ -176,7 +154,7 @@ function renderTable(orders) {
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
         </tr>
-      `;
+      `);
     });
   });
 
@@ -192,17 +170,6 @@ function updateTotals(total) {
 /* ================= DATE FORMAT HELPER ================= */
 function formatDateTime(value) {
   if (!value) return "-";
-
-  // already a Date object
-  if (value instanceof Date && !isNaN(value)) {
-    return value.toLocaleString();
-  }
-
-  // ISO string or timestamp
   const d = new Date(value);
-  if (!isNaN(d)) {
-    return d.toLocaleString();
-  }
-
-  return "-";
+  return isNaN(d) ? "-" : d.toLocaleString();
 }
