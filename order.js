@@ -252,13 +252,14 @@ function renderCart() {
 ========================================================= */
 async function checkoutPOS() {
   if (!cart.length) {
-    alert("No items in cart");
-    return;
-    if (!window.__lastPayment) {
+  alert("No items in cart");
+  return;
+}
+
+if (!window.__lastPayment) {
   alert("Payment not confirmed");
   return;
 }
-  }
 
   showLoader("Processing order…");
 
@@ -315,8 +316,6 @@ document.getElementById("changeAmount").textContent = "₱0.00";
   document.getElementById("payTotal").textContent =
     `₱${Number(total).toFixed(2)}`;
 
-  document.getElementById("amountPaid").value = "";
-  document.getElementById("changeAmount").textContent = "₱0.00";
   document.getElementById("gcashRef").value = "";
 
   document.getElementById("paymentModal").classList.remove("hidden");
