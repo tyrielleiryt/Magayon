@@ -156,59 +156,46 @@ function renderTable(orders) {
     return;
   }
 
-orders.forEach((o, i) => {
-  // ✅ compute transaction total from items
-  const transactionTotal = (o.items || []).reduce(
-    (sum, item) => sum + (Number(item.total) || 0),
-    0
-  );
+  orders.forEach((o, i) => {
+    // ✅ compute transaction total from items
+    const transactionTotal = (o.items || []).reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
 
-  grandTotal += transactionTotal;
+    grandTotal += transactionTotal;
 
-  tbody.insertAdjacentHTML("beforeend", `
-    <tr style="background:#f4f4f4;font-weight:600">
-      <td>${i + 1}</td>
-      <td>
-        ${o.ref_id}<br>
-        <small>
-          ${formatDateTime(o.datetime)}<br>
-          ${locationMap[o.location] || o.location || "-"}
-        </small>
-      </td>
-      <td></td>
-      <td>${o.cashier || "-"}</td>
-      <td>₱${transactionTotal.toFixed(2)}</td>
-    </tr>
-  `);
+    // 🔹 TRANSACTION HEADER
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr style="background:#f4f4f4;font-weight:600">
+        <td>${i + 1}</td>
+        <td>
+          ${o.ref_id}<br>
+          <small>
+            ${formatDateTime(o.datetime)}<br>
+            ${locationMap[o.location] || o.location || "-"}
+          </small>
+        </td>
+        <td></td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${transactionTotal.toFixed(2)}</td>
+      </tr>
+    `);
 
-    // 🔸 PRODUCT ROWS (NAME FIRST)
+    // 🔸 PRODUCT ROWS
     (o.items || []).forEach(item => {
-      const name =
-        productMap[item.product_id] ||
-        item.product_name ||
-        item.product_id;
-
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${productMap[item.product_id] || item.product_name || item.product_id}</td>
+          <td>
+            ${productMap[item.product_id] || item.product_id}
+          </td>
           <td>${item.qty}</td>
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
         </tr>
       `);
     });
-
-    // 🔹 TRANSACTION TOTAL ROW
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr style="font-weight:600;border-top:1px solid #ddd">
-        <td></td>
-        <td style="text-align:right">Transaction Total:</td>
-        <td></td>
-        <td></td>
-        <td>₱${transactionTotal.toFixed(2)}</td>
-      </tr>
-    `);
   });
 
   updateTotals(grandTotal);
