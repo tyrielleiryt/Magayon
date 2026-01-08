@@ -6,6 +6,8 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #3a3a3a;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 .page {
@@ -126,7 +128,9 @@ input[type="password"] {
 input, button {
   pointer-events: auto;
   touch-action: manipulation;
+  -webkit-user-select: text;
   user-select: text;
+  -webkit-touch-callout: default;
   font-size: 16px; /* prevents iOS zoom */
 }
 
