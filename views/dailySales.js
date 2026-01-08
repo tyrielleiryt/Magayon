@@ -156,26 +156,30 @@ function renderTable(orders) {
     return;
   }
 
-  orders.forEach((o, i) => {
-    const transactionTotal = Number(o.total) || 0;
-    grandTotal += transactionTotal;
+orders.forEach((o, i) => {
+  // ✅ compute transaction total from items
+  const transactionTotal = (o.items || []).reduce(
+    (sum, it) => sum + (Number(it.total) || 0),
+    0
+  );
 
-    // 🔹 TRANSACTION HEADER
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr style="background:#f4f4f4;font-weight:600">
-        <td>${i + 1}</td>
-        <td>
-          ${o.ref_id}<br>
-          <small>
-            ${formatDateTime(o.datetime)}<br>
-            ${locationMap[o.location] || o.location || "-"}
-          </small>
-        </td>
-        <td></td>
-        <td>${o.cashier || "-"}</td>
-        <td>₱${transactionTotal.toFixed(2)}</td>
-      </tr>
-    `);
+  grandTotal += transactionTotal;
+
+  tbody.insertAdjacentHTML("beforeend", `
+    <tr style="background:#f4f4f4;font-weight:600">
+      <td>${i + 1}</td>
+      <td>
+        ${o.ref_id}<br>
+        <small>
+          ${formatDateTime(o.datetime)}<br>
+          ${locationMap[o.location] || o.location || "-"}
+        </small>
+      </td>
+      <td></td>
+      <td>${o.cashier || "-"}</td>
+      <td>₱${transactionTotal.toFixed(2)}</td>
+    </tr>
+  `);
 
     // 🔸 PRODUCT ROWS (NAME FIRST)
     (o.items || []).forEach(item => {
@@ -187,7 +191,7 @@ function renderTable(orders) {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${name}</td>
+          <td>${product_name}</td>
           <td>${item.qty}</td>
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
