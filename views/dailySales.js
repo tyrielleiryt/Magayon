@@ -3,6 +3,8 @@ import { bindDataBoxScroll } from "../admin.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+  let locationMap = {};
+
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
   const l = document.getElementById("globalLoader");
@@ -21,6 +23,9 @@ export default function loadDailySalesView() {
 
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
+
+  // 🔥 preload locations
+  loadLocations();
 }
 
 /* ================= ACTION BAR ================= */
@@ -135,7 +140,7 @@ function renderTable(orders) {
           ${o.ref_id}<br>
           <small>
             ${formatDateTime(o.datetime)}<br>
-            ${o.location || ""}
+            ${locationMap[o.location] || o.location}
           </small>
         </td>
         <td></td>
@@ -172,4 +177,15 @@ function formatDateTime(value) {
   if (!value) return "-";
   const d = new Date(value);
   return isNaN(d) ? "-" : d.toLocaleString();
+}
+
+function loadLocations() {
+  return fetch(`${API_URL}?type=locations`)
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(l => {
+        locationMap[l.location_id] = l.location_name;
+      });
+    })
+    .catch(() => {});
 }
