@@ -90,28 +90,63 @@
 
   <!-- ================= Payment ================= -->
 <div id="paymentModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Payment</h3>
+  <div class="modal-content payment-ui">
 
-    <div class="payment-row">
-      <label>Total Bill</label>
-      <div id="payTotal">₱0.00</div>
+  <div class="payment-header">
+    <h2>Payment</h2>
+    <span class="payment-method-badge" id="methodBadge">CASH</span>
+  </div>
+
+  <div class="payment-summary">
+    <div class="summary-row total">
+      <span>Total</span>
+      <strong id="payTotal">₱0.00</strong>
     </div>
 
-    <div class="payment-row">
-      <label>Payment Method</label>
-      <select id="paymentMethod">
-        <option value="CASH">Cash</option>
-        <option value="GCASH">GCash</option>
-      </select>
+    <div class="summary-row paid">
+      <span>Paid</span>
+      <strong id="paidDisplay">₱0.00</strong>
     </div>
 
-    <div class="payment-row">
-      <label>Amount Paid</label>
-      <div class="payment-display">
+    <div class="summary-row change">
+      <span>Change</span>
+      <strong id="changeAmount">₱0.00</strong>
+    </div>
+  </div>
 
-  <div>Amount Paid</div>
-  <div id="paidDisplay" class="paid-display">₱0.00</div>
+  <select id="paymentMethod" class="payment-method">
+    <option value="CASH">Cash</option>
+    <option value="GCASH">GCash</option>
+  </select>
+
+  <div class="keypad">
+    <button onclick="keypadInput('7')">7</button>
+    <button onclick="keypadInput('8')">8</button>
+    <button onclick="keypadInput('9')">9</button>
+
+    <button onclick="keypadInput('4')">4</button>
+    <button onclick="keypadInput('5')">5</button>
+    <button onclick="keypadInput('6')">6</button>
+
+    <button onclick="keypadInput('1')">1</button>
+    <button onclick="keypadInput('2')">2</button>
+    <button onclick="keypadInput('3')">3</button>
+
+    <button class="key-wide" onclick="keypadInput('0')">0</button>
+    <button onclick="keypadInput('.')">.</button>
+    <button class="key-back" onclick="keypadBackspace()">⌫</button>
+  </div>
+
+  <div id="gcashRefRow" class="gcash-row hidden">
+    <input type="text" id="gcashRef" placeholder="GCash Reference (optional)">
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
+  </div>
+
+
 </div>
 
 <div class="keypad">

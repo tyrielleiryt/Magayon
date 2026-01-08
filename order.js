@@ -330,8 +330,15 @@ function closePaymentModal() {
 }
 
 document.getElementById("paymentMethod")?.addEventListener("change", e => {
+  const method = e.target.value;
+
+  // update badge text
+  const badge = document.getElementById("methodBadge");
+  if (badge) badge.textContent = method;
+
+  // show / hide GCash reference
   document.getElementById("gcashRefRow")
-    .classList.toggle("hidden", e.target.value !== "GCASH");
+    ?.classList.toggle("hidden", method !== "GCASH");
 });
 
 document.getElementById("amountPaid")?.addEventListener("input", e => {

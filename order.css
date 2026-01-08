@@ -360,3 +360,79 @@ body {
   justify-content: space-between;
   margin-top: 16px;
 }
+
+.payment-ui {
+  width: 360px;
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-method-badge {
+  background: #2ecc71;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.payment-summary {
+  background: #f4f6fb;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.summary-row.total strong {
+  font-size: 22px;
+}
+
+.summary-row.change strong {
+  color: #27ae60;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.keypad button {
+  padding: 16px;
+  font-size: 18px;
+  border-radius: 8px;
+  border: none;
+  background: #f0f2f8;
+}
+
+.key-wide {
+  grid-column: span 2;
+}
+
+.key-back {
+  background: #f39c12;
+  color: #fff;
+}
+
+.btn-confirm {
+  background: #2ecc71;
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.btn-cancel {
+  background: #bdc3c7;
+  padding: 12px;
+  border-radius: 8px;
+}
