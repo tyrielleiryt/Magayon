@@ -188,7 +188,7 @@ function renderTable(orders) {
         <tr>
           <td></td>
           <td>
-            ${item.product_name || productMap[item.product_id] || item.product_id || "-"}
+            ${productMap[item.product_id] || item.product_name || item.product_id}
           </td>
           <td>${item.qty}</td>
           <td></td>
