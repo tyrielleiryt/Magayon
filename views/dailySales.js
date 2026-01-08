@@ -102,7 +102,7 @@ function loadSales() {
       hideLoader();
     }
   };
-
+ 
   // remove old script if exists
   const old = document.getElementById("salesJsonpScript");
   if (old) old.remove();

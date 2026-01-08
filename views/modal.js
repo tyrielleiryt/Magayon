@@ -1,6 +1,6 @@
 const overlay = document.getElementById("modalOverlay");
 const box = document.getElementById("modalBox");
-
+ 
 /* =========================================================
    LOADER HELPERS (SAFE IMPORT-LESS VERSION)
    - modal.js should NOT depend on admin.js imports

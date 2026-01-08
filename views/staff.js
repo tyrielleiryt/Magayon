@@ -1,6 +1,6 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
-
+ 
 /* =========================================================
    CONFIG
 ========================================================= */
