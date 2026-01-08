@@ -156,7 +156,7 @@ function renderTable(orders) {
         <td>
           ${order.ref_id}<br>
           <small>
-            ${new Date(order.datetime).toLocaleString()}<br>
+            ${formatDateTime(o.datetime)}<br>
             ${order.location || ""}
           </small>
         </td>
