@@ -450,3 +450,10 @@ html, body {
   flex: 1;
   overflow-y: auto;
 }
+
+/* ✅ REQUIRED FOR SCROLLING DATA TABLES */
+#contentBox,
+.data-box,
+.data-scroll {
+  min-height: 0;
+}
