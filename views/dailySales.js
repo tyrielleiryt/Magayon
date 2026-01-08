@@ -139,7 +139,7 @@ function renderTable(orders) {
         <td>
           ${o.ref_id}<br>
           <small>
-            ${formatDateTime(o.datetime)}<br>
+            ${formatDateTime(o.datetime || o.date || o.created_at)}<br>
             ${locationMap[o.location] || o.location}
           </small>
         </td>
