@@ -159,7 +159,7 @@ function renderTable(orders) {
 orders.forEach((o, i) => {
   // ✅ compute transaction total from items
   const transactionTotal = (o.items || []).reduce(
-    (sum, it) => sum + (Number(it.total) || 0),
+    (sum, item) => sum + (Number(item.total) || 0),
     0
   );
 
