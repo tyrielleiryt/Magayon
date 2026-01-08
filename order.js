@@ -321,6 +321,11 @@ document.getElementById("changeAmount").textContent = "₱0.00";
 
   document.getElementById("gcashRef").value = "";
 
+  // 🔴 Disable confirm initially
+  const btn = document.getElementById("confirmPaymentBtn");
+  btn.classList.remove("enabled");
+  btn.disabled = true;
+
   document.getElementById("paymentModal").classList.remove("hidden");
 }
 
@@ -351,6 +356,12 @@ document.getElementById("amountPaid")?.addEventListener("input", e => {
 });
 
 function confirmPayment() {
+
+  // 🔒 EXTRA SAFETY GUARD (STEP 4)
+  if (document.getElementById("confirmPaymentBtn").disabled) {
+    return;
+  }
+
   const paid = Number(paidValue);
   const method = document.getElementById("paymentMethod").value;
   const ref = document.getElementById("gcashRef").value || "";
@@ -405,6 +416,17 @@ function updatePaidDisplay() {
   const change = paid - total;
   document.getElementById("changeAmount").textContent =
     `₱${Math.max(change, 0).toFixed(2)}`;
+
+    // ✅ Enable confirm only if paid >= total
+  const btn = document.getElementById("confirmPaymentBtn");
+  if (paid >= total) {
+    btn.disabled = false;
+    btn.classList.add("enabled");
+  } else {
+    btn.disabled = true;
+    btn.classList.remove("enabled");
+  }
+  
 }
 
 // 🔓 expose keypad + modal functions to HTML
