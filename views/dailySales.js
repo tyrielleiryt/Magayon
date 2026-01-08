@@ -40,7 +40,6 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box" style="display:flex;flex-direction:column;height:100%">
-      
       <div class="data-scroll" style="flex:1;overflow-y:auto;">
         <table class="category-table">
           <thead>
@@ -71,7 +70,7 @@ function renderLayout() {
   bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
-/* ================= LOAD SALES (JSONP FIX) ================= */
+/* ================= LOAD SALES (JSONP) ================= */
 function loadSales() {
   const date = document.getElementById("salesDate").value;
   let location = document.getElementById("salesLocation").value || "";
@@ -84,26 +83,17 @@ function loadSales() {
   location = location.trim();
   showLoader("Loading sales report…");
 
-  // 🔥 JSONP CALLBACK (ONE-LINE CONCEPT FIX)
   const callback = "handleDailySalesReport";
-
-  // cleanup old callback if any
   delete window[callback];
 
   window[callback] = function (orders) {
     try {
-      if (!Array.isArray(orders)) {
-        console.warn("Unexpected response:", orders);
-        renderTable([]);
-      } else {
-        renderTable(orders);
-      }
+      renderTable(Array.isArray(orders) ? orders : []);
     } finally {
       hideLoader();
     }
   };
- 
-  // remove old script if exists
+
   const old = document.getElementById("salesJsonpScript");
   if (old) old.remove();
 
@@ -138,14 +128,13 @@ function renderTable(orders) {
   orders.forEach((o, i) => {
     grandTotal += Number(o.total) || 0;
 
-    // 🔹 TRANSACTION HEADER
-    tbody.innerHTML += `
+    tbody.insertAdjacentHTML("beforeend", `
       <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
         <td>
           ${o.ref_id}<br>
           <small>
-            ${new Date(o.datetime).toLocaleString()}<br>
+            ${formatDateTime(o.datetime)}<br>
             ${o.location || ""}
           </small>
         </td>
@@ -153,11 +142,10 @@ function renderTable(orders) {
         <td>${o.cashier || "-"}</td>
         <td>₱${Number(o.total).toFixed(2)}</td>
       </tr>
-    `;
+    `);
 
-    // 🔸 PRODUCT ROWS
     (o.items || []).forEach(item => {
-      tbody.innerHTML += `
+      tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
           <td>${item.product_name}</td>
@@ -165,7 +153,7 @@ function renderTable(orders) {
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
         </tr>
-      `;
+      `);
     });
   });
 
@@ -176,4 +164,21 @@ function renderTable(orders) {
 function updateTotals(total) {
   document.getElementById("sumGross").textContent =
     Number(total).toFixed(2);
+}
+
+/* ================= DATE/TIME SAFE FORMAT ================= */
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
 }
