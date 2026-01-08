@@ -175,8 +175,20 @@ function updateTotals(total) {
 /* ================= DATE FORMAT HELPER ================= */
 function formatDateTime(value) {
   if (!value) return "-";
+
   const d = new Date(value);
-  return isNaN(d) ? "-" : d.toLocaleString();
+
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
 }
 
 function loadLocations() {
