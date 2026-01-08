@@ -56,13 +56,15 @@ function hideLoader() {
 /* =========================================================
    JSONP (GAS SAFE)
 ========================================================= */
-function jsonp(params) {
+function jsonp(params, timeout = 8000) {
   return new Promise((resolve, reject) => {
-    const cb = "cb_" + Date.now();
+    const cb = "__jsonp_" + Math.random().toString(36).slice(2);
+    let done = false;
 
     window[cb] = data => {
-      delete window[cb];
-      script.remove();
+      if (done) return;
+      done = true;
+      cleanup();
       resolve(data);
     };
 
@@ -72,8 +74,24 @@ function jsonp(params) {
 
     const script = document.createElement("script");
     script.src = `${API_URL}?${qs}`;
-    script.onerror = () => {
+
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error("Server timeout"));
+    }, timeout);
+
+    function cleanup() {
+      clearTimeout(timer);
       delete window[cb];
+      script.remove();
+    }
+
+    script.onerror = () => {
+      if (done) return;
+      done = true;
+      cleanup();
       reject(new Error("Server connection failed"));
     };
 
