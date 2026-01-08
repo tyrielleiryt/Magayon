@@ -5,6 +5,7 @@ const API_URL =
 
 /* ================= STATE ================= */
 let productMap = {}; // product_id → product_name
+let locationMap = {};  // location_id → location_name
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -27,6 +28,7 @@ export default async function loadDailySalesView() {
 
   // 🔒 SAFE: preload products for name lookup
   await loadProducts();
+  await loadLocations();
 }
 
 /* ================= ACTION BAR ================= */
@@ -83,6 +85,18 @@ async function loadProducts() {
     });
   } catch (err) {
     console.warn("Failed to load products for sales report", err);
+  }
+}
+
+async function loadLocations() {
+  try {
+    const res = await fetch(`${API_URL}?type=locations`);
+    const data = await res.json();
+    data.forEach(l => {
+      locationMap[l.location_id] = l.location_name;
+    });
+  } catch (err) {
+    console.warn("Failed to load locations for sales report", err);
   }
 }
 
@@ -150,7 +164,7 @@ function renderTable(orders) {
           ${o.ref_id}<br>
           <small>
             ${formatDateTime(o.datetime)}<br>
-            ${o.location || ""}
+            ${locationMap[o.location] || o.location || "-"}
           </small>
         </td>
         <td></td>
