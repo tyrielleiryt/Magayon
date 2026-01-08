@@ -59,7 +59,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     hideLoader();
   }
 
-  document.querySelector(".checkout")?.addEventListener("click", checkoutPOS);
+  document.querySelector(".checkout")?.addEventListener("click", () => {
+  if (!cart.length) {
+    alert("No items in cart");
+    return;
+  }
+  openPaymentModal(cart.reduce((sum, i) => sum + i.total, 0));
+});
 
   document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
     cart = [];
@@ -248,6 +254,10 @@ async function checkoutPOS() {
   if (!cart.length) {
     alert("No items in cart");
     return;
+    if (!window.__lastPayment) {
+  alert("Payment not confirmed");
+  return;
+}
   }
 
   showLoader("Processing order…");
@@ -290,4 +300,64 @@ async function checkoutPOS() {
   } finally {
     hideLoader();
   }
+}
+
+let pendingPayment = null;
+
+function openPaymentModal(total) {
+  pendingPayment = { total };
+
+  document.getElementById("payTotal").textContent =
+    `₱${Number(total).toFixed(2)}`;
+
+  document.getElementById("amountPaid").value = "";
+  document.getElementById("changeAmount").textContent = "₱0.00";
+  document.getElementById("gcashRef").value = "";
+
+  document.getElementById("paymentModal").classList.remove("hidden");
+}
+
+function closePaymentModal() {
+  document.getElementById("paymentModal").classList.add("hidden");
+  pendingPayment = null;
+}
+
+document.getElementById("paymentMethod")?.addEventListener("change", e => {
+  document.getElementById("gcashRefRow")
+    .classList.toggle("hidden", e.target.value !== "GCASH");
+});
+
+document.getElementById("amountPaid")?.addEventListener("input", e => {
+  const paid = Number(e.target.value) || 0;
+  const total = pendingPayment?.total || 0;
+  const change = paid - total;
+
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
+});
+
+function confirmPayment() {
+  const paid = Number(document.getElementById("amountPaid").value);
+  const method = document.getElementById("paymentMethod").value;
+  const ref = document.getElementById("gcashRef").value || "";
+  const total = pendingPayment?.total || 0;
+
+  if (paid < total) {
+    alert("❌ Insufficient payment");
+    return;
+  }
+
+  // Store temporarily (used later in backend Step 3)
+  window.__lastPayment = {
+    total_bill: total,
+    amount_paid: paid,
+    change: paid - total,
+    payment_method: method,
+    gcash_ref: ref
+  };
+
+  closePaymentModal();
+
+  // ✅ NOW perform the real checkout
+  checkoutPOS();
 }

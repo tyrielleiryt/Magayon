@@ -87,6 +87,48 @@
   <div class="loader-text">Loading data…</div>
 </div>
 
+
+  <!-- ================= Payment ================= -->
+<div id="paymentModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Payment</h3>
+
+    <div class="payment-row">
+      <label>Total Bill</label>
+      <div id="payTotal">₱0.00</div>
+    </div>
+
+    <div class="payment-row">
+      <label>Payment Method</label>
+      <select id="paymentMethod">
+        <option value="CASH">Cash</option>
+        <option value="GCASH">GCash</option>
+      </select>
+    </div>
+
+    <div class="payment-row">
+      <label>Amount Paid</label>
+      <input type="number" id="amountPaid" min="0" />
+    </div>
+
+    <div class="payment-row hidden" id="gcashRefRow">
+      <label>GCash Reference (optional)</label>
+      <input type="text" id="gcashRef" />
+    </div>
+
+    <div class="payment-row">
+      <label>Change</label>
+      <div id="changeAmount">₱0.00</div>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closePaymentModal()">Cancel</button>
+      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
   <!-- ================= SCRIPT ================= -->
   <script type="module" src="order.js"></script>
 </body>
