@@ -255,19 +255,22 @@ async function checkoutPOS() {
   const ref = "ORD-" + Date.now();
 
   try {
-    const payload = {
+    const body = new URLSearchParams({
       action: "checkoutOrder",
       ref_id: ref,
       staff_id: STAFF_ID,
       location: LOCATION,
       items: JSON.stringify(cart)
-    };
+    });
 
-    const qs = Object.entries(payload)
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
+    });
 
-    const res = await fetch(`${API_URL}?${qs}`);
     const data = await res.json();
 
     if (!data.success) {
