@@ -343,7 +343,8 @@ body {
   background: #fff;
   padding: 16px;
   border-radius: 8px;
-  width: 320px;
+  width: 420px; /* was 320px */
+  max-width: 90vw;
 }
 
 .payment-row {
@@ -404,15 +405,23 @@ body {
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .keypad button {
   padding: 16px;
+  height: 56px;
   font-size: 18px;
-  border-radius: 8px;
+  font-weight: bold;
+  border-radius: 10px;
   border: none;
-  background: #f0f2f8;
+  background: #f1f3f6;
+  cursor: pointer;
+}
+
+.keypad button:hover {
+  background: #e1e5ec;
 }
 
 .key-wide {
@@ -435,4 +444,8 @@ body {
   background: #bdc3c7;
   padding: 12px;
   border-radius: 8px;
+}
+
+.modal-content {
+  overflow: hidden;
 }
