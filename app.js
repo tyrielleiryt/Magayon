@@ -1,23 +1,20 @@
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-
-/* =========================================================
-   FIREBASE IMPORTS
-========================================================= */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+} from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================================================
-   CONFIG
-========================================================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================================================
-   FIREBASE CONFIG
-========================================================= */
+/* ================= FIREBASE CONFIG ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
   authDomain: "magayon.firebaseapp.com",
@@ -26,87 +23,20 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-/* =========================================================
-   ELEMENTS
-========================================================= */
+/* ================= ELEMENTS ================= */
 const loginBtn = document.getElementById("loginBtn");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("errorMsg");
 
-/* =========================================================
-   LOADER HELPERS (STEP 4)
-========================================================= */
-function showLoader(text = "Signing in…") {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-
-  loader.querySelector(".loader-text").textContent = text;
-  loader.classList.remove("hidden");
-}
-
-function hideLoader() {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-
-  loader.classList.add("hidden");
-}
-
-/* =========================================================
-   JSONP (GAS SAFE)
-========================================================= */
-function jsonp(params, timeout = 8000) {
-  return new Promise((resolve, reject) => {
-    const cb = "__jsonp_" + Math.random().toString(36).slice(2);
-    let done = false;
-
-    window[cb] = data => {
-      if (done) return;
-      done = true;
-      cleanup();
-      resolve(data);
-    };
-
-    const qs = Object.entries({ ...params, callback: cb })
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join("&");
-
-    const script = document.createElement("script");
-    script.src = `${API_URL}?${qs}`;
-
-    const timer = setTimeout(() => {
-      if (done) return;
-      done = true;
-      cleanup();
-      reject(new Error("Server timeout"));
-    }, timeout);
-
-    function cleanup() {
-      clearTimeout(timer);
-      delete window[cb];
-      script.remove();
-    }
-
-    script.onerror = () => {
-      if (done) return;
-      done = true;
-      cleanup();
-      reject(new Error("Server connection failed"));
-    };
-
-    document.body.appendChild(script);
-  });
-}
-
-/* =========================================================
-   LOGIN
-========================================================= */
+/* ================= LOGIN ================= */
 async function handleLogin() {
+  errorMsg.textContent = "";
+
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
-
-  errorMsg.textContent = "";
 
   if (!email || !password) {
     errorMsg.textContent = "Please enter email and password.";
@@ -115,79 +45,53 @@ async function handleLogin() {
 
   loginBtn.disabled = true;
   loginBtn.textContent = "Signing in…";
-  showLoader("Authenticating account…");
 
   try {
-    /* 🔐 FIREBASE AUTH */
-    await signInWithEmailAndPassword(auth, email, password);
+    /* 🔐 AUTH */
+    const cred = await signInWithEmailAndPassword(auth, email, password);
 
-    showLoader("Verifying staff access…");
+    /* 🔎 FIRESTORE PROFILE */
+    const userRef = doc(db, "users", cred.user.uid);
+    const snap = await getDoc(userRef);
 
-    /* 🔎 STAFF AUTHORIZATION */
-    const staffList = await jsonp({ type: "staff" });
-
-    const staff = staffList.find(
-      s => s.email === email && s.active === true
-    );
-
-    if (!staff) {
-      throw new Error("Account is not registered as active staff.");
+    if (!snap.exists()) {
+      throw new Error("User profile not found.");
     }
 
-    if (
-      staff.position.toLowerCase() === "cashier" &&
-      staff.can_pos !== true
-    ) {
-      throw new Error("You are not authorized to use POS.");
+    const user = snap.data();
+
+    if (user.active !== "true") {
+      throw new Error("Account is inactive.");
     }
 
-    showLoader("Starting shift…");
+    if (user.role === "cashier" && user.can_pos !== "true") {
+      throw new Error("Not authorized for POS.");
+    }
 
-    /* ⏱ START SHIFT (BLOCKING) */
-    await jsonp({
-      action: "startShift",
-      staff_id: staff.staff_id,
-      location: staff.location_id
-    });
-
-    /* ✅ SAVE SESSION */
+    /* ✅ SESSION */
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("staff_id", staff.staff_id);
-    localStorage.setItem("userEmail", email);
-    localStorage.setItem(
-      "userName",
-      `${staff.first_name} ${staff.last_name}`
-    );
-    localStorage.setItem("userPosition", staff.position);
-    localStorage.setItem("userLocation", staff.location_id);
-    localStorage.setItem("canPOS", staff.can_pos);
-
-    showLoader("Redirecting…");
+    localStorage.setItem("staff_id", user.staff_id);
+    localStorage.setItem("userEmail", user.email);
+    localStorage.setItem("userName", user.name);
+    localStorage.setItem("userPosition", user.role);
+    localStorage.setItem("userLocation", user.location);
+    localStorage.setItem("canPOS", user.can_pos);
 
     /* 🚦 ROUTE */
-    if (staff.position.toLowerCase() === "admin") {
-      window.location.replace("main.html");
-    } else {
-      window.location.replace("order.html");
-    }
+    window.location.replace(
+      user.role === "admin" ? "main.html" : "order.html"
+    );
 
   } catch (err) {
     console.error(err);
-
-    errorMsg.textContent =
-      err.message || "Login failed. Please try again.";
-
-    hideLoader();
+    errorMsg.textContent = err.message;
     loginBtn.disabled = false;
     loginBtn.textContent = "Sign In";
   }
 }
 
-/* =========================================================
-   EVENTS
-========================================================= */
+/* ================= EVENTS ================= */
 loginBtn.addEventListener("click", handleLogin);
-
 document.addEventListener("keydown", e => {
   if (e.key === "Enter") handleLogin();
 });
