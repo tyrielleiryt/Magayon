@@ -1,3 +1,5 @@
+
+
 /* =========================================================
    FIREBASE IMPORTS
 ========================================================= */
@@ -54,15 +56,13 @@ function hideLoader() {
 /* =========================================================
    JSONP (GAS SAFE)
 ========================================================= */
-function jsonp(params, timeout = 8000) {
+function jsonp(params) {
   return new Promise((resolve, reject) => {
-    const cb = "__jsonp_cb_" + Math.random().toString(36).slice(2);
-    let done = false;
+    const cb = "cb_" + Date.now();
 
     window[cb] = data => {
-      if (done) return;
-      done = true;
-      cleanup();
+      delete window[cb];
+      script.remove();
       resolve(data);
     };
 
@@ -72,24 +72,8 @@ function jsonp(params, timeout = 8000) {
 
     const script = document.createElement("script");
     script.src = `${API_URL}?${qs}`;
-
-    const timer = setTimeout(() => {
-      if (done) return;
-      done = true;
-      cleanup();
-      reject(new Error("Server timeout"));
-    }, timeout);
-
-    function cleanup() {
-      clearTimeout(timer);
-      delete window[cb];
-      script.remove();
-    }
-
     script.onerror = () => {
-      if (done) return;
-      done = true;
-      cleanup();
+      delete window[cb];
       reject(new Error("Server connection failed"));
     };
 
