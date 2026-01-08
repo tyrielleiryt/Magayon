@@ -10,7 +10,7 @@ body {
 
 .page {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .login-section {
@@ -23,6 +23,7 @@ body {
 .image-section {
   width: 60%;
   background: url("images/food.jpg") center / cover no-repeat;
+  pointer-events: none;
 }
 
 .login-card {
@@ -30,6 +31,8 @@ body {
   padding: 40px 32px;
   border-radius: 20px;
   width: 360px;
+  position: relative;
+  z-index: 10;
 }
 
 .logo {
@@ -63,8 +66,8 @@ h2 {
 
 input {
   width: 100%;
-  padding: 14px;
-  border-radius: 6px;
+  padding: 16px;
+  border-radius: 8px;
   border: 1px solid #ccc;
   font-size: 14px;
 }
@@ -77,6 +80,8 @@ input[type="password"]::-webkit-textfield-decoration-container {
   display: none !important;
   visibility: hidden !important;
 }
+
+
 
 /* Microsoft Edge */
 input[type="password"]::-ms-reveal,
@@ -116,6 +121,13 @@ input[type="password"] {
 .password-toggle svg {
   width: 18px;
   height: 18px;
+}
+
+input, button {
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: text;
+  font-size: 16px; /* prevents iOS zoom */
 }
 
 /* SIGN IN BUTTON */
@@ -163,5 +175,28 @@ input[type="password"] {
 
   .image-section {
     display: none;
+    pointer-events: none;
+  }
+}
+
+/* TABLET */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .login-section {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .image-section {
+    display: none;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
   }
 }
