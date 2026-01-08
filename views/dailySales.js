@@ -191,7 +191,7 @@ orders.forEach((o, i) => {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${product_name}</td>
+          <td>${productMap[item.product_id] || item.product_name || item.product_id}</td>
           <td>${item.qty}</td>
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
