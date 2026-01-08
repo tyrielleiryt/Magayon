@@ -4,7 +4,6 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 /* ================= STATE ================= */
-let productMap = {};   // product_id → product_name
 let locationMap = {};  // location_id → location_name
 
 /* ================= LOADER ================= */
@@ -26,8 +25,7 @@ export default async function loadDailySalesView() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
 
-  // 🔒 SAFE preload
-  await loadProducts();
+  // SAFE preload (locations only)
   await loadLocations();
 }
 
@@ -74,19 +72,6 @@ function renderLayout() {
     </div>
   `;
   bindDataBoxScroll(document.querySelector(".data-box"));
-}
-
-/* ================= LOAD PRODUCTS ================= */
-async function loadProducts() {
-  try {
-    const res = await fetch(`${API_URL}?type=products`);
-    const data = await res.json();
-    data.forEach(p => {
-      productMap[p.product_id] = p.product_name;
-    });
-  } catch (err) {
-    console.warn("Failed to load products", err);
-  }
 }
 
 /* ================= LOAD LOCATIONS ================= */
@@ -157,7 +142,6 @@ function renderTable(orders) {
   }
 
   orders.forEach((o, i) => {
-    // ✅ compute transaction total from items
     const transactionTotal = (o.items || []).reduce(
       (sum, item) => sum + (Number(item.total) || 0),
       0
@@ -165,7 +149,7 @@ function renderTable(orders) {
 
     grandTotal += transactionTotal;
 
-    // 🔹 TRANSACTION HEADER
+    // TRANSACTION HEADER
     tbody.insertAdjacentHTML("beforeend", `
       <tr style="background:#f4f4f4;font-weight:600">
         <td>${i + 1}</td>
@@ -182,17 +166,15 @@ function renderTable(orders) {
       </tr>
     `);
 
-    // 🔸 PRODUCT ROWS
+    // ✅ PRODUCT ROWS (FIXED – OPTION B)
     (o.items || []).forEach(item => {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>
-            ${productMap[item.product_id] || item.product_name || item.product_id}
-          </td>
-          <td>${item.qty}</td>
+          <td>${item.product_name || "-"}</td>
+          <td>${item.qty || 0}</td>
           <td></td>
-          <td>₱${Number(item.total).toFixed(2)}</td>
+          <td>₱${Number(item.total || 0).toFixed(2)}</td>
         </tr>
       `);
     });
