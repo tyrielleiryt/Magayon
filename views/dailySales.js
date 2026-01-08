@@ -3,7 +3,7 @@ import { bindDataBoxScroll } from "../admin.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-  let locationMap = {};
+let locationMap = {};
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -24,7 +24,7 @@ export default function loadDailySalesView() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
 
-  // 🔥 preload locations
+  // preload locations
   loadLocations();
 }
 
@@ -139,8 +139,8 @@ function renderTable(orders) {
         <td>
           ${o.ref_id}<br>
           <small>
-            ${formatDateTime(o.datetime || o.date || o.created_at)}<br>
-            ${locationMap[o.location] || o.location}
+            ${formatDateTime(o.datetime)}<br>
+            ${locationMap[o.location] || o.location || "-"}
           </small>
         </td>
         <td></td>
@@ -172,15 +172,24 @@ function updateTotals(total) {
     Number(total).toFixed(2);
 }
 
-/* ================= DATE FORMAT HELPER ================= */
+/* ================= DATE FORMAT (FINAL FIX) ================= */
 function formatDateTime(value) {
   if (!value) return "-";
 
-  const d = new Date(value);
+  let d;
 
-  if (isNaN(d.getTime())) return "-";
+  if (value instanceof Date) {
+    d = value;
+  } else {
+    d = new Date(String(value));
+  }
 
-  return d.toLocaleString(undefined, {
+  if (isNaN(d.getTime())) {
+    console.warn("Invalid datetime:", value);
+    return "-";
+  }
+
+  return d.toLocaleString("en-PH", {
     year: "numeric",
     month: "short",
     day: "2-digit",
@@ -191,6 +200,7 @@ function formatDateTime(value) {
   });
 }
 
+/* ================= LOAD LOCATIONS ================= */
 function loadLocations() {
   return fetch(`${API_URL}?type=locations`)
     .then(res => res.json())
