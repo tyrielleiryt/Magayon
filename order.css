@@ -128,11 +128,16 @@ body {
   flex-direction: column;
   height: 260px; /* 🔥 FIXED CARD HEIGHT */
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  min-height: 260px;
+  touch-action: manipulation;
 }
 
+@media (hover: hover) {
 .product-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
 }
 
 .product-card.disabled {
@@ -286,6 +291,33 @@ body {
   pointer-events: none;
 }
 
+@media (max-width: 1024px) {
+  .pos-container {
+    grid-template-columns: 160px 1fr 320px;
+  }
+}
+
+@media (max-width: 820px) {
+  .pos-container {
+    grid-template-columns: 1fr;
+  }
+
+  .categories-panel {
+    display: none;
+  }
+
+  .cart-panel {
+    position: fixed;
+    right: 0;
+    top: 52px;
+    width: 100%;
+    max-height: calc(100vh - 52px);
+    overflow-y: auto;
+    background: #fff;
+    z-index: 100;
+  }
+}
+
 /* ================= GLOBAL LOADER ================= */
 .loader {
   position: fixed;
@@ -345,6 +377,12 @@ body {
   border-radius: 8px;
   width: 420px; /* was 320px */
   max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+button, input, select {
+  touch-action: manipulation;
 }
 
 .payment-row {
@@ -418,6 +456,10 @@ body {
   border: none;
   background: #f1f3f6;
   cursor: pointer;
+
+  min-height: 56px;
+  min-width: 56px;
+  font-size: 20px;
 }
 
 .keypad button:hover {
