@@ -3,6 +3,9 @@ import { bindDataBoxScroll } from "../admin.js";
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+/* ================= STATE ================= */
+let productMap = {}; // product_id → product_name
+
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
   const l = document.getElementById("globalLoader");
@@ -15,12 +18,15 @@ function hideLoader() {
 }
 
 /* ================= ENTRY ================= */
-export default function loadDailySalesView() {
+export default async function loadDailySalesView() {
   renderActionBar();
   renderLayout();
 
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
+
+  // 🔒 SAFE: preload products for name lookup
+  await loadProducts();
 }
 
 /* ================= ACTION BAR ================= */
@@ -32,7 +38,6 @@ function renderActionBar() {
       Load Report
     </button>
   `;
-
   document.getElementById("loadSalesBtn").onclick = loadSales;
 }
 
@@ -60,14 +65,25 @@ function renderLayout() {
           </tbody>
         </table>
       </div>
-
       <div class="inventory-summary" style="margin-top:12px">
         <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
       </div>
     </div>
   `;
-
   bindDataBoxScroll(document.querySelector(".data-box"));
+}
+
+/* ================= LOAD PRODUCTS (SAFE) ================= */
+async function loadProducts() {
+  try {
+    const res = await fetch(`${API_URL}?type=products`);
+    const data = await res.json();
+    data.forEach(p => {
+      productMap[p.product_id] = p.product_name;
+    });
+  } catch (err) {
+    console.warn("Failed to load products for sales report", err);
+  }
 }
 
 /* ================= LOAD SALES (JSONP) ================= */
@@ -80,7 +96,6 @@ function loadSales() {
     return;
   }
 
-  location = location.trim();
   showLoader("Loading sales report…");
 
   const callback = "handleDailySalesReport";
@@ -148,7 +163,7 @@ function renderTable(orders) {
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td></td>
-          <td>${item.product_name}</td>
+          <td>${productMap[item.product_id] || item.product_name || item.product_id}</td>
           <td>${item.qty}</td>
           <td></td>
           <td>₱${Number(item.total).toFixed(2)}</td>
@@ -166,13 +181,11 @@ function updateTotals(total) {
     Number(total).toFixed(2);
 }
 
-/* ================= DATE/TIME SAFE FORMAT ================= */
+/* ================= DATE FORMAT ================= */
 function formatDateTime(value) {
   if (!value) return "-";
-
   const d = new Date(value);
   if (isNaN(d.getTime())) return "-";
-
   return d.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
