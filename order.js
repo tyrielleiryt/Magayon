@@ -32,8 +32,8 @@ function hideLoader() {
 ========================================================= */
 let products = [];
 let categories = [];
-let recipes = {};
-let inventory = {};
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
@@ -87,15 +87,23 @@ async function loadAllData() {
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`).then(r => r.json())
+    fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    ).then(r => r.json())
   ]);
 
-  categories = categoriesData || [];
-  products = productsData || [];
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
   recipes = recipesData || {};
+
   inventory = {};
 
-  (inventoryRows || []).forEach(r => {
+  if (!Array.isArray(inventoryRows)) {
+    console.error("Invalid inventory response:", inventoryRows);
+    return;
+  }
+
+  inventoryRows.forEach(r => {
     inventory[r.item_id] = Number(r.remaining) || 0;
   });
 }
@@ -105,11 +113,12 @@ async function loadAllData() {
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
-  if (!recipe) return false;
+  if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
     const available = inventory[r.item_id] || 0;
-    return available >= r.qty_used * qty;
+    const needed = Number(r.qty_used) * qty;
+    return available >= needed;
   });
 }
 
@@ -134,7 +143,8 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".category-btn")
+      .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
@@ -152,14 +162,23 @@ function renderProducts(search = "") {
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
-    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
+    .filter(p =>
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
+    )
     .forEach(p => {
       const disabled = !canSell(p);
+      const img = p.image_url?.trim()
+        ? p.image_url
+        : "images/placeholder.png";
 
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
+        <div class="product-img">
+          <img src="${img}" loading="lazy"
+               onerror="this.src='images/placeholder.png'">
+        </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
           <div class="product-name">${p.product_name}</div>
@@ -223,9 +242,9 @@ function renderCart() {
 }
 
 /* =========================================================
-   ✅ CHECKOUT — JSONP (CORS SAFE)
+   CHECKOUT
 ========================================================= */
-function checkoutPOS() {
+async function checkoutPOS() {
   if (!cart.length) {
     alert("No items in cart");
     return;
@@ -234,43 +253,41 @@ function checkoutPOS() {
   showLoader("Processing order…");
 
   const ref = "ORD-" + Date.now();
-  const callback = "handleCheckoutResponse";
 
-  delete window[callback];
+  try {
+    const body = new URLSearchParams({
+      action: "checkoutOrder",
+      ref_id: ref,
+      staff_id: STAFF_ID,
+      location: LOCATION,
+      items: JSON.stringify(cart)
+    });
 
-  window[callback] = function (res) {
-    hideLoader();
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
+    });
 
-    if (!res || !res.success) {
-      alert("❌ Checkout failed");
-      console.error(res);
-      return;
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Checkout failed");
     }
 
     cart = [];
-    loadAllData().then(() => {
-      renderProducts();
-      renderCart();
-    });
+    await loadAllData();
+    renderProducts();
+    renderCart();
 
     alert("✅ Order completed");
-  };
 
-  const qs = new URLSearchParams({
-    action: "checkoutOrder",
-    ref_id: ref,
-    staff_id: STAFF_ID,
-    location: LOCATION,
-    items: JSON.stringify(cart),
-    callback
-  }).toString();
-
-  const old = document.getElementById("checkoutJsonp");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.id = "checkoutJsonp";
-  script.src = `${API_URL}?${qs}`;
-
-  document.body.appendChild(script);
+  } catch (err) {
+    console.error(err);
+    alert("❌ Checkout failed");
+  } finally {
+    hideLoader();
+  }
 }
