@@ -1,3 +1,5 @@
+
+
 /* =========================================================
    CONFIG
 ========================================================= */
@@ -15,23 +17,7 @@ if (!LOCATION || !STAFF_ID) {
   window.location.replace("index.html");
 }
 
-/* =========================================================
-   STATE
-========================================================= */
-let products = [];
-let categories = [];
-let recipes = {};
-let inventory = {};
-let cart = [];
-let activeCategoryId = null;
-
-let lastInventorySnapshot = null;
-let pendingPayment = null;
-let paidValue = "0";
-
-/* =========================================================
-   LOADER
-========================================================= */
+/* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
   if (!loader) return;
@@ -44,19 +30,15 @@ function hideLoader() {
 }
 
 /* =========================================================
-   STOCK UPDATE BANNER
+   STATE
 ========================================================= */
-function showStockBanner() {
-  const banner = document.getElementById("stockBanner");
-  if (!banner) return;
+let products = [];
+let categories = [];
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining
+let cart = [];
+let activeCategoryId = null;
 
-  banner.classList.remove("hidden");
-  clearTimeout(showStockBanner._timer);
-
-  showStockBanner._timer = setTimeout(() => {
-    banner.classList.add("hidden");
-  }, 3000);
-}
 
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
@@ -67,11 +49,24 @@ async function enableWakeLock() {
   try {
     if ("wakeLock" in navigator) {
       wakeLock = await navigator.wakeLock.request("screen");
+      console.log("🔒 Wake Lock enabled");
+
+      wakeLock.addEventListener("release", () => {
+        console.log("🔓 Wake Lock released");
+      });
     }
   } catch (err) {
     console.warn("Wake Lock failed:", err.message);
   }
 }
+
+function disableWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
+
 
 /* =========================================================
    INIT
@@ -80,38 +75,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
   document.getElementById("cashierLocation").textContent = LOCATION;
-
   document.getElementById("fullscreenBtn")
-    ?.addEventListener("click", toggleFullscreen);
-
-  document.getElementById("clearOrderBtn")
-    ?.addEventListener("click", () => {
-      cart = [];
-      renderCart();
-      renderProducts();
-    });
-
-  document.querySelector(".checkout")
-    ?.addEventListener("click", () => {
-      if (!cart.length) return alert("No items in cart");
-      openPaymentModal(cart.reduce((s, i) => s + i.total, 0));
-    });
-
-  document.getElementById("searchInput")
-    ?.addEventListener("input", e => {
-      renderProducts(e.target.value.toLowerCase());
-    });
-
-  document.getElementById("stocksBtn")
-    ?.addEventListener("click", openStocks);
-
-  document.getElementById("salesBtn")
-    ?.addEventListener("click", openSales);
-
-  enableWakeLock();
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") enableWakeLock();
-  });
+  ?.addEventListener("click", toggleFullscreen);
 
   showLoader("Loading POS data…");
 
@@ -127,105 +92,119 @@ document.addEventListener("DOMContentLoaded", async () => {
     hideLoader();
   }
 
-  setInterval(refreshInventoryOnly, 30000);
+  document.querySelector(".checkout")?.addEventListener("click", () => {
+  if (!cart.length) {
+    alert("No items in cart");
+    return;
+  }
+  openPaymentModal(cart.reduce((sum, i) => sum + i.total, 0));
+});
+
+  document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
+    cart = [];
+    renderCart();
+    renderProducts();
+  });
+
+  document.getElementById("searchInput")?.addEventListener("input", e => {
+    renderProducts(e.target.value.toLowerCase());
+  });
 });
 
 /* =========================================================
-   DATA LOADING
+   LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [
-    cat, prod, rec, inv
+    categoriesData,
+    productsData,
+    recipesData,
+    inventoryRows
   ] = await Promise.all([
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`).then(r => r.json())
+    fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    ).then(r => r.json())
   ]);
 
-  categories = Array.isArray(cat) ? cat : [];
-  products = Array.isArray(prod) ? prod : [];
-  recipes = rec || {};
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
+  recipes = recipesData || {};
 
   inventory = {};
-  inv.forEach(r => inventory[r.item_id] = Number(r.remaining) || 0);
 
-  lastInventorySnapshot = JSON.parse(JSON.stringify(inventory));
-}
-
-/* =========================================================
-   INVENTORY REFRESH (SAFE)
-========================================================= */
-async function refreshInventoryOnly() {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-    );
-    const rows = await res.json();
-    if (!Array.isArray(rows)) return;
-
-    const fresh = {};
-    rows.forEach(r => fresh[r.item_id] = Number(r.remaining) || 0);
-
-    if (JSON.stringify(fresh) !== JSON.stringify(lastInventorySnapshot)) {
-      inventory = fresh;
-      lastInventorySnapshot = JSON.parse(JSON.stringify(fresh));
-
-      cart = cart.filter(i => {
-        const p = products.find(p => p.product_id === i.product_id);
-        return p && canSell(p, i.qty);
-      });
-
-      renderProducts();
-      renderCart();
-      showStockBanner();
-    }
-  } catch (e) {
-    console.warn("Inventory refresh failed", e.message);
+  if (!Array.isArray(inventoryRows)) {
+    console.error("Invalid inventory response:", inventoryRows);
+    return;
   }
+
+  inventoryRows.forEach(r => {
+    inventory[r.item_id] = Number(r.remaining) || 0;
+  });
+
+  window.__debugInventory = inventory;
+window.__debugRecipes = recipes;
+window.__debugLocation = LOCATION;
+
+console.log("DEBUG INVENTORY:", inventory);
+console.log("DEBUG RECIPES:", recipes);
+console.log("DEBUG LOCATION:", LOCATION);
+
 }
+
+
 
 /* =========================================================
    INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
   const recipe = recipes[product.product_id];
-  if (!recipe?.length) return false;
+  if (!recipe || !recipe.length) return false;
 
   return recipe.every(r => {
-    return (inventory[r.item_id] || 0) >= Number(r.qty_used) * qty;
+    const available = inventory[r.item_id] || 0;
+    const needed = Number(r.qty_used) * qty;
+    return available >= needed;
   });
 }
 
 /* =========================================================
-   UI RENDERING
+   CATEGORIES
 ========================================================= */
 function renderCategories() {
   const el = document.querySelector(".categories-panel");
   el.innerHTML = "";
+
   el.appendChild(createCategoryBtn("All", null, true));
 
-  categories.forEach(c =>
-    el.appendChild(createCategoryBtn(c.category_name, c.category_id))
-  );
+  categories.forEach(c => {
+    el.appendChild(createCategoryBtn(c.category_name, c.category_id));
+  });
 }
 
 function createCategoryBtn(name, id, active = false) {
   const btn = document.createElement("button");
   btn.className = "category-btn" + (active ? " active" : "");
   btn.textContent = name;
+
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".category-btn")
+      .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
+
   return btn;
 }
 
+/* =========================================================
+   PRODUCTS
+========================================================= */
 function renderProducts(search = "") {
   const grid = document.getElementById("productGrid");
   grid.innerHTML = "";
@@ -233,20 +212,30 @@ function renderProducts(search = "") {
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
-    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
+    .filter(p =>
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
+    )
     .forEach(p => {
       const disabled = !canSell(p);
+      const img = p.image_url?.trim()
+        ? p.image_url
+        : "images/placeholder.png";
+
       const card = document.createElement("div");
       card.className = "product-card" + (disabled ? " disabled" : "");
+
       card.innerHTML = `
         <div class="product-img">
-          <img src="${p.image_url || "images/placeholder.png"}">
+          <img src="${img}" loading="lazy"
+               onerror="this.src='images/placeholder.png'">
         </div>
         <div class="product-info">
           <div class="product-code">${p.product_code}</div>
           <div class="product-name">${p.product_name}</div>
           <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
-        </div>`;
+        </div>
+      `;
+
       if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
     });
@@ -256,14 +245,18 @@ function renderProducts(search = "") {
    CART
 ========================================================= */
 function addToCart(p) {
-  const e = cart.find(i => i.product_id === p.product_id);
-  const next = e ? e.qty + 1 : 1;
+  const existing = cart.find(i => i.product_id === p.product_id);
+  const nextQty = existing ? existing.qty + 1 : 1;
 
-  if (!canSell(p, next)) return alert("❌ Not enough stock");
+  // 🚫 HARD BLOCK if stock would be exceeded
+  if (!canSell(p, nextQty)) {
+    alert("❌ Not enough stock");
+    return;
+  }
 
-  if (e) {
-    e.qty = next;
-    e.total = e.qty * e.price;
+  if (existing) {
+    existing.qty = nextQty;
+    existing.total = existing.qty * existing.price;
   } else {
     cart.push({
       product_id: p.product_id,
@@ -274,6 +267,7 @@ function addToCart(p) {
     });
   }
 
+  // ⏱ keep tablet-safe render fix
   setTimeout(renderCart, 0);
   renderProducts();
 }
@@ -281,7 +275,11 @@ function addToCart(p) {
 function renderCart() {
   const tbody = document.getElementById("orderTable");
   const sumEl = document.getElementById("sumTotal");
-  if (!tbody || !sumEl) return;
+
+  if (!tbody || !sumEl) {
+    console.warn("⚠️ Cart table not ready yet");
+    return;
+  }
 
   tbody.innerHTML = "";
   let sum = 0;
@@ -295,29 +293,214 @@ function renderCart() {
         <td>${i.qty}</td>
         <td>₱${i.price.toFixed(2)}</td>
         <td>₱${i.total.toFixed(2)}</td>
-      </tr>`;
+      </tr>
+    `;
   });
 
   sumEl.textContent = sum.toFixed(2);
 }
 
 /* =========================================================
-   FULLSCREEN
+   CHECKOUT
 ========================================================= */
-function toggleFullscreen() {
-  if (!document.fullscreenElement)
-    document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
+async function checkoutPOS() {
+  if (!cart.length) {
+  alert("No items in cart");
+  return;
 }
 
-document.addEventListener("fullscreenchange", () => {
-  const btn = document.getElementById("fullscreenBtn");
-  if (btn) btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
+if (!window.__lastPayment) {
+  alert("Payment not confirmed");
+  return;
+}
+
+  showLoader("Processing order…");
+
+  const ref = "ORD-" + Date.now();
+
+  try {
+    const payment = window.__lastPayment;
+    const body = new URLSearchParams({
+      action: "checkoutOrder",
+      ref_id: ref,
+      staff_id: STAFF_ID,
+      location: LOCATION,
+      items: JSON.stringify(cart)
+
+      
+    });
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Checkout failed");
+    }
+
+    cart = [];
+    await loadAllData();
+    renderProducts();
+    renderCart();
+
+    alert("✅ Order completed");
+    delete window.__lastPayment;
+  } catch (err) {
+    console.error(err);
+    alert("❌ Checkout failed");
+  } finally {
+    hideLoader();
+  }
+}
+
+let pendingPayment = null;
+
+function openPaymentModal(total) {
+  pendingPayment = { total };
+  
+paidValue = "0";
+document.getElementById("paidDisplay").textContent = "₱0.00";
+document.getElementById("changeAmount").textContent = "₱0.00";
+
+
+  document.getElementById("payTotal").textContent =
+    `₱${Number(total).toFixed(2)}`;
+
+  document.getElementById("gcashRef").value = "";
+
+  // 🔴 Disable confirm initially
+  const btn = document.getElementById("confirmPaymentBtn");
+  btn.classList.remove("enabled");
+  btn.disabled = true;
+
+  document.getElementById("paymentModal").classList.remove("hidden");
+}
+
+function closePaymentModal() {
+  document.getElementById("paymentModal").classList.add("hidden");
+  pendingPayment = null;
+}
+
+document.getElementById("paymentMethod")?.addEventListener("change", e => {
+  const method = e.target.value;
+
+  // update badge text
+  const badge = document.getElementById("methodBadge");
+  if (badge) badge.textContent = method;
+
+  // show / hide GCash reference
+  document.getElementById("gcashRefRow")
+    ?.classList.toggle("hidden", method !== "GCASH");
 });
 
-/* =========================================================
-   EXPOSE FUNCTIONS
-========================================================= */
+document.getElementById("amountPaid")?.addEventListener("input", e => {
+  const paid = Number(e.target.value) || 0;
+  const total = pendingPayment?.total || 0;
+  const change = paid - total;
+
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
+});
+
+function confirmPayment() {
+
+  // 🔒 EXTRA SAFETY GUARD (STEP 4)
+  if (document.getElementById("confirmPaymentBtn").disabled) {
+    return;
+  }
+
+  const paid = Number(paidValue);
+  const method = document.getElementById("paymentMethod").value;
+  const ref = document.getElementById("gcashRef").value || "";
+  const total = pendingPayment?.total || 0;
+
+  if (paid < total) {
+    alert("❌ Insufficient payment");
+    return;
+  }
+
+  // Store temporarily (used later in backend Step 3)
+  window.__lastPayment = {
+    total_bill: total,
+    amount_paid: paid,
+    change: paid - total,
+    payment_method: method,
+    gcash_ref: ref
+  };
+
+  closePaymentModal();
+
+  // ✅ NOW perform the real checkout
+  checkoutPOS();
+}
+
+let paidValue = "0";
+
+function keypadInput(val) {
+  if (val === "." && paidValue.includes(".")) return;
+
+  if (paidValue === "0" && val !== ".") {
+    paidValue = val;
+  } else {
+    paidValue += val;
+  }
+
+  updatePaidDisplay();
+}
+
+function keypadBackspace() {
+  paidValue = paidValue.slice(0, -1) || "0";
+  updatePaidDisplay();
+}
+
+function updatePaidDisplay() {
+  const paid = Number(paidValue) || 0;
+  const total = pendingPayment?.total || 0;
+
+  document.getElementById("paidDisplay").textContent =
+    `₱${paid.toFixed(2)}`;
+
+  const change = paid - total;
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
+
+    // ✅ Enable confirm only if paid >= total
+  const btn = document.getElementById("confirmPaymentBtn");
+  if (paid >= total) {
+    btn.disabled = false;
+    btn.classList.add("enabled");
+  } else {
+    btn.disabled = true;
+    btn.classList.remove("enabled");
+  }
+  
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      alert("Fullscreen not supported");
+      console.error(err);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// update button icon/state
+document.addEventListener("fullscreenchange", () => {
+  const btn = document.getElementById("fullscreenBtn");
+  if (!btn) return;
+  btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
+});
+
+// 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
 window.keypadBackspace = keypadBackspace;
 window.confirmPayment = confirmPayment;
