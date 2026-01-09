@@ -245,6 +245,18 @@ body {
   border-bottom: 1px solid #eee;
 }
 
+.cart-table-wrapper {
+  flex: 1;                   /* 🔑 takes available space */
+  overflow-y: auto;          /* 🔑 enables scroll */
+}
+
+.cart-actions {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 10px;
+}
+
 .cart-summary {
   margin-top: auto;
   padding-top: 10px;
