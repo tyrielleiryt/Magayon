@@ -187,19 +187,17 @@ async function refreshInventoryOnly() {
       newInventory[r.item_id] = Number(r.remaining) || 0;
     });
 
-    // 🔍 Detect inventory change
+    // 🔍 Detect changes
     const changed =
-      !lastInventorySnapshot ||
-      JSON.stringify(lastInventorySnapshot) !== JSON.stringify(newInventory);
-
-    // ✅ Apply inventory
-    inventory = newInventory;
-    lastInventorySnapshot = JSON.parse(JSON.stringify(newInventory));
+      JSON.stringify(newInventory) !==
+      JSON.stringify(lastInventorySnapshot);
 
     if (changed) {
-      console.log("⚠ Inventory changed");
-      showStockBanner();
-      renderProducts(); // update disabled cards
+      inventory = newInventory;
+      lastInventorySnapshot = JSON.parse(JSON.stringify(newInventory));
+
+      renderProducts();     // update disabled/enabled cards
+      showStockBanner();    // 👈 THIS IS WHAT TABLET NEEDS
     }
 
   } catch (err) {
