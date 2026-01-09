@@ -25,10 +25,10 @@
 
     <div class="top-actions">
       <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
-      <button>Ongoing Orders</button>
+      <!--<button>Ongoing Orders</button>
       <button>Completed Orders</button>
-      <button>Cancelled Orders</button>
-      <button>Stocks List</button>
+      <button>Cancelled Orders</button> -->
+      <button id="stocksBtn">Stocks List</button>
       <button>Sales Report</button>
       <button class="active">Main Page</button>
       
@@ -177,6 +177,28 @@
     <div class="modal-actions">
       <button onclick="closePaymentModal()">Cancel</button>
       <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= STOCKS MODAL ================= -->
+<div id="stocksModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>📦 Inventory Stocks (Today)</h2>
+
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Added Today</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody id="stocksTable"></tbody>
+    </table>
+
+    <div class="modal-actions">
+      <button onclick="closeStocks()">Close</button>
     </div>
   </div>
 </div>
