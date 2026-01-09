@@ -29,11 +29,8 @@
 
     <div class="top-actions">
       <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
-      <button>Ongoing Orders</button>
-      <button>Completed Orders</button>
-      <button>Cancelled Orders</button>
-      <button>Stocks List</button>
-      <button>Sales Report</button>
+      <button id="stocksBtn">Stocks List</button>
+      <button id="salesBtn">Today’s Sales</button>
       <button class="active">Main Page</button>
       
     </div>
@@ -169,6 +166,38 @@
 </button>
   </div>
 
+  <!-- 📊 TODAY SALES MODAL -->
+<div id="salesModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Today’s Sales</h3>
+
+    <div id="salesList"></div>
+
+    <div class="modal-actions">
+      <button onclick="closeSales()">Close</button>
+    </div>
+  </div>
+</div>
+
+  <!-- 📦 STOCKS LIST MODAL -->
+<div id="stocksModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Available Stocks</h3>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody id="stocksTable"></tbody>
+    </table>
+
+    <div class="modal-actions">
+      <button onclick="closeStocks()">Close</button>
+    </div>
+  </div>
+</div>
 
 </div>
     </div>
