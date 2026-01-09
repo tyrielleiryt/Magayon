@@ -6,10 +6,16 @@
   font-family: "Segoe UI", Arial, sans-serif;
 }
 
-body {
+html,body {
   background: #f4f6fb;
   color: #2c2c2c;
-  height: 100vh;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.pseudo-fullscreen {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
 }
 
