@@ -4,6 +4,8 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
+window.API_URL = API_URL; // 👈 ADD THIS
+  
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
 const CASHIER_NAME = localStorage.getItem("userName") || "";
