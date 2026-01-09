@@ -60,7 +60,7 @@ async function handleLogin() {
 
     const user = snap.data();
 
-    if (user.active !== "true") {
+    if (user.active !== true) {
       throw new Error("Account is inactive.");
     }
 
