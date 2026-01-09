@@ -73,6 +73,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
   document.getElementById("cashierLocation").textContent = LOCATION;
+  document.getElementById("fullscreenBtn")
+  ?.addEventListener("click", toggleFullscreen);
 
   showLoader("Loading POS data…");
 
