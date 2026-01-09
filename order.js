@@ -498,6 +498,50 @@ document.addEventListener("fullscreenchange", () => {
   btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
 });
 
+document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
+
+async function openStocks() {
+  const tbody = document.getElementById("stocksTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const res = await fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    );
+
+    const rows = await res.json();
+    tbody.innerHTML = "";
+
+    if (!Array.isArray(rows) || !rows.length) {
+      tbody.innerHTML =
+        "<tr><td colspan='3'>No inventory data.</td></tr>";
+    } else {
+      rows.forEach(r => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.item_name || r.item_id}</td>
+            <td>${Number(r.added_today || 0)}</td>
+            <td>${Number(r.remaining || 0)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById("stocksModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML =
+      "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
+  }
+}
+
+function closeStocks() {
+  document.getElementById("stocksModal").classList.add("hidden");
+}
+
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
 window.keypadBackspace = keypadBackspace;
