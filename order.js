@@ -229,13 +229,18 @@ function addToCart(p) {
     });
   }
 
-  renderCart();
+  setTimeout(renderCart, 0);
   renderProducts();
 }
 
 function renderCart() {
   const tbody = document.getElementById("orderTable");
   const sumEl = document.getElementById("sumTotal");
+
+  if (!tbody || !sumEl) {
+    console.warn("⚠️ Cart table not ready yet");
+    return;
+  }
 
   tbody.innerHTML = "";
   let sum = 0;
