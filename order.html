@@ -1,3 +1,5 @@
+order.html 1:49PM jan 9
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,10 +20,6 @@
   <link rel="stylesheet" href="order.css" />
 </head>
 <body>
-    <!-- 🔔 Stock Update Banner -->
-<div id="stockBanner" class="stock-banner hidden">
-  ⚠ Stock updated
-</div>
 
   <!-- ================= TOP BAR ================= -->
   <div class="top-bar">
@@ -29,8 +27,11 @@
 
     <div class="top-actions">
       <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
-      <button id="stocksBtn">Stocks List</button>
-      <button id="salesBtn">Today’s Sales</button>
+      <button>Ongoing Orders</button>
+      <button>Completed Orders</button>
+      <button>Cancelled Orders</button>
+      <button>Stocks List</button>
+      <button>Sales Report</button>
       <button class="active">Main Page</button>
       
     </div>
@@ -158,48 +159,26 @@
 
   <div class="modal-actions">
     <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button
-  id="confirmPaymentBtn"
-  class="btn-confirm"
-  onclick="confirmPayment()">
-  Confirm
-</button>
+    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
   </div>
 
-  <!-- 📊 TODAY SALES MODAL -->
-<div id="salesModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Today’s Sales</h3>
 
-    <div id="salesList"></div>
+</div>
+    </div>
+
+    <div class="payment-row hidden" id="gcashRefRow">
+      <label>GCash Reference (optional)</label>
+      <input type="text" id="gcashRef" />
+    </div>
+
+    <div class="payment-row">
+      <label>Change</label>
+      <div id="changeAmount">₱0.00</div>
+    </div>
 
     <div class="modal-actions">
-      <button onclick="closeSales()">Close</button>
-    </div>
-  </div>
-</div>
-
-  <!-- 📦 STOCKS LIST MODAL -->
-<div id="stocksModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Available Stocks</h3>
-    <table class="cart-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Remaining</th>
-        </tr>
-      </thead>
-      <tbody id="stocksTable"></tbody>
-    </table>
-
-    <div class="modal-actions">
-      <button onclick="closeStocks()">Close</button>
-    </div>
-  </div>
-</div>
-
-</div>
+      <button onclick="closePaymentModal()">Cancel</button>
+      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
     </div>
   </div>
 </div>
