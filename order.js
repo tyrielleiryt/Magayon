@@ -476,6 +476,24 @@ function updatePaidDisplay() {
   
 }
 
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      alert("Fullscreen not supported");
+      console.error(err);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// update button icon/state
+document.addEventListener("fullscreenchange", () => {
+  const btn = document.getElementById("fullscreenBtn");
+  if (!btn) return;
+  btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
+});
+
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
 window.keypadBackspace = keypadBackspace;
