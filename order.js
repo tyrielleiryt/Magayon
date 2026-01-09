@@ -37,6 +37,19 @@ let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
+let lastInventorySnapshot = null;
+
+function showStockBanner() {
+  const banner = document.getElementById("stockBanner");
+  if (!banner) return;
+
+  banner.classList.remove("hidden");
+
+  clearTimeout(showStockBanner._timer);
+  showStockBanner._timer = setTimeout(() => {
+    banner.classList.add("hidden");
+  }, 3000);
+}
 
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
@@ -155,6 +168,7 @@ console.log("DEBUG INVENTORY:", inventory);
 console.log("DEBUG RECIPES:", recipes);
 console.log("DEBUG LOCATION:", LOCATION);
 
+lastInventorySnapshot = JSON.parse(JSON.stringify(inventory));
 }
 
 async function refreshInventoryOnly() {
@@ -166,23 +180,27 @@ async function refreshInventoryOnly() {
     );
 
     const rows = await res.json();
-
-    if (!Array.isArray(rows)) {
-      console.warn("⚠️ Inventory refresh failed");
-      return;
-    }
+    if (!Array.isArray(rows)) return;
 
     const newInventory = {};
     rows.forEach(r => {
       newInventory[r.item_id] = Number(r.remaining) || 0;
     });
 
+    // 🔍 Detect inventory change
+    const changed =
+      !lastInventorySnapshot ||
+      JSON.stringify(lastInventorySnapshot) !== JSON.stringify(newInventory);
+
+    // ✅ Apply inventory
     inventory = newInventory;
+    lastInventorySnapshot = JSON.parse(JSON.stringify(newInventory));
 
-    console.log("🔄 Inventory refreshed", inventory);
-
-    // Re-render products so disabled state updates
-    renderProducts();
+    if (changed) {
+      console.log("⚠ Inventory changed");
+      showStockBanner();
+      renderProducts(); // update disabled cards
+    }
 
   } catch (err) {
     console.warn("Inventory refresh error:", err.message);

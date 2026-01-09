@@ -18,6 +18,10 @@
   <link rel="stylesheet" href="order.css" />
 </head>
 <body>
+    <!-- 🔔 Stock Update Banner -->
+<div id="stockBanner" class="stock-banner hidden">
+  ⚠ Stock updated
+</div>
 
   <!-- ================= TOP BAR ================= -->
   <div class="top-bar">
@@ -157,26 +161,16 @@
 
   <div class="modal-actions">
     <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
+    <button
+  id="confirmPaymentBtn"
+  class="btn-confirm"
+  onclick="confirmPayment()">
+  Confirm
+</button>
   </div>
 
 
 </div>
-    </div>
-
-    <div class="payment-row hidden" id="gcashRefRow">
-      <label>GCash Reference (optional)</label>
-      <input type="text" id="gcashRef" />
-    </div>
-
-    <div class="payment-row">
-      <label>Change</label>
-      <div id="changeAmount">₱0.00</div>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="closePaymentModal()">Cancel</button>
-      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
     </div>
   </div>
 </div>
