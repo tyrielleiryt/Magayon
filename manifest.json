@@ -1,7 +1,7 @@
 {
   "name": "Magayon POS",
   "short_name": "Magayon POS",
-  "start_url": "order.html",
+  "start_url": "order.html, index.html" ,
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#1f1f1f",
@@ -19,3 +19,4 @@
     }
   ]
 }
+
