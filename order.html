@@ -50,36 +50,37 @@
 
     <!-- ========== RIGHT : CART ========== -->
     <aside class="cart-panel">
-      <div class="cart-table-wrapper">
-      <table class="cart-table"></table>
-</div>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="orderTable">
-          <!-- Cart rows -->
-        </tbody>
-      </table>
+  <div class="cart-table-wrapper">
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
 
-      <div class="cart-summary">
-        <div class="total-line">
-          <span>SUM TOTAL:</span>
-          <span>₱<span id="sumTotal">0.00</span></span>
-        </div>
-      </div>
+      <tbody id="orderTable">
+        <!-- Cart rows injected by JS -->
+      </tbody>
+    </table>
+  </div>
 
-      <div class="cart-actions">
-        <button id="clearOrderBtn" class="btn-clear">Clear</button>
-        <button class="btn-checkout checkout">Checkout</button>
-        <button class="btn-print">Print</button>
-      </div>
-    </aside>
+  <div class="cart-summary">
+    <div class="total-line">
+      <span>SUM TOTAL:</span>
+      <span>₱<span id="sumTotal">0.00</span></span>
+    </div>
+  </div>
+
+  <div class="cart-actions">
+    <button id="clearOrderBtn" class="btn-clear">Clear</button>
+    <button class="btn-checkout checkout">Checkout</button>
+    <button class="btn-print">Print</button>
+  </div>
+</aside>
 
   </div>
 
