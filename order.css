@@ -48,6 +48,19 @@ body {
   text-align: right;
 }
 
+.top-btn {
+  background: transparent;
+  border: none;
+  color: #cfd3ff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+
+.top-btn:hover {
+  color: #ffffff;
+}
+
 /* ================= MAIN LAYOUT ================= */
 .pos-container {
   display: grid;
