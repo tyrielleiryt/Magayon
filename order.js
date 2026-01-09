@@ -211,13 +211,16 @@ function renderProducts(search = "") {
 ========================================================= */
 function addToCart(p) {
   const existing = cart.find(i => i.product_id === p.product_id);
+  const nextQty = existing ? existing.qty + 1 : 1;
+
+  // 🚫 HARD BLOCK if stock would be exceeded
+  if (!canSell(p, nextQty)) {
+    alert("❌ Not enough stock");
+    return;
+  }
 
   if (existing) {
-    if (!canSell(p, existing.qty + 1)) {
-      alert("❌ Not enough stock");
-      return;
-    }
-    existing.qty++;
+    existing.qty = nextQty;
     existing.total = existing.qty * existing.price;
   } else {
     cart.push({
@@ -229,6 +232,7 @@ function addToCart(p) {
     });
   }
 
+  // ⏱ keep tablet-safe render fix
   setTimeout(renderCart, 0);
   renderProducts();
 }
