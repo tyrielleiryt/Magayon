@@ -554,3 +554,4 @@ window.keypadInput = keypadInput;
 window.keypadBackspace = keypadBackspace;
 window.confirmPayment = confirmPayment;
 window.closePaymentModal = closePaymentModal;
+window.closeStocks = closeStocks;
