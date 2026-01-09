@@ -107,6 +107,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
+
+  // 🔄 Auto-refresh inventory every 30 seconds (safe)
+setInterval(refreshInventoryOnly, 30000);
 });
 
 /* =========================================================
@@ -152,6 +155,38 @@ console.log("DEBUG INVENTORY:", inventory);
 console.log("DEBUG RECIPES:", recipes);
 console.log("DEBUG LOCATION:", LOCATION);
 
+}
+
+async function refreshInventoryOnly() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const res = await fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    );
+
+    const rows = await res.json();
+
+    if (!Array.isArray(rows)) {
+      console.warn("⚠️ Inventory refresh failed");
+      return;
+    }
+
+    const newInventory = {};
+    rows.forEach(r => {
+      newInventory[r.item_id] = Number(r.remaining) || 0;
+    });
+
+    inventory = newInventory;
+
+    console.log("🔄 Inventory refreshed", inventory);
+
+    // Re-render products so disabled state updates
+    renderProducts();
+
+  } catch (err) {
+    console.warn("Inventory refresh error:", err.message);
+  }
 }
 
 /* =========================================================
