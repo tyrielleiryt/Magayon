@@ -112,6 +112,15 @@ async function loadAllData() {
   inventoryRows.forEach(r => {
     inventory[r.item_id] = Number(r.remaining) || 0;
   });
+
+  window.__debugInventory = inventory;
+window.__debugRecipes = recipes;
+window.__debugLocation = LOCATION;
+
+console.log("DEBUG INVENTORY:", inventory);
+console.log("DEBUG RECIPES:", recipes);
+console.log("DEBUG LOCATION:", LOCATION);
+
 }
 
 /* =========================================================
