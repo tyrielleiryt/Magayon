@@ -37,6 +37,35 @@ let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
+
+/* =========================================================
+   WAKE LOCK (TABLET ANTI-SLEEP)
+========================================================= */
+let wakeLock = null;
+
+async function enableWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      console.log("🔒 Wake Lock enabled");
+
+      wakeLock.addEventListener("release", () => {
+        console.log("🔓 Wake Lock released");
+      });
+    }
+  } catch (err) {
+    console.warn("Wake Lock failed:", err.message);
+  }
+}
+
+function disableWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
+
+
 /* =========================================================
    INIT
 ========================================================= */
