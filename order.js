@@ -67,6 +67,13 @@ function disableWakeLock() {
   }
 }
 
+async function loadTodayStocks() {
+  const res = await fetch(
+    `${API_URL}?type=todayStocks&location=${LOCATION}`
+  );
+  return res.json();
+}
+
 
 /* =========================================================
    INIT
@@ -507,10 +514,8 @@ async function openStocks() {
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
-
     const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+      `${API_URL}?type=todayStocks&location=${LOCATION}`
     );
 
     const rows = await res.json();
@@ -523,9 +528,9 @@ async function openStocks() {
       rows.forEach(r => {
         tbody.innerHTML += `
           <tr>
-            <td>${r.item_name || r.item_id}</td>
-            <td>${Number(r.added_today || 0)}</td>
-            <td>${Number(r.remaining || 0)}</td>
+            <td>${r.item_name}</td>
+            <td>${r.added_today}</td>
+            <td>${r.remaining}</td>
           </tr>
         `;
       });
