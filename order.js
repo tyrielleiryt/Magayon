@@ -92,6 +92,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   showLoader("Loading POS data…");
 
+  // 🔒 Force fullscreen on POS load
+setTimeout(() => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 500);
+
   try {
     await loadAllData();
     renderCategories();
@@ -117,6 +124,74 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderCart();
     renderProducts();
   });
+
+  let relockTimer = null;
+
+function showPinModal() {
+  const modal = document.getElementById("pinModal");
+  const input = document.getElementById("pinInput");
+  if (!modal || !input) return;
+
+  input.value = "";
+  modal.classList.remove("hidden");
+  input.focus();
+}
+
+function closePinModal() {
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+  // 🔒 If still locked, force fullscreen back
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+function unlockPOS() {
+  const input = document.getElementById("pinInput");
+  const pin = input?.value || "";
+
+  if (pin !== MANAGER_PIN) {
+    alert("❌ Invalid PIN");
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+  // 🔓 Unlock
+  POS_LOCKED = false;
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+  startRelockTimer();
+}
+
+function startRelockTimer() {
+  clearTimeout(relockTimer);
+
+  // ⏱ Auto re-lock after 5 minutes
+  relockTimer = setTimeout(() => {
+    POS_LOCKED = true;
+
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
+  document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && POS_LOCKED) {
+    showPinModal();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
+
+  // Block ESC, F11
+  if (e.key === "Escape" || e.key === "F11") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
 
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
@@ -706,15 +781,6 @@ document.addEventListener("keydown", e => {
   }
 });
 
-function unlockPOS() {
-  const pin = prompt("Manager PIN required");
-  if (pin === MANAGER_PIN) {
-    POS_LOCKED = false;
-    alert("🔓 POS unlocked");
-  } else {
-    alert("❌ Invalid PIN");
-  }
-}
 
 window.unlockPOS = unlockPOS;
 

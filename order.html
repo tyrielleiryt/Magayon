@@ -233,6 +233,25 @@
   </div>
 </div>
 
+<!-- ================= MANAGER PIN MODAL ================= -->
+<div id="pinModal" class="modal hidden">
+  <div class="modal-content" style="max-width:320px;text-align:center">
+    <h3>🔒 Manager Unlock</h3>
+
+    <input
+      type="password"
+      id="pinInput"
+      placeholder="Enter Manager PIN"
+      style="width:100%;padding:10px;margin:12px 0;font-size:16px"
+    />
+
+    <div class="modal-actions">
+      <button onclick="closePinModal()">Cancel</button>
+      <button onclick="unlockPOS()">Unlock</button>
+    </div>
+  </div>
+</div>
+
   <!-- ================= SCRIPT ================= -->
   <script type="module" src="order.js"></script>
 </body>
