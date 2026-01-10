@@ -9,12 +9,18 @@ const API_URL =
   window.API_URL = API_URL; // 👈 ADD THIS
 
   let POS_LOCKED = true; // 🔒 default locked
+  let PIN_ACTION = "unlock"; // 🔑 unlock | logout
 const MANAGER_PIN = "1234"; // 🔑 change this
 
 let relockTimer = null;
 
 function showPinModal(action = "unlock") {
   PIN_ACTION = action;
+
+  document.querySelector("#pinModal h2").textContent =
+  action === "logout"
+    ? "🔒 Manager Logout"
+    : "🔒 Manager Unlock";
 
   const modal = document.getElementById("pinModal");
   const input = document.getElementById("pinInput");
@@ -35,7 +41,7 @@ function closePinModal() {
 }
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && POS_LOCKED) {
+  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout") {
     showPinModal();
   }
 });
