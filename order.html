@@ -234,21 +234,31 @@
 </div>
 
 <!-- ================= MANAGER PIN MODAL ================= -->
-<div id="pinModal" class="modal hidden">
-  <div class="modal-content" style="max-width:320px;text-align:center">
-    <h3>🔒 Manager Unlock</h3>
+<div id="pinModal" class="modal hidden" style="z-index:9999">
+  <div class="modal-content" style="max-width:360px;text-align:center">
+
+    <h2>🔒 Manager Unlock</h2>
+    <p style="margin-bottom:12px">Enter Manager PIN to exit lock</p>
 
     <input
-      type="password"
       id="pinInput"
-      placeholder="Enter Manager PIN"
-      style="width:100%;padding:10px;margin:12px 0;font-size:16px"
+      type="password"
+      inputmode="numeric"
+      placeholder="Enter PIN"
+      style="
+        width:100%;
+        padding:12px;
+        font-size:20px;
+        text-align:center;
+        letter-spacing:6px;
+      "
     />
 
-    <div class="modal-actions">
-      <button onclick="closePinModal()">Cancel</button>
-      <button onclick="unlockPOS()">Unlock</button>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closePinModal()">Cancel</button>
+      <button class="btn-confirm" onclick="unlockPOS()">Unlock</button>
     </div>
+
   </div>
 </div>
 
