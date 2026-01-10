@@ -288,7 +288,7 @@ function canSell(product, qty = 1) {
    CATEGORIES
 ========================================================= */
 function renderCategories() {
-  const el = document.querySelector(".categoryList");
+  const el = document.querySelector(".categories-top");
   el.innerHTML = "";
 
   el.appendChild(createCategoryBtn("All", null, true));
