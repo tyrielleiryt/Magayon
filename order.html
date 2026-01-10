@@ -44,12 +44,14 @@
 </div>
   </div>
 
+  <!-- ================= CATEGORIES (TOP) ================= -->
+<div class="categories-top" id="categoryList">
+  <!-- categories injected by order.js -->
+</div>
+
+
   <!-- ================= MAIN LAYOUT ================= -->
   <div class="pos-container">
-
-    <aside class="categories-panel" id="categoryList">
-  <!-- categories injected by order.js -->
-</aside>
 
     <!-- ========== CENTER : PRODUCTS ========== -->
     <main class="products-panel">
@@ -166,24 +168,7 @@
 
 </div>
     </div>
-
-    <div class="payment-row hidden" id="gcashRefRow">
-      <label>GCash Reference (optional)</label>
-      <input type="text" id="gcashRef" />
-    </div>
-
-    <div class="payment-row">
-      <label>Change</label>
-      <div id="changeAmount">₱0.00</div>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="closePaymentModal()">Cancel</button>
-      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
-    </div>
-  </div>
-</div>
-
+    
 <!-- ================= STOCKS MODAL ================= -->
 <div id="stocksModal" class="modal hidden">
   <div class="modal-content">

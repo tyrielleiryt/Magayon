@@ -130,7 +130,7 @@ input, select, textarea {
   overflow-y: auto;
   padding: 18px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 18px;
   align-content: start;
 }
@@ -144,10 +144,10 @@ input, select, textarea {
   border: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  height: 260px; /* 🔥 FIXED CARD HEIGHT */
+  height: 220px; /* 🔥 FIXED CARD HEIGHT */
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 
-  min-height: 260px;
+  min-height: 220px;
   touch-action: manipulation;
 }
 
@@ -170,7 +170,7 @@ input, select, textarea {
 /* ================= IMAGE ================= */
 .product-img {
   width: 100%;
-  height: 140px; /* 🔥 FIXED IMAGE AREA */
+  height: 110px; /* 🔥 FIXED IMAGE AREA */
   background: #f6f6f6;
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@ input, select, textarea {
 
 /* ================= PRODUCT INFO ================= */
 .product-info {
-  padding: 8px 10px;
+  padding: 6px 8px;
   text-align: center;
   background: #ffffff;
   flex: 1; /* 🔥 RESERVES SPACE */
@@ -217,7 +217,7 @@ input, select, textarea {
 }
 
 .product-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #1f2937;
   line-height: 1.25;
@@ -230,7 +230,7 @@ input, select, textarea {
 }
 
 .product-price {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #2f3457;
 }
@@ -561,3 +561,21 @@ button, input, select {
   opacity: 1;
 }
 
+/* ================= TOP CATEGORIES ================= */
+.categories-top {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categories-top .category-btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+}
