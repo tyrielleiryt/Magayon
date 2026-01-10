@@ -92,6 +92,3 @@ async function handleLogin() {
 
 /* ================= EVENTS ================= */
 loginBtn.addEventListener("click", handleLogin);
-document.addEventListener("keydown", e => {
-  if (e.key === "Enter") handleLogin();
-});
