@@ -552,6 +552,8 @@ function closeStocks() {
 }
 
 document.getElementById("salesBtn")?.addEventListener("click", openSales);
+document.querySelector(".top-actions button:nth-child(2)")
+  ?.addEventListener("click", openSales); // Sales Report button
 
 async function openSales() {
   const box = document.getElementById("salesList");
