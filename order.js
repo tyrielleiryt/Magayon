@@ -31,6 +31,12 @@ function closePinModal() {
   }
 }
 
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && POS_LOCKED) {
+    showPinModal();
+  }
+});
+
 function unlockPOS() {
   const input = document.getElementById("pinInput");
   const pin = input?.value.trim();
@@ -579,22 +585,6 @@ function toggleFullscreen() {
   }
 }
 
-// update button icon/state
-document.addEventListener("fullscreenchange", () => {
-  const btn = document.getElementById("fullscreenBtn");
-
-  if (!document.fullscreenElement) {
-    if (POS_LOCKED) {
-      // 🔒 FORCE fullscreen back
-      setTimeout(() => {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }, 300);
-    }
-    if (btn) btn.textContent = "⛶";
-  } else {
-    if (btn) btn.textContent = "⛶ Exit";
-  }
-});
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
