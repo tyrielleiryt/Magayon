@@ -415,6 +415,8 @@ document.getElementById("amountPaid")?.addEventListener("input", e => {
     `₱${Math.max(change, 0).toFixed(2)}`;
 });
 
+
+
 function confirmPayment() {
 
   // 🔒 EXTRA SAFETY GUARD (STEP 4)
@@ -548,6 +550,63 @@ async function openStocks() {
 function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
+
+document.getElementById("salesBtn")?.addEventListener("click", openSales);
+
+async function openSales() {
+  const list = document.getElementById("salesList");
+  const totalEl = document.getElementById("salesTotal");
+
+  list.innerHTML = "Loading…";
+  totalEl.textContent = "0.00";
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const res = await fetch(
+      `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
+    );
+
+    const data = await res.json();
+
+    if (!Array.isArray(data) || !data.length) {
+      list.innerHTML = "<p>No sales yet today.</p>";
+      return;
+    }
+
+    let grandTotal = 0;
+
+    list.innerHTML = data.map(o => {
+      grandTotal += Number(o.total) || 0;
+
+      const time = new Date(o.datetime).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      return `
+        <div style="border-bottom:1px solid #ddd;padding:6px 0">
+          <b>${o.ref_id}</b><br>
+          ${time}<br>
+          ₱${Number(o.total).toFixed(2)}
+        </div>
+      `;
+    }).join("");
+
+    totalEl.textContent = grandTotal.toFixed(2);
+    document.getElementById("salesModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = "Failed to load sales.";
+  }
+}
+
+function closeSales() {
+  document.getElementById("salesModal").classList.add("hidden");
+}
+
+window.closeSales = closeSales;
 
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;

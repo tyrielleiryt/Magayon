@@ -203,6 +203,23 @@
   </div>
 </div>
 
+<!-- ================= SALES MODAL ================= -->
+<div id="salesModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>📊 Today’s Sales</h2>
+
+    <div id="salesList"></div>
+
+    <div style="margin-top:12px;font-weight:bold">
+      TOTAL: ₱<span id="salesTotal">0.00</span>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeSales()">Close</button>
+    </div>
+  </div>
+</div>
+
 
   <!-- ================= SCRIPT ================= -->
   <script type="module" src="order.js"></script>
