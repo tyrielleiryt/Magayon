@@ -208,10 +208,21 @@
   <div class="modal-content">
     <h2>📊 Today’s Sales</h2>
 
-    <div id="salesList"></div>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Transaction / Product</th>
+          <th>Qty</th>
+          <th>Cashier</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="salesBody"></tbody>
+    </table>
 
-    <div style="margin-top:12px;font-weight:bold">
-      TOTAL: ₱<span id="salesTotal">0.00</span>
+    <div class="cart-summary" style="margin-top:10px">
+      <b>Gross Sales:</b> ₱<span id="sumGross">0.00</span>
     </div>
 
     <div class="modal-actions">
@@ -219,7 +230,6 @@
     </div>
   </div>
 </div>
-
 
   <!-- ================= SCRIPT ================= -->
   <script type="module" src="order.js"></script>

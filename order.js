@@ -551,15 +551,20 @@ function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
 
+
+
 document.getElementById("salesBtn")?.addEventListener("click", openSales);
-document.querySelector(".top-actions button:nth-child(2)")
-  ?.addEventListener("click", openSales); // Sales Report button
 
 async function openSales() {
-  const box = document.getElementById("salesList");
-  const totalEl = document.getElementById("salesTotal");
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
 
-  box.innerHTML = "Loading…";
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align:center;color:#888">
+        Loading…
+      </td>
+    </tr>`;
   totalEl.textContent = "0.00";
 
   try {
@@ -569,34 +574,19 @@ async function openSales() {
       `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
     );
 
-    const data = await res.json();
+    const orders = await res.json();
 
-    if (!Array.isArray(data) || !data.length) {
-      box.innerHTML = "<p>No sales today.</p>";
-      document.getElementById("salesModal").classList.remove("hidden");
-      return;
-    }
-
-    let grandTotal = 0;
-
-    box.innerHTML = data.map(o => {
-      grandTotal += Number(o.total || 0);
-
-      return `
-        <div style="border-bottom:1px solid #ddd;padding:8px 0">
-          <b>${o.ref_id}</b><br>
-          ${new Date(o.datetime).toLocaleTimeString()}<br>
-          ₱${Number(o.total).toFixed(2)}
-        </div>
-      `;
-    }).join("");
-
-    totalEl.textContent = grandTotal.toFixed(2);
+    renderSalesTable(Array.isArray(orders) ? orders : []);
     document.getElementById("salesModal").classList.remove("hidden");
 
   } catch (err) {
     console.error(err);
-    box.innerHTML = "Failed to load sales.";
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:red">
+          Failed to load sales
+        </td>
+      </tr>`;
   }
 }
 
@@ -605,6 +595,80 @@ function closeSales() {
 }
 
 window.closeSales = closeSales;
+
+function renderSalesTable(orders) {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  tbody.innerHTML = "";
+  let grandTotal = 0;
+
+  if (!orders.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:#888">
+          No sales today
+        </td>
+      </tr>`;
+    totalEl.textContent = "0.00";
+    return;
+  }
+
+  orders.forEach((o, i) => {
+    // ✅ SAME LOGIC AS ADMIN
+    const transactionTotal = (o.items || []).reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
+
+    grandTotal += transactionTotal;
+
+    // TRANSACTION HEADER
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr style="background:#f4f4f4;font-weight:600">
+        <td>${i + 1}</td>
+        <td>
+          ${o.ref_id}<br>
+          <small>${formatDateTime(o.datetime)}</small>
+        </td>
+        <td></td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${transactionTotal.toFixed(2)}</td>
+      </tr>
+    `);
+
+    // PRODUCT ROWS
+    (o.items || []).forEach(item => {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td></td>
+          <td>${item.product_name}</td>
+          <td>${item.qty || 0}</td>
+          <td></td>
+          <td>₱${Number(item.total || 0).toFixed(2)}</td>
+        </tr>
+      `);
+    });
+  });
+
+  totalEl.textContent = grandTotal.toFixed(2);
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
 
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
