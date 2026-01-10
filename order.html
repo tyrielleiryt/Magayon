@@ -160,10 +160,16 @@
     <input type="text" id="gcashRef" inputmode="text" placeholder="GCash Reference (optional)">
   </div>
 
-  <div class="modal-actions">
-    <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
-  </div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+  <button
+    id="confirmPaymentBtn"
+    class="btn-confirm"
+    onclick="confirmPayment()"
+  >
+    Confirm
+  </button>
+</div>
 
 
 </div>
