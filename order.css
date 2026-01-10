@@ -559,22 +559,70 @@ button, input, select {
   cursor: pointer;
   opacity: 1;
 }
-
-/* ================= TOP CATEGORIES ================= */
+/* ================= TOP CATEGORIES (TABLET SAFE) ================= */
 .categories-top {
+  position: relative;
   display: flex;
-  gap: 8px;
-  padding: 8px 12px;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 14px;
   background: #ffffff;
   border-bottom: 1px solid #ddd;
+
   overflow-x: auto;
+  overflow-y: hidden;
   white-space: nowrap;
+
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
 }
 
+/* Category buttons */
 .categories-top .category-btn {
   flex: 0 0 auto;
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 10px 18px;
+  min-height: 44px;
+
+  font-size: 14px;
+  font-weight: 600;
+
   border-radius: 999px;
+  border: none;
+  cursor: pointer;
+
+  background: #f0f2f8;
+  color: #2c2c2c;
+}
+
+/* Active */
+.categories-top .category-btn.active {
+  background: #2f3457;
+  color: #ffffff;
+}
+
+/* Scrollbar */
+.categories-top::-webkit-scrollbar {
+  height: 6px;
+}
+
+.categories-top::-webkit-scrollbar-thumb {
+  background: #2f3457;
+  border-radius: 6px;
+}
+
+.categories-top::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+/* Fade indicator */
+.categories-top::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, #ffffff);
 }
