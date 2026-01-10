@@ -14,6 +14,14 @@ const MANAGER_PIN = "1234"; // 🔑 change this
 
 let relockTimer = null;
 
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
+}
+
 function showPinModal(action = "unlock") {
   PIN_ACTION = action;
 
@@ -227,7 +235,7 @@ setTimeout(() => {
    LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getPHDate();
 
   const [
     categoriesData,
@@ -667,7 +675,7 @@ async function openSales() {
   totalEl.textContent = "0.00";
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getPHDate(); // ✅ FIXED (PH DATE)
 
     const res = await fetch(
       `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
