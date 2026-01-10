@@ -41,7 +41,8 @@ function closePinModal() {
 }
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout") {
+  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout" &&
+    document.activeElement.tagName !== "INPUT") {
     showPinModal();
   }
 });
