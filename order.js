@@ -511,7 +511,6 @@ document.addEventListener("fullscreenchange", () => {
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
-
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
@@ -552,8 +551,7 @@ function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
 
-document.querySelector(".top-actions button:nth-child(2)")
-  ?.addEventListener("click", openSales); // Sales Report button
+document.getElementById("salesBtn")?.addEventListener("click", openSales);
 
 async function openSales() {
   const box = document.getElementById("salesList");
