@@ -4,8 +4,13 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-window.API_URL = API_URL; // 👈 ADD THIS
-  
+
+
+  window.API_URL = API_URL; // 👈 ADD THIS
+
+  let POS_LOCKED = true; // 🔒 default locked
+const MANAGER_PIN = "1234"; // 🔑 change this
+
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
 const CASHIER_NAME = localStorage.getItem("userName") || "";
@@ -116,6 +121,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
+  // 🔒 FORCE fullscreen on POS load (tablet safe)
+setTimeout(() => {
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 800);
 });
 
 /* =========================================================
@@ -505,8 +516,18 @@ function toggleFullscreen() {
 // update button icon/state
 document.addEventListener("fullscreenchange", () => {
   const btn = document.getElementById("fullscreenBtn");
-  if (!btn) return;
-  btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
+
+  if (!document.fullscreenElement) {
+    if (POS_LOCKED) {
+      // 🔒 FORCE fullscreen back
+      setTimeout(() => {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }, 300);
+    }
+    if (btn) btn.textContent = "⛶";
+  } else {
+    if (btn) btn.textContent = "⛶ Exit";
+  }
 });
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
@@ -669,6 +690,33 @@ function formatDateTime(value) {
     hour12: true
   });
 }
+
+// 🔒 BLOCK keyboard fullscreen exit
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
+
+  if (
+    e.key === "Escape" ||
+    e.key === "F11" ||
+    (e.ctrlKey && e.key.toLowerCase() === "f") ||
+    (e.metaKey && e.ctrlKey)
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
+function unlockPOS() {
+  const pin = prompt("Manager PIN required");
+  if (pin === MANAGER_PIN) {
+    POS_LOCKED = false;
+    alert("🔓 POS unlocked");
+  } else {
+    alert("❌ Invalid PIN");
+  }
+}
+
+window.unlockPOS = unlockPOS;
 
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
