@@ -13,9 +13,12 @@ const MANAGER_PIN = "1234"; // 🔑 change this
 
 let relockTimer = null;
 
-function showPinModal() {
+function showPinModal(action = "unlock") {
+  PIN_ACTION = action;
+
   const modal = document.getElementById("pinModal");
   const input = document.getElementById("pinInput");
+
   if (!modal || !input) return;
 
   input.value = "";
@@ -45,6 +48,14 @@ function unlockPOS() {
     alert("❌ Invalid PIN");
     input.value = "";
     input.focus();
+    return;
+  }
+
+   // 🔑 PIN OK
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+   if (PIN_ACTION === "logout") {
+    performLogout();
     return;
   }
 
@@ -165,6 +176,10 @@ setTimeout(() => {
   } finally {
     hideLoader();
   }
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  showPinModal("logout");
+});
 
   document.querySelector(".checkout")?.addEventListener("click", () => {
   if (!cart.length) {
@@ -747,6 +762,24 @@ function formatDateTime(value) {
   });
 }
 
+function performLogout() {
+  // Clear session
+  localStorage.removeItem("userLocation");
+  localStorage.removeItem("staff_id");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userPosition");
+
+  alert("👋 Logged out");
+
+  // Exit fullscreen safely
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+
+  // Redirect to login
+  window.location.href = "index.html";
+}
+
 // 🔒 BLOCK keyboard fullscreen exit
 document.addEventListener("keydown", e => {
   if (!POS_LOCKED) return;
@@ -761,6 +794,8 @@ document.addEventListener("keydown", e => {
     e.stopPropagation();
   }
 });
+
+
 
 
 window.unlockPOS = unlockPOS;
