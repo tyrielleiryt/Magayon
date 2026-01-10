@@ -82,7 +82,7 @@ input, select, textarea {
 }
 
 .category-btn {
-  width: 100%;
+  width: auto;
   padding: 10px 12px;
   margin-bottom: 6px;
   border: none;
@@ -91,6 +91,7 @@ input, select, textarea {
   text-align: left;
   cursor: pointer;
   font-size: 13px;
+  flex: 0 0 auto;
 }
 
 .category-btn.active {
