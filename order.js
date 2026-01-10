@@ -511,6 +511,7 @@ document.addEventListener("fullscreenchange", () => {
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
+
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
@@ -551,13 +552,14 @@ function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
 
-document.getElementById("salesBtn")?.addEventListener("click", openSales);
+document.querySelector(".top-actions button:nth-child(2)")
+  ?.addEventListener("click", openSales); // Sales Report button
 
 async function openSales() {
-  const list = document.getElementById("salesList");
+  const box = document.getElementById("salesList");
   const totalEl = document.getElementById("salesTotal");
 
-  list.innerHTML = "Loading…";
+  box.innerHTML = "Loading…";
   totalEl.textContent = "0.00";
 
   try {
@@ -570,24 +572,20 @@ async function openSales() {
     const data = await res.json();
 
     if (!Array.isArray(data) || !data.length) {
-      list.innerHTML = "<p>No sales yet today.</p>";
+      box.innerHTML = "<p>No sales today.</p>";
+      document.getElementById("salesModal").classList.remove("hidden");
       return;
     }
 
     let grandTotal = 0;
 
-    list.innerHTML = data.map(o => {
-      grandTotal += Number(o.total) || 0;
-
-      const time = new Date(o.datetime).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+    box.innerHTML = data.map(o => {
+      grandTotal += Number(o.total || 0);
 
       return `
-        <div style="border-bottom:1px solid #ddd;padding:6px 0">
+        <div style="border-bottom:1px solid #ddd;padding:8px 0">
           <b>${o.ref_id}</b><br>
-          ${time}<br>
+          ${new Date(o.datetime).toLocaleTimeString()}<br>
           ₱${Number(o.total).toFixed(2)}
         </div>
       `;
@@ -598,7 +596,7 @@ async function openSales() {
 
   } catch (err) {
     console.error(err);
-    list.innerHTML = "Failed to load sales.";
+    box.innerHTML = "Failed to load sales.";
   }
 }
 
