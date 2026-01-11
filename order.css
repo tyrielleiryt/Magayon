@@ -328,24 +328,20 @@ input, select, textarea {
   }
 }
 
-@media (max-width: 820px) {
+/* ================= TABLET POS LAYOUT ================= */
+@media (max-width: 1024px) {
   .pos-container {
-    grid-template-columns: 1fr;
-  }
-
-  .categories-panel {
-    display: none;
+     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr))
   }
 
   .cart-panel {
-    position: fixed;
-    right: 0;
-    top: 52px;
-    width: 100%;
-    max-height: calc(100vh - 52px);
-    overflow-y: auto;
-    background: #fff;
-    z-index: 100;
+    position: relative;
+    width: auto;
+    max-height: none;
+  }
+
+  .categories-panel {
+    display: none; /* we use top categories instead */
   }
 }
 
