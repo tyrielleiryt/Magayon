@@ -325,20 +325,23 @@ input, select, textarea {
   pointer-events: none;
 }
 
-/* ================= TABLET POS LAYOUT ================= */
 @media (max-width: 1024px) {
-  .pos-container {
-     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr))
+  .categories-panel {
+    display: none; /* we use top categories */
   }
 
   .cart-panel {
-    position: relative;
-    width: auto;
-    max-height: none;
+    width: 300px;        /* 🔑 KEEP FIXED WIDTH */
+    flex-shrink: 0;      /* 🔑 prevent collapsing */
   }
 
-  .categories-panel {
-    display: none; /* we use top categories instead */
+  .products-panel {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
@@ -621,17 +624,6 @@ button, input, select {
   background: linear-gradient(to right, transparent, #ffffff);
 }
 
-/* ================= TABLET POS (DESKTOP UI) ================= */
-@media (hover: none) and (pointer: coarse) and (min-width: 768px) {
-  .pos-container {
-    flex-direction: row;
-  }
-
-  .cart-panel {
-    width: 300px; /* slightly slimmer for tablets */
-  }
-
-  .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
+.pos-container > * {
+  min-width: 0;
 }
