@@ -358,6 +358,14 @@ function createCategoryBtn(name, id, active = false) {
   return btn;
 }
 
+function getProductStatus(product) {
+  const recipe = recipes[product.product_id];
+
+  if (!recipe || !recipe.length) return "NO_RECIPE";
+  if (!canSell(product)) return "OUT_OF_STOCK";
+  return "OK";
+}
+
 /* =========================================================
    PRODUCTS
 ========================================================= */
@@ -372,7 +380,8 @@ function renderProducts(search = "") {
       `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
     )
     .forEach(p => {
-      const disabled = !canSell(p);
+      const status = getProductStatus(p);
+      const disabled = status !== "OK";
       const img = p.image_url?.trim()
         ? p.image_url
         : "images/placeholder.png";
@@ -381,16 +390,23 @@ function renderProducts(search = "") {
       card.className = "product-card" + (disabled ? " disabled" : "");
 
       card.innerHTML = `
-        <div class="product-img">
-          <img src="${img}" loading="lazy"
-               onerror="this.src='images/placeholder.png'">
-        </div>
-        <div class="product-info">
-          <div class="product-code">${p.product_code}</div>
-          <div class="product-name">${p.product_name}</div>
-          <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
-        </div>
-      `;
+  <div class="product-img">
+    <img src="${img}" loading="lazy"
+         onerror="this.src='images/placeholder.png'">
+    ${
+      status === "NO_RECIPE"
+        ? `<div class="sold-out">NO RECIPE</div>`
+        : status === "OUT_OF_STOCK"
+        ? `<div class="sold-out">OUT OF STOCK</div>`
+        : ""
+    }
+  </div>
+  <div class="product-info">
+    <div class="product-code">${p.product_code}</div>
+    <div class="product-name">${p.product_name}</div>
+    <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+  </div>
+`;
 
       if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
