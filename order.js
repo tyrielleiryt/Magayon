@@ -777,6 +777,14 @@ function formatDateTime(value) {
   });
 }
 
+function getPendingOrders() {
+  return JSON.parse(localStorage.getItem("pendingOrders") || "[]");
+}
+
+function savePendingOrders(orders) {
+  localStorage.setItem("pendingOrders", JSON.stringify(orders));
+}
+
 function performLogout() {
   // Clear session
   localStorage.removeItem("userLocation");
@@ -821,3 +829,9 @@ window.keypadBackspace = keypadBackspace;
 window.confirmPayment = confirmPayment;
 window.closePaymentModal = closePaymentModal;
 window.closeStocks = closeStocks;
+
+// 🔍 DEBUG ONLY — expose state to console
+window.__products = products;
+window.__categories = categories;
+window.__recipes = recipes;
+window.__inventory = inventory;
