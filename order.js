@@ -856,6 +856,17 @@ document.addEventListener("keydown", e => {
   }
 });
 
+// ✅ ALLOW KEYPAD TOUCH EVEN WHEN POS IS LOCKED (TABLET FIX)
+document.addEventListener(
+  "touchstart",
+  e => {
+    if (e.target.closest(".keypad")) {
+      e.stopPropagation();
+    }
+  },
+  { passive: true }
+);
+
 
 
 

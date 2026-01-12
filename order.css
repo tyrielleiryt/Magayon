@@ -11,7 +11,7 @@ html,body {
   color: #2c2c2c;
   height: 100%;
   overflow: hidden;
-  overflow-y: auto; /* ✅ ALLOW keyboard resize */
+  
 }
 
 input, select, textarea {
@@ -626,4 +626,15 @@ button, input, select {
 
 .pos-container > * {
   min-width: 0;
+}
+
+/* ✅ TABLET KEYPAD FIX */
+.keypad,
+.keypad button,
+.modal-content,
+.payment-ui {
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  -webkit-user-select: none;
+  user-select: none;
 }
