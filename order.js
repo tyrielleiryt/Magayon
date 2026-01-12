@@ -284,9 +284,7 @@ async function loadAllData() {
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-    ).then(r => r.json())
+    fetch(`${API_URL}?type=todayStocks&location=${LOCATION}`).then(r => r.json())
   ]);
 
   categories = Array.isArray(categoriesData) ? categoriesData : [];
