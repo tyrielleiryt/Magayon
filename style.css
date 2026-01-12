@@ -181,24 +181,28 @@ input, button {
   }
 }
 
-/* TABLET */
-@media (max-width: 1024px) and (min-width: 769px) {
+/* ================= TABLET (POS STYLE – LANDSCAPE) ================= */
+@media (min-width: 769px) and (max-width: 1024px) {
+
   .page {
-    flex-direction: column;
+    flex-direction: row;       /* 🔑 KEEP DESKTOP LAYOUT */
+    height: 100vh;
   }
 
   .login-section {
-    width: 100%;
-    min-height: 100vh;
-    padding: 20px;
-  }
-
-  .image-section {
-    display: none;
+    width: 420px;              /* 🔑 fixed POS width */
+    flex-shrink: 0;
+    padding: 0;
   }
 
   .login-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 360px;
+  }
+
+  .image-section {
+    display: block;            /* 🔑 KEEP IMAGE */
+    width: auto;
+    flex: 1;
   }
 }
