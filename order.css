@@ -627,14 +627,3 @@ button, input, select {
 .pos-container > * {
   min-width: 0;
 }
-
-/* ✅ TABLET KEYPAD FIX */
-.keypad,
-.keypad button,
-.modal-content,
-.payment-ui {
-  pointer-events: auto !important;
-  touch-action: manipulation !important;
-  -webkit-user-select: none;
-  user-select: none;
-}
