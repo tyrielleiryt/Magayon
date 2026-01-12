@@ -160,6 +160,41 @@ async function loadTodayStocks() {
   return res.json();
 }
 
+async function refreshStockState({ silent = false } = {}) {
+  try {
+    if (!silent) showLoader("Refreshing stock…");
+
+    const rows = await loadTodayStocks();
+
+    // 🔄 Rebuild inventory map
+    inventory = {};
+    rows.forEach(r => {
+      inventory[r.item_id] = Number(r.remaining) || 0;
+    });
+
+    // ✅ OPTIONAL SAFE ADDITION
+    // Remove cart items that are no longer sellable
+    cart = cart.filter(item => {
+      const product = products.find(
+        p => p.product_id === item.product_id
+      );
+      return product && canSell(product, item.qty);
+    });
+
+    // 🔄 Re-render UI
+    renderProducts();
+    renderCart();
+
+    console.log("🔄 Stock refreshed", inventory);
+
+  } catch (err) {
+    console.error("Stock refresh failed:", err);
+    if (!silent) alert("⚠️ Failed to refresh stock");
+  } finally {
+    if (!silent) hideLoader();
+  }
+}
+
 
 /* =========================================================
    INIT
@@ -170,6 +205,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierLocation").textContent = LOCATION;
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
+  document
+  .getElementById("refreshStockBtn")
+  ?.addEventListener("click", () => refreshStockState());
 
   showLoader("Loading POS data…");
 
@@ -831,7 +869,9 @@ window.closePaymentModal = closePaymentModal;
 window.closeStocks = closeStocks;
 
 // 🔍 DEBUG ONLY — expose state to console
-window.__products = products;
-window.__categories = categories;
-window.__recipes = recipes;
-window.__inventory = inventory;
+Object.defineProperties(window, {
+  __products: { get: () => products },
+  __categories: { get: () => categories },
+  __recipes: { get: () => recipes },
+  __inventory: { get: () => inventory }
+});
