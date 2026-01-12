@@ -206,3 +206,9 @@ input, button {
     flex: 1;
   }
 }
+
+input {
+  -webkit-user-select: text;
+  user-select: text;
+  pointer-events: auto;
+}
