@@ -376,3 +376,25 @@ input, select, textarea {
     transform: rotate(360deg);
   }
 }
+
+/* ===== RIGHT SIDE GROUP ===== */
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ===== CASHIER INFO INLINE ===== */
+.cashier-info.inline {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #e5e7ff;
+  white-space: nowrap;
+}
+
+.cashier-info.inline div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

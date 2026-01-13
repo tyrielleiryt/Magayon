@@ -21,7 +21,6 @@
 
 <body>
 
-<!-- ================= TOP BAR ================= -->
 <div class="top-bar">
 
   <!-- LEFT -->
@@ -44,13 +43,22 @@
   </div>
 
   <!-- RIGHT -->
-  <div class="top-actions">
-    <button id="fullscreenBtn" class="top-btn">⛶</button>
-    <button class="active">Main</button>
-    <button id="stocksBtn">Stocks</button>
-    <button id="salesBtn">Sales</button>
-    <button id="refreshStockBtn" class="top-btn">🔄</button>
-    <button id="logoutBtn" class="danger">Logout</button>
+  <div class="top-right">
+    <div class="top-actions">
+      <button id="fullscreenBtn" class="top-btn">⛶</button>
+      <button class="active">Main</button>
+      <button id="stocksBtn">Stocks</button>
+      <button id="salesBtn">Sales</button>
+      <button id="refreshStockBtn" class="top-btn">🔄</button>
+      <button id="logoutBtn" class="danger">Logout</button>
+    </div>
+
+    <!-- 👤 CASHIER INFO INLINE -->
+    <div class="cashier-info inline">
+      <div>👤 <span id="cashierName"></span></div>
+      <div>💼 <span id="cashierPosition"></span></div>
+      <div>📍 <span id="cashierLocation"></span></div>
+    </div>
   </div>
 
 </div>
