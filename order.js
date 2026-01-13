@@ -14,6 +14,12 @@ const MANAGER_PIN = "1234"; // 🔑 change this
 
 let relockTimer = null;
 
+function enforceBodyLayout() {
+  document.body.style.display = "flex";
+  document.body.style.flexDirection = "column";
+  document.body.style.height = "100vh";
+}
+
 function getPHDate() {
   const now = new Date();
   const ph = new Date(
@@ -45,6 +51,7 @@ function closePinModal() {
 
   if (POS_LOCKED && !document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => {});
+    setTimeout(enforceBodyLayout, 0);
   }
 }
 
@@ -94,6 +101,7 @@ function safeFullscreen() {
     navigator.userActivation?.isActive
   ) {
     document.documentElement.requestFullscreen().catch(() => {});
+    setTimeout(enforceBodyLayout, 0);
   }
 }
   }, 5 * 60 * 1000); // 5 minutes
@@ -383,9 +391,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierLocation").textContent = LOCATION;
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
+  
   document
   .getElementById("refreshStockBtn")
   ?.addEventListener("click", () => refreshStockState());
+
+  document.addEventListener("DOMContentLoaded", () => {
+  enforceBodyLayout();
+});
+  
 
   document.getElementById("syncBtn")
   ?.addEventListener("click", async () => {
@@ -401,6 +415,7 @@ updatePendingBadge();
 setTimeout(() => {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => {});
+    setTimeout(enforceBodyLayout, 0);
   }
 }, 500);
 
@@ -451,6 +466,7 @@ document.addEventListener("keydown", e => {
 setTimeout(() => {
   if (POS_LOCKED && !document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => {});
+    setTimeout(enforceBodyLayout, 0);
   }
 }, 800);
 });
@@ -860,8 +876,10 @@ function toggleFullscreen() {
       alert("Fullscreen not supported");
       console.error(err);
     });
+    setTimeout(enforceBodyLayout, 0);
   } else {
     document.exitFullscreen();
+    setTimeout(enforceBodyLayout, 0);
   }
 }
 
@@ -1050,6 +1068,7 @@ function performLogout() {
   // Exit fullscreen safely
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
+    setTimeout(enforceBodyLayout, 0);
   }
 
   // Redirect to login
