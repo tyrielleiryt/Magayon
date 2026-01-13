@@ -10,7 +10,21 @@ html, body {
   background: #f4f6fb;
   color: #2c2c2c;
   height: 100%;
+}
+
+/* ===== APP LAYOUT (CRITICAL FIX) ===== */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   overflow: hidden;
+}
+
+/* Top sections must NEVER shrink */
+.top-bar,
+.cashier-info,
+.categories-top {
+  flex-shrink: 0;
 }
 
 input, select, textarea {
@@ -26,7 +40,7 @@ input, select, textarea {
   color: #fff;
   padding: 10px 16px;
   height: 52px;
-  overflow: visible; /* 🔥 REQUIRED for sync button */
+  overflow: visible;
 }
 
 .pos-title {
@@ -34,12 +48,11 @@ input, select, textarea {
   font-weight: bold;
 }
 
-/* ===== STATUS + SYNC GROUP ===== */
+/* ===== STATUS + SYNC ===== */
 .pos-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
 
 .status {
@@ -74,7 +87,6 @@ input, select, textarea {
 .top-actions {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
 }
 
 .top-actions button {
@@ -104,23 +116,25 @@ input, select, textarea {
   color: #ffffff;
 }
 
+/* ================= CASHIER INFO ================= */
 .cashier-info {
   font-size: 12px;
   text-align: right;
+  padding: 6px 16px;
+  background: #f4f6fb;
 }
 
 /* ================= MAIN LAYOUT ================= */
 .pos-container {
+  flex: 1;
   display: flex;
-  height: calc(100vh - 104px);
   width: 100%;
+  overflow: hidden;
 }
 
 /* ================= TOP CATEGORIES ================= */
 .categories-top {
-  position: relative;
   display: flex;
-  align-items: center;
   gap: 10px;
   padding: 10px 14px;
   background: #ffffff;
@@ -131,7 +145,6 @@ input, select, textarea {
 }
 
 .categories-top .category-btn {
-  flex: 0 0 auto;
   padding: 10px 18px;
   min-height: 44px;
   font-size: 14px;
@@ -151,11 +164,9 @@ input, select, textarea {
 .products-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
   overflow: hidden;
   background: #f4f6fb;
-  flex: 1;
-  min-width: 0;
 }
 
 .search-box {
@@ -186,7 +197,6 @@ input, select, textarea {
 .product-card {
   background: #ffffff;
   border-radius: 14px;
-  overflow: hidden;
   cursor: pointer;
   border: 1px solid #e0e0e0;
   display: flex;

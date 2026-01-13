@@ -18,44 +18,35 @@
   <!-- POS STYLES -->
   <link rel="stylesheet" href="order.css" />
 </head>
+
 <body>
 
 <!-- ================= TOP BAR ================= -->
 <div class="top-bar">
-
-  <!-- LEFT: POS TITLE -->
   <div class="pos-title" oncontextmenu="unlockPOS(); return false;">
     POS
   </div>
 
-  <!-- CENTER: STATUS + SYNC -->
-  <div class="pos-status">
-    <span id="statusBadge" class="status hidden"></span>
-    <span id="pendingBadge" style="margin-left:6px;font-weight:bold"></span>
+  <!-- STATUS -->
+  <span id="statusBadge" class="status hidden"></span>
+  <span id="pendingBadge" style="margin-left:8px;font-weight:bold"></span>
 
-    <!-- 🔁 FORCE SYNC (ALWAYS VISIBLE) -->
-    <button
-      id="syncBtn"
-      class="top-btn"
-      title="Force sync pending orders"
-    >
-      🔁
-    </button>
-  </div>
-
-  <!-- RIGHT: ACTION BUTTONS -->
+  <!-- ACTION BUTTONS -->
   <div class="top-actions">
     <button id="fullscreenBtn" class="top-btn">⛶</button>
+
     <button class="active">Main</button>
     <button id="stocksBtn">Stocks</button>
     <button id="salesBtn">Sales</button>
+
     <button id="refreshStockBtn" class="top-btn" title="Refresh stock">🔄</button>
+    <button id="syncBtn" class="top-btn" title="Force sync pending orders">🔁</button>
+
     <button id="logoutBtn" class="danger">Logout</button>
   </div>
-
 </div>
 
-<!-- CASHIER INFO (SECOND ROW – TABLET SAFE) -->
+<!-- ================= CASHIER INFO ================= -->
 <div class="cashier-info">
   <div><b>Cashier:</b> <span id="cashierName"></span></div>
   <div><b>Position:</b> <span id="cashierPosition"></span></div>
@@ -73,6 +64,7 @@
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Search products" />
     </div>
+
     <div id="productGrid" class="product-grid"></div>
   </main>
 
@@ -139,7 +131,7 @@
       </div>
     </div>
 
-    <select id="paymentMethod" class="payment-method">
+    <select id="paymentMethod">
       <option value="CASH">Cash</option>
       <option value="GCASH">GCash</option>
     </select>
@@ -159,15 +151,13 @@
       <button class="key-back" onclick="keypadBackspace()">⌫</button>
     </div>
 
-    <div id="gcashRefRow" class="gcash-row hidden">
-      <input type="text" id="gcashRef" placeholder="GCash Reference (optional)">
+    <div id="gcashRefRow" class="hidden">
+      <input id="gcashRef" placeholder="GCash Reference (optional)">
     </div>
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-      <button id="confirmPaymentBtn" class="btn-confirm" onclick="confirmPayment()">
-        Confirm
-      </button>
+      <button id="confirmPaymentBtn" class="btn-confirm" onclick="confirmPayment()">Confirm</button>
     </div>
 
   </div>
@@ -209,7 +199,7 @@
       </thead>
       <tbody id="salesBody"></tbody>
     </table>
-    <div class="cart-summary" style="margin-top:10px">
+    <div class="cart-summary">
       <b>Gross Sales:</b> ₱<span id="sumGross">0.00</span>
     </div>
     <div class="modal-actions">
