@@ -1,190 +1,238 @@
-order.html 1:49PM jan 9
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>MAGAYON POS</title>
-    <!-- ✅ REQUIRED for tablet + PWA -->
+
+  <!-- REQUIRED for tablet + PWA -->
   <meta name="viewport"
         content="width=device-width,
                  initial-scale=1.0,
                  maximum-scale=1.0,
                  user-scalable=no" />
 
-  <!-- ✅ PWA -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1f1f1f">
 
   <!-- POS STYLES -->
   <link rel="stylesheet" href="order.css" />
 </head>
+
 <body>
 
-  <!-- ================= TOP BAR ================= -->
-  <div class="top-bar">
-    <div class="pos-title">POS</div>
+<!-- ================= TOP BAR ================= -->
+<div class="top-bar">
 
-    <div class="top-actions">
-      <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
-      <button>Ongoing Orders</button>
-      <button>Completed Orders</button>
-      <button>Cancelled Orders</button>
-      <button>Stocks List</button>
-      <button>Sales Report</button>
-      <button class="active">Main Page</button>
-      
-    </div>
+  <!-- LEFT -->
+  <div class="pos-title" oncontextmenu="unlockPOS(); return false;">
+    POS
+  </div>
 
-    <div class="cashier-info">
+  <!-- CENTER -->
+  <div class="pos-status">
+    <span id="statusBadge" class="status hidden"></span>
+    <span id="pendingBadge" style="font-weight:bold"></span>
+
+    <button
+      id="syncBtn"
+      class="top-btn"
+      title="Force sync pending orders"
+    >
+      🔁
+    </button>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="top-actions">
+    <button id="fullscreenBtn" class="top-btn">⛶</button>
+    <button class="active">Main</button>
+    <button id="stocksBtn">Stocks</button>
+    <button id="salesBtn">Sales</button>
+    <button id="refreshStockBtn" class="top-btn">🔄</button>
+    <button id="logoutBtn" class="danger">Logout</button>
+  </div>
+
+</div>
+
+<!-- ================= CASHIER INFO ================= -->
+<div class="cashier-info">
   <div><b>Cashier:</b> <span id="cashierName"></span></div>
   <div><b>Position:</b> <span id="cashierPosition"></span></div>
   <div><b>Location:</b> <span id="cashierLocation"></span></div>
 </div>
-  </div>
 
-  <!-- ================= MAIN LAYOUT ================= -->
-  <div class="pos-container">
+<!-- ================= CATEGORIES ================= -->
+<div class="categories-top" id="categoryList"></div>
 
-    <aside class="categories-panel" id="categoryList">
-  <!-- categories injected by order.js -->
-</aside>
+<!-- ================= MAIN LAYOUT ================= -->
+<div class="pos-container">
 
-    <!-- ========== CENTER : PRODUCTS ========== -->
-    <main class="products-panel">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Search products" />
-      </div>
-
-      <div id="productGrid" class="product-grid">
-        <!-- Product cards injected by order.js -->
-      </div>
-    </main>
-
-    <!-- ========== RIGHT : CART ========== -->
-    <aside class="cart-panel">
-  <div class="cart-table-wrapper">
-    <table class="cart-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Product</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-
-      <tbody id="orderTable">
-        <!-- Cart rows injected by JS -->
-      </tbody>
-    </table>
-  </div>
-
-  <div class="cart-summary">
-    <div class="total-line">
-      <span>SUM TOTAL:</span>
-      <span>₱<span id="sumTotal">0.00</span></span>
+  <!-- PRODUCTS -->
+  <main class="products-panel">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search products" />
     </div>
-  </div>
 
-  <div class="cart-actions">
-    <button id="clearOrderBtn" class="btn-clear">Clear</button>
-    <button class="btn-checkout checkout">Checkout</button>
-    <button class="btn-print">Print</button>
-  </div>
-</aside>
+    <div id="productGrid" class="product-grid"></div>
+  </main>
 
-  </div>
+  <!-- CART -->
+  <aside class="cart-panel">
+    <div class="cart-table-wrapper">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable"></tbody>
+      </table>
+    </div>
 
-  <!-- ================= GLOBAL LOADER ================= -->
+    <div class="cart-summary">
+      <div class="total-line">
+        <span>SUM TOTAL:</span>
+        <span>₱<span id="sumTotal">0.00</span></span>
+      </div>
+    </div>
+
+    <div class="cart-actions">
+      <button id="clearOrderBtn" class="btn-clear">Clear</button>
+      <button class="btn-checkout checkout">Checkout</button>
+      <button class="btn-print">Print</button>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ================= GLOBAL LOADER ================= -->
 <div id="globalLoader" class="loader hidden">
   <div class="spinner"></div>
   <div class="loader-text">Loading data…</div>
 </div>
 
-
-  <!-- ================= Payment ================= -->
+<!-- ================= PAYMENT MODAL ================= -->
 <div id="paymentModal" class="modal hidden">
   <div class="modal-content payment-ui">
 
-  <div class="payment-header">
-    <h2>Payment</h2>
-    <span class="payment-method-badge" id="methodBadge">CASH</span>
-  </div>
-
-  <div class="payment-summary">
-    <div class="summary-row total">
-      <span>Total</span>
-      <strong id="payTotal">₱0.00</strong>
+    <div class="payment-header">
+      <h2>Payment</h2>
+      <span class="payment-method-badge" id="methodBadge">CASH</span>
     </div>
 
-    <div class="summary-row paid">
-      <span>Paid</span>
-      <strong id="paidDisplay">₱0.00</strong>
+    <div class="payment-summary">
+      <div class="summary-row total">
+        <span>Total</span>
+        <strong id="payTotal">₱0.00</strong>
+      </div>
+      <div class="summary-row paid">
+        <span>Paid</span>
+        <strong id="paidDisplay">₱0.00</strong>
+      </div>
+      <div class="summary-row change">
+        <span>Change</span>
+        <strong id="changeAmount">₱0.00</strong>
+      </div>
     </div>
 
-    <div class="summary-row change">
-      <span>Change</span>
-      <strong id="changeAmount">₱0.00</strong>
-    </div>
-  </div>
+    <select id="paymentMethod" class="payment-method">
+      <option value="CASH">Cash</option>
+      <option value="GCASH">GCash</option>
+    </select>
 
-  <select id="paymentMethod" class="payment-method">
-    <option value="CASH">Cash</option>
-    <option value="GCASH">GCash</option>
-  </select>
-
-  <div class="keypad">
-    <button onclick="keypadInput('7')">7</button>
-    <button onclick="keypadInput('8')">8</button>
-    <button onclick="keypadInput('9')">9</button>
-
-    <button onclick="keypadInput('4')">4</button>
-    <button onclick="keypadInput('5')">5</button>
-    <button onclick="keypadInput('6')">6</button>
-
-    <button onclick="keypadInput('1')">1</button>
-    <button onclick="keypadInput('2')">2</button>
-    <button onclick="keypadInput('3')">3</button>
-
-    <button class="key-wide" onclick="keypadInput('0')">0</button>
-    <button onclick="keypadInput('.')">.</button>
-    <button class="key-back" onclick="keypadBackspace()">⌫</button>
-  </div>
-
-  <div id="gcashRefRow" class="gcash-row hidden">
-    <input type="text" id="gcashRef" inputmode="text" placeholder="GCash Reference (optional)">
-  </div>
-
-  <div class="modal-actions">
-    <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
-  </div>
-
-
-</div>
+    <div class="keypad">
+      <button onclick="keypadInput('7')">7</button>
+      <button onclick="keypadInput('8')">8</button>
+      <button onclick="keypadInput('9')">9</button>
+      <button onclick="keypadInput('4')">4</button>
+      <button onclick="keypadInput('5')">5</button>
+      <button onclick="keypadInput('6')">6</button>
+      <button onclick="keypadInput('1')">1</button>
+      <button onclick="keypadInput('2')">2</button>
+      <button onclick="keypadInput('3')">3</button>
+      <button class="key-wide" onclick="keypadInput('0')">0</button>
+      <button onclick="keypadInput('.')">.</button>
+      <button class="key-back" onclick="keypadBackspace()">⌫</button>
     </div>
 
-    <div class="payment-row hidden" id="gcashRefRow">
-      <label>GCash Reference (optional)</label>
-      <input type="text" id="gcashRef" />
-    </div>
-
-    <div class="payment-row">
-      <label>Change</label>
-      <div id="changeAmount">₱0.00</div>
+    <div id="gcashRefRow" class="gcash-row hidden">
+      <input id="gcashRef" placeholder="GCash Reference (optional)">
     </div>
 
     <div class="modal-actions">
-      <button onclick="closePaymentModal()">Cancel</button>
-      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
+      <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+      <button id="confirmPaymentBtn" class="btn-confirm" onclick="confirmPayment()">Confirm</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= STOCKS MODAL ================= -->
+<div id="stocksModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>📦 Inventory Stocks (Today)</h2>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Added Today</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody id="stocksTable"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button onclick="closeStocks()">Close</button>
     </div>
   </div>
 </div>
 
+<!-- ================= SALES MODAL ================= -->
+<div id="salesModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>📊 Today’s Sales</h2>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Transaction / Product</th>
+          <th>Qty</th>
+          <th>Cashier</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="salesBody"></tbody>
+    </table>
+    <div class="cart-summary">
+      <b>Gross Sales:</b> ₱<span id="sumGross">0.00</span>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeSales()">Close</button>
+    </div>
+  </div>
+</div>
 
-  <!-- ================= SCRIPT ================= -->
-  <script type="module" src="order.js"></script>
+<!-- ================= PIN MODAL ================= -->
+<div id="pinModal" class="modal hidden" style="z-index:9999">
+  <div class="modal-content" style="max-width:360px;text-align:center">
+    <h2>🔒 Manager Unlock</h2>
+    <p>Enter Manager PIN</p>
+    <input id="pinInput" type="password" inputmode="numeric" />
+    <div class="modal-actions">
+      <button onclick="closePinModal()">Cancel</button>
+      <button onclick="unlockPOS()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="offline-db.js"></script>
+<script type="module" src="order.js"></script>
+
 </body>
 </html>
