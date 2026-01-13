@@ -1048,6 +1048,11 @@ window.addEventListener("offline", () => {
 });
 setInterval(updateStatusBadge, 3000);
 
+window.addEventListener("online", () => {
+  offlineSince = null;
+  syncPendingOrders();
+  updateStatusBadge();
+});
 
 
 // silent background sync

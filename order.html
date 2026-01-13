@@ -21,37 +21,41 @@
 <body>
 
   <!-- ================= TOP BAR ================= -->
-  <div class="top-bar">
-    <div class="pos-title" oncontextmenu="unlockPOS(); return false;">
-  POS
-</div>
-
-  <!-- ✅ OFFLINE INDICATOR (CORRECT PLACE) -->
-  <span id="statusBadge" class="status hidden"></span>
- <!-- ✅ PENDING OFFLINE ORDERS -->
-<span id="pendingBadge" style="margin-left:8px;font-weight:bold"></span>
-
-    <div class="top-actions">
-      <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
-      <!--<button>Ongoing Orders</button>
-      <button>Completed Orders</button>
-      <button>Cancelled Orders</button> -->
-      <button class="active">Main Page</button>
-      <button id="stocksBtn">Stocks List</button>
-      <button id="salesBtn">Sales Report</button>
-      <button id="logoutBtn" class="danger">Logout</button>
-      <button id="refreshStockBtn" class="top-btn" title="Refresh stock">
-  🔄
-</button>
-    </div>
-
-    <div class="cashier-info">
-  <div><b>Cashier:</b> <span id="cashierName"></span></div>
-  <div><b>Position:</b> <span id="cashierPosition"></span></div>
-  <div><b>Location:</b> <span id="cashierLocation"></span></div>
-  
-</div>
+<div class="top-bar">
+  <div class="pos-title" oncontextmenu="unlockPOS(); return false;">
+    POS
   </div>
+
+  <!-- STATUS -->
+  <span id="statusBadge" class="status hidden"></span>
+  <span id="pendingBadge" style="margin-left:8px;font-weight:bold"></span>
+
+  <!-- ACTION BUTTONS -->
+  <div class="top-actions">
+    <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
+
+    <button class="active">Main Page</button>
+    <button id="stocksBtn">Stocks List</button>
+    <button id="salesBtn">Sales Report</button>
+
+    <button id="refreshStockBtn" class="top-btn" title="Refresh stock">
+      🔄
+    </button>
+
+    <button id="syncBtn" class="top-btn" title="Force sync pending orders">
+      🔁 Sync
+    </button>
+
+    <button id="logoutBtn" class="danger">Logout</button>
+  </div>
+
+  <!-- CASHIER INFO (SEPARATE BLOCK) -->
+  <div class="cashier-info">
+    <div><b>Cashier:</b> <span id="cashierName"></span></div>
+    <div><b>Position:</b> <span id="cashierPosition"></span></div>
+    <div><b>Location:</b> <span id="cashierLocation"></span></div>
+  </div>
+</div>
 
   <!-- ================= CATEGORIES (TOP) ================= -->
 <div class="categories-top" id="categoryList">
