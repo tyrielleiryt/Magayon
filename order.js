@@ -280,6 +280,18 @@ function showToast(message, duration = 2000) {
   setTimeout(() => toast.remove(), duration);
 }
 
+function getSellableCount(product) {
+  const recipe = recipes[product.product_id];
+  if (!recipe || !recipe.length) return 0;
+
+  return Math.min(
+    ...recipe.map(r => {
+      const available = inventory[r.item_id] || 0;
+      return Math.floor(available / Number(r.qty_used));
+    })
+  );
+}
+
 
 /* =========================================================
    INIT
@@ -460,13 +472,20 @@ function renderProducts(search = "") {
       `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
     )
     .forEach(p => {
-      const disabled = !canSell(p);
+      // ✅ RECIPE-AWARE SELLABLE COUNT
+      const sellable = getSellableCount(p);
+      const isLow = sellable > 0 && sellable <= 5;
+      const isSoldOut = sellable === 0;
+
       const img = p.image_url?.trim()
         ? p.image_url
         : "images/placeholder.png";
 
       const card = document.createElement("div");
-      card.className = "product-card" + (disabled ? " disabled" : "");
+      card.className = "product-card";
+
+      if (isLow) card.classList.add("low-stock");
+      if (isSoldOut) card.classList.add("disabled");
 
       card.innerHTML = `
         <div class="product-img">
@@ -477,18 +496,19 @@ function renderProducts(search = "") {
           <div class="product-code">${p.product_code}</div>
           <div class="product-name">${p.product_name}</div>
           <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+          ${
+            isLow
+              ? `<div class="low-stock-text">⚠ Only ${sellable} left</div>`
+              : ""
+          }
         </div>
       `;
 
-      if (!disabled) card.onclick = () => addToCart(p);
+      if (!isSoldOut) {
+        card.onclick = () => addToCart(p);
+      }
+
       grid.appendChild(card);
-
-      const lowStock = Object.values(recipes[p.product_id] || [])
-  .some(r => (inventory[r.item_id] || 0) <= 3);
-
-if (lowStock && !disabled) {
-  card.classList.add("low-stock");
-}
     });
 }
 

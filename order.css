@@ -635,3 +635,14 @@ button, input, select {
   font-weight: bold;
   border-radius: 6px;
 }
+
+.low-stock {
+  outline: 3px solid #f59e0b; /* amber */
+}
+
+.low-stock-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+  margin-top: 4px;
+}
