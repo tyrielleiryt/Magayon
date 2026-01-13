@@ -398,3 +398,20 @@ input, select, textarea {
   align-items: center;
   gap: 4px;
 }
+
+
+/* ===== TOP BAR RIGHT GROUP ===== */
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ===== CASHIER INLINE ===== */
+.cashier-info {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #e5e7ff;
+  white-space: nowrap;
+}
