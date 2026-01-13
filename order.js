@@ -86,9 +86,16 @@ function startRelockTimer() {
   relockTimer = setTimeout(() => {
     POS_LOCKED = true;
 
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
+    // ✅ SAFE
+function safeFullscreen() {
+  if (
+    window.innerWidth >= 768 &&
+    !document.fullscreenElement &&
+    navigator.userActivation?.isActive
+  ) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
   }, 5 * 60 * 1000); // 5 minutes
 }
 
