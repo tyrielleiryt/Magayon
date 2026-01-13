@@ -125,6 +125,7 @@ let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
+let CHECKOUT_IN_PROGRESS = false;
 
 async function checkoutOfflineSafe(cartItems) {
   const order = {
@@ -147,8 +148,11 @@ async function checkoutOfflineSafe(cartItems) {
   clearCart();
   showToast("✅ Order saved");
 
+  CHECKOUT_IN_PROGRESS = false; // 🔓 UNLOCK
+
   // ✅ Background sync
   syncPendingOrders();
+  
 }
 
 let syncing = false;
@@ -292,6 +296,11 @@ function getSellableCount(product) {
   );
 }
 
+function clearCart() {
+  cart = [];
+  renderCart();
+  renderProducts();
+}
 
 /* =========================================================
    INIT
@@ -682,11 +691,19 @@ document.getElementById("amountPaid")?.addEventListener("input", e => {
 
 
 function confirmPayment() {
-
-  // 🔒 EXTRA SAFETY GUARD (STEP 4)
-  if (document.getElementById("confirmPaymentBtn").disabled) {
+  // 🚫 HARD BLOCK double confirm
+  if (CHECKOUT_IN_PROGRESS) {
+    console.warn("⛔ Checkout already in progress");
     return;
   }
+
+  const btn = document.getElementById("confirmPaymentBtn");
+ 
+  if (btn.disabled) return;
+
+  CHECKOUT_IN_PROGRESS = true; // 🔒 LOCK
+    btn.disabled = true;
+  btn.classList.remove("enabled");
 
   const paid = Number(paidValue);
   const method = document.getElementById("paymentMethod").value;
@@ -694,11 +711,12 @@ function confirmPayment() {
   const total = pendingPayment?.total || 0;
 
   if (paid < total) {
+    CHECKOUT_IN_PROGRESS = false;
+    btn.disabled = false;
     alert("❌ Insufficient payment");
     return;
   }
 
-  // Store temporarily (used later in backend Step 3)
   window.__lastPayment = {
     total_bill: total,
     amount_paid: paid,
@@ -709,8 +727,8 @@ function confirmPayment() {
 
   closePaymentModal();
 
-  // ✅ NOW perform the real checkout
-  checkoutOfflineSafe(cart);
+  // ✅ Offline-safe checkout
+  checkoutOfflineSafe([...cart]);
 }
 
 let paidValue = "0";
