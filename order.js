@@ -190,10 +190,43 @@ async function syncPendingOrders() {
   }
 }
 
-function updateOnlineStatus() {
-  document.getElementById("offlineBadge")
-    ?.classList.toggle("hidden", navigator.onLine);
+/* =========================================================
+   STATUS BADGE (ONLINE / OFFLINE / SYNCING)
+========================================================= */
+let lastStatus = "";
+
+async function updateStatusBadge() {
+  const el = document.getElementById("statusBadge");
+  if (!el) return;
+
+  const pending = (await getPendingOrders()).length;
+
+  let nextStatus;
+
+  if (!navigator.onLine) {
+    nextStatus = "offline";
+  } else if (pending > 0) {
+    nextStatus = "syncing";
+  } else {
+    nextStatus = "online";
+  }
+
+  // ⛔ Prevent unnecessary DOM updates
+  if (nextStatus === lastStatus) return;
+  lastStatus = nextStatus;
+
+  el.className = `status ${nextStatus}`;
+  el.classList.remove("hidden");
+
+  if (nextStatus === "offline") {
+    el.textContent = "Offline – Orders saved";
+  } else if (nextStatus === "syncing") {
+    el.textContent = `Syncing (${pending})`;
+  } else {
+    el.textContent = "Online";
+  }
 }
+
 
 
 
@@ -991,12 +1024,15 @@ document.addEventListener("keydown", e => {
 });
 
 window.addEventListener("online", syncPendingOrders);
-window.addEventListener("online", updateOnlineStatus);
-window.addEventListener("offline", updateOnlineStatus);
-updateOnlineStatus();
+window.addEventListener("online", updateStatusBadge);
+window.addEventListener("offline", updateStatusBadge);
+setInterval(updateStatusBadge, 3000);
+
 
 // silent background sync
 setInterval(syncPendingOrders, 15000);
+
+updateStatusBadge();
 
 window.unlockPOS = unlockPOS;
 
