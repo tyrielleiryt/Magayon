@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>MAGAYON POS</title>
     <!-- ✅ REQUIRED for tablet + PWA -->
+  
   <meta name="viewport"
         content="width=device-width,
                  initial-scale=1.0,
@@ -25,6 +26,11 @@
   POS
 </div>
 
+  <!-- ✅ OFFLINE INDICATOR (CORRECT PLACE) -->
+  <span id="offlineBadge" class="offline hidden">OFFLINE</span>
+ <!-- ✅ PENDING OFFLINE ORDERS -->
+<span id="pendingBadge" style="margin-left:8px;font-weight:bold"></span>
+
     <div class="top-actions">
       <button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button>
       <!--<button>Ongoing Orders</button>
@@ -43,6 +49,7 @@
   <div><b>Cashier:</b> <span id="cashierName"></span></div>
   <div><b>Position:</b> <span id="cashierPosition"></span></div>
   <div><b>Location:</b> <span id="cashierLocation"></span></div>
+  
 </div>
   </div>
 
@@ -257,6 +264,8 @@
 </div>
 
   <!-- ================= SCRIPT ================= -->
+   <script src="offline-db.js"></script>
   <script type="module" src="order.js"></script>
+  
 </body>
 </html>

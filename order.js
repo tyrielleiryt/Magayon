@@ -126,6 +126,73 @@ let cart = [];
 let activeCategoryId = null;
 
 
+async function checkoutOfflineSafe(cartItems) {
+  const order = {
+    id: "OFF-" + Date.now(),
+    payload: {
+      action: "checkoutOrder",
+      ref_id: "POS-" + Date.now(),
+      items: JSON.stringify(cartItems),
+      location: LOCATION,
+      staff_id: STAFF_ID
+    },
+    retries: 0,
+    created_at: Date.now()
+  };
+
+  // ✅ Save locally instantly
+  await savePendingOrder(order);
+
+  // ✅ UI clears immediately (no waiting)
+  clearCart();
+  showToast("✅ Order saved");
+
+  // ✅ Background sync
+  syncPendingOrders();
+}
+
+let syncing = false;
+
+async function syncPendingOrders() {
+  if (syncing || !navigator.onLine) return;
+  syncing = true;
+
+  try {
+    const orders = await getPendingOrders();
+    if (!orders.length) return;
+
+    for (const order of orders) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: new URLSearchParams(order.payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          await deletePendingOrder(order.id);
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        order.retries++;
+        await savePendingOrder(order);
+        break;
+      }
+    }
+  } finally {
+    syncing = false;
+  }
+}
+
+function updateOnlineStatus() {
+  document.getElementById("offlineBadge")
+    ?.classList.toggle("hidden", navigator.onLine);
+}
+
+
+
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
 ========================================================= */
@@ -195,6 +262,24 @@ async function refreshStockState({ silent = false } = {}) {
   }
 }
 
+function showToast(message, duration = 2000) {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.style.position = "fixed";
+  toast.style.bottom = "20px";
+  toast.style.left = "50%";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.background = "#2ecc71";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "8px";
+  toast.style.zIndex = "10000";
+  toast.style.fontWeight = "600";
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), duration);
+}
+
 
 /* =========================================================
    INIT
@@ -210,7 +295,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   ?.addEventListener("click", () => refreshStockState());
 
   showLoader("Loading POS data…");
-
+  syncPendingOrders();
+updatePendingBadge();
   // 🔒 Force fullscreen on POS load
 setTimeout(() => {
   if (!document.fullscreenElement) {
@@ -396,6 +482,13 @@ function renderProducts(search = "") {
 
       if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
+
+      const lowStock = Object.values(recipes[p.product_id] || [])
+  .some(r => (inventory[r.item_id] || 0) <= 3);
+
+if (lowStock && !disabled) {
+  card.classList.add("low-stock");
+}
     });
 }
 
@@ -597,7 +690,7 @@ function confirmPayment() {
   closePaymentModal();
 
   // ✅ NOW perform the real checkout
-  checkoutPOS();
+  checkoutOfflineSafe(cart);
 }
 
 let paidValue = "0";
@@ -815,13 +908,16 @@ function formatDateTime(value) {
   });
 }
 
-function getPendingOrders() {
-  return JSON.parse(localStorage.getItem("pendingOrders") || "[]");
+async function updatePendingBadge() {
+  const orders = await getPendingOrders();
+  const el = document.getElementById("pendingBadge");
+  if (!el) return;
+  el.textContent = orders.length ? `⏳ ${orders.length}` : "";
 }
 
-function savePendingOrders(orders) {
-  localStorage.setItem("pendingOrders", JSON.stringify(orders));
-}
+// update periodically
+setInterval(updatePendingBadge, 3000);
+
 
 function performLogout() {
   // Clear session
@@ -856,6 +952,14 @@ document.addEventListener("keydown", e => {
   }
 });
 
+window.addEventListener("online", syncPendingOrders);
+window.addEventListener("online", updateOnlineStatus);
+window.addEventListener("offline", updateOnlineStatus);
+updateOnlineStatus();
+
+// silent background sync
+setInterval(syncPendingOrders, 15000);
+
 window.unlockPOS = unlockPOS;
 
 // 🔓 expose keypad + modal functions to HTML
@@ -864,6 +968,10 @@ window.keypadBackspace = keypadBackspace;
 window.confirmPayment = confirmPayment;
 window.closePaymentModal = closePaymentModal;
 window.closeStocks = closeStocks;
+window.toggleFullscreen = toggleFullscreen;
+window.openSales = openSales;
+window.openStocks = openStocks;
+
 
 // 🔍 DEBUG ONLY — expose state to console
 Object.defineProperties(window, {

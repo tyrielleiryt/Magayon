@@ -64,5 +64,13 @@
 </div>
 
 <script type="module" src="app.js"></script>
+<script>
+  document.addEventListener("touchend", e => {
+    const el = e.target;
+    if (el.tagName === "INPUT") {
+      el.focus();
+    }
+  });
+</script>
 </body>
 </html>
