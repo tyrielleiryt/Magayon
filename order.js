@@ -187,6 +187,7 @@ async function syncPendingOrders() {
     }
   } finally {
     syncing = false;
+    updateStatusBadge(); // ✅ force refresh
   }
 }
 
@@ -194,6 +195,7 @@ async function syncPendingOrders() {
    STATUS BADGE (ONLINE / OFFLINE / SYNCING)
 ========================================================= */
 let lastStatus = "";
+let offlineSince = null;
 
 async function updateStatusBadge() {
   const el = document.getElementById("statusBadge");
@@ -212,7 +214,7 @@ async function updateStatusBadge() {
   }
 
   // ⛔ Prevent unnecessary DOM updates
-  if (nextStatus === lastStatus) return;
+  if (nextStatus === lastStatus && nextStatus !== "syncing") return;
   lastStatus = nextStatus;
 
   el.className = `status ${nextStatus}`;
@@ -221,10 +223,18 @@ async function updateStatusBadge() {
   if (nextStatus === "offline") {
     el.textContent = "Offline – Orders saved";
   } else if (nextStatus === "syncing") {
-    el.textContent = `Syncing (${pending})`;
+    el.textContent = `Syncing ${pending} order${pending > 1 ? "s" : ""}`;
   } else {
     el.textContent = "Online";
   }
+  if (nextStatus === "syncing" && offlineSince) {
+  const mins =
+    Math.floor((Date.now() - offlineSince.getTime()) / 60000);
+
+  if (mins >= 15) {
+    el.textContent = "⚠ Sync delayed – Check network";
+  }
+}
 }
 
 
@@ -348,6 +358,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   .getElementById("refreshStockBtn")
   ?.addEventListener("click", () => refreshStockState());
 
+  document.getElementById("syncBtn")
+  ?.addEventListener("click", async () => {
+    showToast("🔁 Syncing orders...");
+    await syncPendingOrders();
+    await updateStatusBadge();
+  });
+
   showLoader("Loading POS data…");
   syncPendingOrders();
 updatePendingBadge();
@@ -408,6 +425,8 @@ setTimeout(() => {
   }
 }, 800);
 });
+
+
 
 /* =========================================================
    LOAD ALL DATA
@@ -1023,10 +1042,12 @@ document.addEventListener("keydown", e => {
   }
 });
 
-window.addEventListener("online", syncPendingOrders);
-window.addEventListener("online", updateStatusBadge);
-window.addEventListener("offline", updateStatusBadge);
+window.addEventListener("offline", () => {
+  offlineSince = new Date();
+  updateStatusBadge();
+});
 setInterval(updateStatusBadge, 3000);
+
 
 
 // silent background sync
