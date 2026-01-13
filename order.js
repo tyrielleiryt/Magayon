@@ -155,15 +155,24 @@ async function checkoutOfflineSafe(cartItems) {
   
 }
 
+
+
 let syncing = false;
 
 async function syncPendingOrders() {
-  if (syncing || !navigator.onLine) return;
+  if (!navigator.onLine) return; // ✅ ADD THIS
+  if (syncing) return;
   syncing = true;
 
+  let orders = [];
+
   try {
-    const orders = await getPendingOrders();
-    if (!orders.length) return;
+    orders = await getPendingOrders();
+    console.log("🔁 Sync started", orders.length);
+
+if (!orders.length) {
+  return; // finally still runs
+}
 
     for (const order of orders) {
       try {
@@ -176,18 +185,29 @@ async function syncPendingOrders() {
 
         if (data.success) {
           await deletePendingOrder(order.id);
+          console.log("✅ Synced", order.id);
         } else {
-          throw new Error(data.error);
+          throw new Error(data.error || "Server rejected order");
         }
       } catch (err) {
-        order.retries++;
+        console.error("❌ Order sync failed", order.id, err);
+
+        order.retries = (order.retries || 0) + 1;
         await savePendingOrder(order);
-        break;
+
+        showToast("❌ Some orders failed to sync", 3000);
+
+        // ✅ continue syncing other orders (NOT break)
+        continue;
       }
     }
+  } catch (err) {
+    console.error("❌ Sync system failure", err);
+    showToast("❌ Sync failed — check network", 3000);
   } finally {
     syncing = false;
-    updateStatusBadge(); // ✅ force refresh
+    updateStatusBadge(); // 🔄 always refresh UI
+    updatePendingBadge(); // ✅ ADD THIS
   }
 }
 
@@ -344,6 +364,8 @@ function clearCart() {
   renderCart();
   renderProducts();
 }
+
+enableWakeLock(); // 🔒 prevent tablet sleep
 
 /* =========================================================
    INIT
