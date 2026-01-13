@@ -22,28 +22,38 @@
 <body>
 
 <!-- ================= TOP BAR ================= -->
+<!-- ================= TOP BAR ================= -->
 <div class="top-bar">
+
+  <!-- LEFT -->
   <div class="pos-title" oncontextmenu="unlockPOS(); return false;">
     POS
   </div>
 
-  <!-- STATUS -->
-  <span id="statusBadge" class="status hidden"></span>
-  <span id="pendingBadge" style="margin-left:8px;font-weight:bold"></span>
+  <!-- CENTER -->
+  <div class="pos-status">
+    <span id="statusBadge" class="status hidden"></span>
+    <span id="pendingBadge" style="font-weight:bold"></span>
 
-  <!-- ACTION BUTTONS -->
+    <button
+      id="syncBtn"
+      class="top-btn"
+      title="Force sync pending orders"
+    >
+      🔁
+    </button>
+  </div>
+
+  <!-- RIGHT -->
   <div class="top-actions">
     <button id="fullscreenBtn" class="top-btn">⛶</button>
-
     <button class="active">Main</button>
     <button id="stocksBtn">Stocks</button>
     <button id="salesBtn">Sales</button>
-
-    <button id="refreshStockBtn" class="top-btn" title="Refresh stock">🔄</button>
-    <button id="syncBtn" class="top-btn" title="Force sync pending orders">🔁</button>
-
+    <button id="refreshStockBtn" class="top-btn">🔄</button>
     <button id="logoutBtn" class="danger">Logout</button>
   </div>
+
 </div>
 
 <!-- ================= CASHIER INFO ================= -->
