@@ -12,7 +12,7 @@ html, body {
   height: 100%;
 }
 
-/* ===== APP LAYOUT (CRITICAL FIX) ===== */
+/* ===== APP LAYOUT ===== */
 body {
   display: flex;
   flex-direction: column;
@@ -22,7 +22,6 @@ body {
 
 /* Top sections must NEVER shrink */
 .top-bar,
-.cashier-info,
 .categories-top {
   flex-shrink: 0;
 }
@@ -116,6 +115,22 @@ input, select, textarea {
   color: #ffffff;
 }
 
+/* ===== RIGHT SIDE GROUP ===== */
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ===== CASHIER INFO INLINE (TOP BAR ONLY) ===== */
+.cashier-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #e5e7ff;
+  white-space: nowrap;
+}
 
 /* ================= MAIN LAYOUT ================= */
 .pos-container {
@@ -368,44 +383,4 @@ input, select, textarea {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ===== RIGHT SIDE GROUP ===== */
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-/* ===== CASHIER INFO INLINE (TOP BAR) ===== */
-.cashier-info {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: #e5e7ff;
-  white-space: nowrap;
-  align-items: center;
-}
-
-/* ===== CASHIER INFO INLINE ===== */
-.cashier-info.inline {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: #e5e7ff;
-  white-space: nowrap;
-}
-
-.cashier-info.inline div {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-
-/* ===== TOP BAR RIGHT GROUP ===== */
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
 }
