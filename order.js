@@ -242,7 +242,7 @@ const pending = todayOrders.length;
 
   let nextStatus;
 
-  if (!navigator.onLine) {
+  if (!navigator.onLine && pending > 0) {
     nextStatus = "offline";
 } else if (pending > 0 && syncing) {
     nextStatus = "syncing";
@@ -257,14 +257,20 @@ const pending = todayOrders.length;
   el.className = `status ${nextStatus}`;
   el.classList.remove("hidden");
 
-const syncBtn = document.getElementById("syncBtn");
+  const syncBtn = document.getElementById("syncOrdersBtn");
 if (syncBtn) {
-  if (nextStatus === "online") {
-    syncBtn.style.color = "#16a34a"; // green
-  } else if (nextStatus === "syncing") {
-    syncBtn.style.color = "#f59e0b"; // orange
-  } else if (nextStatus === "offline") {
-    syncBtn.style.color = "#dc2626"; // red
+  syncBtn.classList.remove("enabled", "syncing");
+  syncBtn.disabled = true;
+
+  if (nextStatus === "syncing") {
+    syncBtn.classList.add("syncing");
+    syncBtn.textContent = "Syncing…";
+  } else if (nextStatus === "online" && pending > 0) {
+    syncBtn.classList.add("enabled");
+    syncBtn.disabled = false;
+    syncBtn.textContent = `Sync Orders (${pending})`;
+  } else {
+    syncBtn.textContent = "No Orders to Sync";
   }
 }
 
@@ -411,20 +417,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 enforceBodyLayout();
 
-  document.getElementById("syncBtn")
+document.getElementById("syncOrdersBtn")
   ?.addEventListener("click", async () => {
-    showToast("🔁 Syncing orders...");
+    if (syncing) return;
+    showToast("🔁 Syncing orders…");
     await syncPendingOrders();
-    await updateStatusBadge();
   });
-
   await purgeOldPendingOrders();
   await updateStatusBadge();
   await updatePendingBadge();
 
 
   showLoader("Loading POS data…");
-  syncPendingOrders();
+  //syncPendingOrders();
 updatePendingBadge();
   // 🔒 Force fullscreen on POS load
 setTimeout(() => {
@@ -1148,7 +1153,7 @@ window.addEventListener("online", () => {
 
 
 // silent background sync
-setInterval(syncPendingOrders, 15000);
+//setInterval(syncPendingOrders, 15000);
 
 window.unlockPOS = unlockPOS;
 
