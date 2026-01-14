@@ -298,9 +298,16 @@ function canSell(product, qty = 1) {
    CATEGORIES
 ========================================================= */
 function renderCategories() {
-  const el = document.querySelector(".categories-top");
+  const el = document.getElementById("categoryList"); // ✅ CORRECT ELEMENT
+
+  if (!el) {
+    console.warn("⚠️ categoryList not found in DOM");
+    return;
+  }
+
   el.innerHTML = "";
 
+  // ALL button
   el.appendChild(createCategoryBtn("All", null, true));
 
   categories.forEach(c => {
@@ -308,20 +315,10 @@ function renderCategories() {
   });
 }
 
-function createCategoryBtn(name, id, active = false) {
-  const btn = document.createElement("button");
-  btn.className = "category-btn" + (active ? " active" : "");
-  btn.textContent = name;
-
-  btn.onclick = () => {
-    activeCategoryId = id;
-    document.querySelectorAll(".category-btn")
-      .forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    renderProducts();
-  };
-
-  return btn;
+function safeQuery(selector) {
+  const el = document.querySelector(selector);
+  if (!el) console.warn(`⚠️ Missing element: ${selector}`);
+  return el;
 }
 
 /* =========================================================
