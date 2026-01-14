@@ -198,6 +198,16 @@ function isSameBusinessDay(ts) {
   return today === d;
 }
 
+async function purgeOldPendingOrders() {
+  const orders = await getPendingOrders();
+  for (const o of orders) {
+    if (!isSameBusinessDay(o.created_at)) {
+      await deletePendingOrder(o.id);
+      console.log("🧹 Purged old offline order:", o.id);
+    }
+  }
+}
+
 /* =========================================================
    INIT
 ========================================================= */
