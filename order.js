@@ -222,6 +222,34 @@ async function purgeOldPendingOrders() {
   }
 }
 
+async function loadAllData() {
+  const today = getPHDate();
+
+  const [
+    categoriesData,
+    productsData,
+    recipesData,
+    inventoryRows
+  ] = await Promise.all([
+    fetch(`${API_URL}?type=categories`).then(r => r.json()),
+    fetch(`${API_URL}?type=products`).then(r => r.json()),
+    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
+    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
+      .then(r => r.json())
+  ]);
+
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
+  recipes = recipesData || {};
+
+  inventory = {};
+  if (Array.isArray(inventoryRows)) {
+    inventoryRows.forEach(r => {
+      inventory[r.item_id] = Number(r.remaining) || 0;
+    });
+  }
+}
+
 /* =========================================================
    INIT
 ========================================================= */
