@@ -294,6 +294,26 @@ function canSell(product, qty = 1) {
   });
 }
 
+function createCategoryBtn(name, id, active = false) {
+  const btn = document.createElement("button");
+  btn.className = "category-btn" + (active ? " active" : "");
+  btn.textContent = name;
+
+  btn.onclick = () => {
+    activeCategoryId = id;
+
+    // remove active state from all category buttons
+    document
+      .querySelectorAll("#categoryList .category-btn")
+      .forEach(b => b.classList.remove("active"));
+
+    btn.classList.add("active");
+    renderProducts();
+  };
+
+  return btn;
+}
+
 /* =========================================================
    CATEGORIES
 ========================================================= */
