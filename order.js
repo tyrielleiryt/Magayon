@@ -139,6 +139,7 @@ let cart = [];
 let activeCategoryId = null;
 
 
+
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
 ========================================================= */
@@ -165,6 +166,8 @@ function disableWakeLock() {
     wakeLock = null;
   }
 }
+
+
 
 /* =========================================================
    INIT
@@ -600,6 +603,12 @@ document.getElementById("changeAmount").textContent = "₱0.00";
   btn.classList.remove("enabled");
   btn.disabled = true;
 
+  setTimeout(() => {
+  document
+    .querySelector("#confirmPaymentBtn")
+    ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}, 100);
+
   document.getElementById("paymentModal").classList.remove("hidden");
 }
 
@@ -620,7 +629,14 @@ document.getElementById("paymentMethod")?.addEventListener("change", e => {
     ?.classList.toggle("hidden", method !== "GCASH");
 });
 
+let confirmLock = false; // 🚫 prevents double tap on confirm
+
 function confirmPayment() {
+
+    // 🚫 PREVENT DOUBLE TAP (STEP 3)
+  if (confirmLock) return;
+  confirmLock = true;
+  setTimeout(() => confirmLock = false, 1000);
 
   // 🔒 EXTRA SAFETY GUARD (STEP 4)
   if (document.getElementById("confirmPaymentBtn").disabled) {

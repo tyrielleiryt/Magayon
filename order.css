@@ -615,3 +615,54 @@ body.ultra-dense .cart-actions button {
   padding: 5px;
   font-size: 11px;
 }
+
+/* ================= PAYMENT MODAL TABLET SAFE ================= */
+
+.modal-content.payment-ui {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Allow inner scroll instead of page scroll */
+.payment-ui {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ================= ULTRA DENSE PAYMENT MODE ================= */
+
+body.ultra-dense .modal-content.payment-ui {
+  width: 320px;
+  padding: 10px;
+}
+
+body.ultra-dense .payment-summary {
+  padding: 8px;
+  margin: 8px 0;
+}
+
+body.ultra-dense .summary-row strong {
+  font-size: 18px;
+}
+
+body.ultra-dense .keypad {
+  gap: 6px;
+}
+
+body.ultra-dense .keypad button {
+  height: 46px;
+  font-size: 16px;
+  padding: 10px;
+}
+
+body.ultra-dense .modal-actions button {
+  padding: 8px;
+  font-size: 13px;
+}
+
+/* Prevent iOS / Android tap zoom */
+.keypad button,
+.modal-actions button {
+  touch-action: manipulation;
+}
