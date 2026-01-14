@@ -260,10 +260,15 @@ const pending = todayOrders.length;
   el.className = `status ${nextStatus}`;
   el.classList.remove("hidden");
 
-  const syncBtn = document.getElementById("syncBtn");
+const syncBtn = document.getElementById("syncBtn");
 if (syncBtn) {
-  syncBtn.classList.remove("online", "syncing", "offline");
-  syncBtn.classList.add(nextStatus);
+  if (nextStatus === "online") {
+    syncBtn.style.color = "#16a34a"; // green
+  } else if (nextStatus === "syncing") {
+    syncBtn.style.color = "#f59e0b"; // orange
+  } else if (nextStatus === "offline") {
+    syncBtn.style.color = "#dc2626"; // red
+  }
 }
 
   if (nextStatus === "offline") {
