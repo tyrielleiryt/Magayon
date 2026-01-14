@@ -186,6 +186,9 @@ async function syncPendingOrders() {
     console.log("🔁 Sync started", orders.length);
 
 if (!orders.length) {
+  syncing = false;
+  updateStatusBadge();
+  updatePendingBadge();
   return; // finally still runs
 }
 
@@ -236,7 +239,9 @@ async function updateStatusBadge() {
   const el = document.getElementById("statusBadge");
   if (!el) return;
 
-  const pending = (await getPendingOrders()).length;
+  const orders = await getPendingOrders();
+const todayOrders = orders.filter(o => isSameBusinessDay(o.created_at));
+const pending = todayOrders.length;
 
   let nextStatus;
 
@@ -396,10 +401,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   .getElementById("refreshStockBtn")
   ?.addEventListener("click", () => refreshStockState());
 
-  document.addEventListener("DOMContentLoaded", () => {
-  enforceBodyLayout();
-});
-  
+enforceBodyLayout();
 
   document.getElementById("syncBtn")
   ?.addEventListener("click", async () => {
@@ -407,6 +409,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     await syncPendingOrders();
     await updateStatusBadge();
   });
+
+  await purgeOldPendingOrders();
+  await updateStatusBadge();
+  await updatePendingBadge();
+
 
   showLoader("Loading POS data…");
   syncPendingOrders();
@@ -677,6 +684,7 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
+
 /* =========================================================
    CHECKOUT
 ========================================================= */
@@ -870,6 +878,29 @@ function updatePaidDisplay() {
   
 }
 
+function isSameBusinessDay(timestamp) {
+  const phNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  ).toISOString().slice(0, 10);
+
+  const orderDay = new Date(timestamp)
+    .toLocaleString("en-US", { timeZone: "Asia/Manila" })
+    .slice(0, 10);
+
+  return phNow === orderDay;
+}
+
+async function purgeOldPendingOrders() {
+  const orders = await getPendingOrders();
+
+  for (const o of orders) {
+    if (!isSameBusinessDay(o.created_at)) {
+      await deletePendingOrder(o.id);
+      console.log("🧹 Purged old offline order:", o.id);
+    }
+  }
+}
+
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {
@@ -1047,9 +1078,14 @@ function formatDateTime(value) {
 
 async function updatePendingBadge() {
   const orders = await getPendingOrders();
+  const todayOrders = orders.filter(o => isSameBusinessDay(o.created_at));
+
   const el = document.getElementById("pendingBadge");
   if (!el) return;
-  el.textContent = orders.length ? `⏳ ${orders.length}` : "";
+
+  el.textContent = todayOrders.length
+    ? `⏳ ${todayOrders.length}`
+    : "";
 }
 
 // update periodically
@@ -1105,8 +1141,6 @@ window.addEventListener("online", () => {
 
 // silent background sync
 setInterval(syncPendingOrders, 15000);
-
-updateStatusBadge();
 
 window.unlockPOS = unlockPOS;
 
