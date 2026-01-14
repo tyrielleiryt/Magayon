@@ -97,6 +97,20 @@ async function checkoutPOS() {
   return;
 }
 
+async function updatePendingBadge() {
+  const el = document.getElementById("pendingBadge");
+  if (!el) return;
+
+  const orders = await getPendingOrders();
+  const todayOrders = orders.filter(o =>
+    isSameBusinessDay(o.created_at)
+  );
+
+  el.textContent = todayOrders.length
+    ? `⏳ ${todayOrders.length}`
+    : "";
+}
+
 /* =========================================================
    SYNC ENGINE
 ========================================================= */
