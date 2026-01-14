@@ -260,6 +260,12 @@ const pending = todayOrders.length;
   el.className = `status ${nextStatus}`;
   el.classList.remove("hidden");
 
+  const syncBtn = document.getElementById("syncBtn");
+if (syncBtn) {
+  syncBtn.classList.remove("online", "syncing", "offline");
+  syncBtn.classList.add(nextStatus);
+}
+
   if (nextStatus === "offline") {
     el.textContent = "Offline – Orders saved";
   } else if (nextStatus === "syncing") {
