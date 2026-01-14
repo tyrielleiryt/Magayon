@@ -961,9 +961,12 @@ document.addEventListener("visibilitychange", () => {
 document.getElementById("salesBtn")?.addEventListener("click", async () => {
   const tbody = document.getElementById("salesBody");
   const totalEl = document.getElementById("sumGross");
-  document.getElementById("salesLocation")?.textContent = LOCATION;
-document.getElementById("salesDate")?.textContent =
-  new Date().toLocaleDateString(undefined, {
+  const locEl = document.getElementById("salesLocation");
+if (locEl) locEl.textContent = LOCATION;
+
+const dateEl = document.getElementById("salesDate");
+if (dateEl) {
+  dateEl.textContent = new Date().toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric"
