@@ -44,15 +44,10 @@ function showPinModal(action = "unlock") {
 
 function closePinModal() {
   document.getElementById("pinModal")?.classList.add("hidden");
-
-  if (POS_LOCKED && !document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  }
 }
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout" &&
-    document.activeElement.tagName !== "INPUT") {
+  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout") {
     showPinModal();
   }
 });
@@ -88,9 +83,9 @@ function startRelockTimer() {
   relockTimer = setTimeout(() => {
     POS_LOCKED = true;
 
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
+// ❌ no auto fullscreen here
+
+
   }, 5 * 60 * 1000); // 5 minutes
 }
 
@@ -167,13 +162,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   showLoader("Loading POS data…");
 
-  // 🔒 Force fullscreen on POS load
-setTimeout(() => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  }
-}, 500);
-
   try {
     await loadAllData();
     renderCategories();
@@ -217,12 +205,6 @@ document.addEventListener("keydown", e => {
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
-  // 🔒 FORCE fullscreen on POS load (tablet safe)
-setTimeout(() => {
-  if (POS_LOCKED && !document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  }
-}, 800);
 });
 
 /* =========================================================
