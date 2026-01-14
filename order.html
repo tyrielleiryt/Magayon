@@ -189,6 +189,28 @@
     </div>
   </div>
 
+  <!-- ================= STOCKS MODAL ================= -->
+<div id="stocksModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>Today’s Inventory</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Added</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody id="stocksTable">
+        <!-- injected by order.js -->
+      </tbody>
+    </table>
+
+    <button onclick="closeStocks()">Close</button>
+  </div>
+</div>
+
 
 
   <!-- ================= SCRIPT ================= -->
