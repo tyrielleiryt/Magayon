@@ -4,19 +4,115 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
-window.API_URL = API_URL;
 
-/* =========================================================
-   SESSION
-========================================================= */
+
+  window.API_URL = API_URL; // 👈 ADD THIS
+
+  let POS_LOCKED = true; // 🔒 default locked
+  let PIN_ACTION = "unlock"; // 🔑 unlock | logout
+const MANAGER_PIN = "1234"; // 🔑 change this
+
+let relockTimer = null;
+
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
+}
+
+function showPinModal(action = "unlock") {
+  PIN_ACTION = action;
+
+  document.querySelector("#pinModal h2").textContent =
+  action === "logout"
+    ? "🔒 Manager Logout"
+    : "🔒 Manager Unlock";
+
+  const modal = document.getElementById("pinModal");
+  const input = document.getElementById("pinInput");
+
+  if (!modal || !input) return;
+
+  input.value = "";
+  modal.classList.remove("hidden");
+  input.focus();
+}
+
+function closePinModal() {
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout" &&
+    document.activeElement.tagName !== "INPUT") {
+    showPinModal();
+  }
+});
+
+function unlockPOS() {
+  const input = document.getElementById("pinInput");
+  const pin = input?.value.trim();
+
+  if (pin !== MANAGER_PIN) {
+    alert("❌ Invalid PIN");
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+   // 🔑 PIN OK
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+   if (PIN_ACTION === "logout") {
+    performLogout();
+    return;
+  }
+
+  // 🔓 UNLOCK
+  POS_LOCKED = false;
+  closePinModal();
+  startRelockTimer();
+}
+
+function startRelockTimer() {
+  clearTimeout(relockTimer);
+
+  relockTimer = setTimeout(() => {
+    POS_LOCKED = true;
+
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
 const CASHIER_NAME = localStorage.getItem("userName") || "";
 const CASHIER_POSITION = localStorage.getItem("userPosition") || "";
 
+/* ================= ACCESS GUARD ================= */
 if (!LOCATION || !STAFF_ID) {
   alert("Unauthorized POS access");
-  location.replace("index.html");
+  window.location.replace("index.html");
+}
+
+/* ================= LOADER ================= */
+function showLoader(text = "Loading data…") {
+  const loader = document.getElementById("globalLoader");
+  if (!loader) return;
+  loader.querySelector(".loader-text").textContent = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
 /* =========================================================
@@ -24,182 +120,119 @@ if (!LOCATION || !STAFF_ID) {
 ========================================================= */
 let products = [];
 let categories = [];
-let recipes = {};
-let inventory = {};
+let recipes = {};        // product_id → recipe[]
+let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
-let syncing = false;
-let CHECKOUT_IN_PROGRESS = false;
 
 /* =========================================================
-   DATE HELPERS
+   WAKE LOCK (TABLET ANTI-SLEEP)
 ========================================================= */
-function getPHDate() {
-  return new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
-  ).toISOString().slice(0, 10);
-}
+let wakeLock = null;
 
-function isSameBusinessDay(ts) {
-  const today = getPHDate();
-  const d = new Date(ts)
-    .toLocaleString("en-US", { timeZone: "Asia/Manila" })
-    .slice(0, 10);
-  return today === d;
-}
+async function enableWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      console.log("🔒 Wake Lock enabled");
 
-/* =========================================================
-   OFFLINE STORAGE (IndexedDB WRAPPER)
-========================================================= */
-const DB_NAME = "pos_offline";
-const STORE = "orders";
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      e.target.result.createObjectStore(STORE, { keyPath: "id" });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function savePendingOrder(order) {
-  const db = await openDB();
-  const tx = db.transaction(STORE, "readwrite");
-  tx.objectStore(STORE).put(order);
-  return tx.complete;
-}
-
-async function getPendingOrders() {
-  const db = await openDB();
-  const tx = db.transaction(STORE, "readonly");
-  return new Promise(resolve => {
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-  });
-}
-
-async function deletePendingOrder(id) {
-  const db = await openDB();
-  const tx = db.transaction(STORE, "readwrite");
-  tx.objectStore(STORE).delete(id);
-  return tx.complete;
-}
-
-async function purgeOldPendingOrders() {
-  const orders = await getPendingOrders();
-  for (const o of orders) {
-    if (!isSameBusinessDay(o.created_at)) {
-      await deletePendingOrder(o.id);
+      wakeLock.addEventListener("release", () => {
+        console.log("🔓 Wake Lock released");
+      });
     }
+  } catch (err) {
+    console.warn("Wake Lock failed:", err.message);
   }
 }
 
-/* =========================================================
-   OFFLINE-FIRST CHECKOUT (ONLY PATH)
-========================================================= */
-async function checkoutOfflineSafe(cartItems) {
-  const order = {
-    id: "OFF-" + Date.now(),
-    created_at: Date.now(),
-    retries: 0,
-    payload: {
-      action: "checkoutOrder",
-      ref_id: "POS-" + Date.now(),
-      location: LOCATION,
-      staff_id: STAFF_ID,
-      items: JSON.stringify(
-        cartItems.map(i => ({
-          product_id: i.product_id,
-          qty: i.qty,
-          price: i.price,
-          total: i.total
-        }))
-      )
-    }
-  };
-
-  await savePendingOrder(order);
-  clearCart();
-  showToast("✅ Order saved");
-  setTimeout(syncPendingOrders, 500);
+function disableWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
 }
 
-/* =========================================================
-   SYNC ENGINE
-========================================================= */
-async function syncPendingOrders() {
-  if (!navigator.onLine || syncing) return;
+async function loadTodayStocks() {
+  const res = await fetch(
+    `${API_URL}?type=todayStocks&location=${LOCATION}`
+  );
+  return res.json();
+}
 
-  const orders = await getPendingOrders();
-  const todayOrders = orders.filter(o => isSameBusinessDay(o.created_at));
-  if (!todayOrders.length) {
-    updateStatusBadge();
-    updatePendingBadge();
+
+/* =========================================================
+   INIT
+========================================================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("cashierName").textContent = CASHIER_NAME;
+  document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
+  document.getElementById("cashierLocation").textContent = LOCATION;
+  document.getElementById("fullscreenBtn")
+  ?.addEventListener("click", toggleFullscreen);
+
+  showLoader("Loading POS data…");
+
+  // 🔒 Force fullscreen on POS load
+setTimeout(() => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 500);
+
+  try {
+    await loadAllData();
+    renderCategories();
+    renderProducts();
+    renderCart();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load POS data.");
+  } finally {
+    hideLoader();
+  }
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  showPinModal("logout");
+});
+
+  document.querySelector(".checkout")?.addEventListener("click", () => {
+  if (!cart.length) {
+    alert("No items in cart");
     return;
   }
+  openPaymentModal(cart.reduce((sum, i) => sum + i.total, 0));
+});
 
-  syncing = true;
-  updateStatusBadge();
+  document.getElementById("clearOrderBtn")?.addEventListener("click", () => {
+    cart = [];
+    renderCart();
+    renderProducts();
+  });
 
-  for (const order of todayOrders) {
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: new URLSearchParams(order.payload)
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
 
-      await deletePendingOrder(order.id);
-    } catch (err) {
-      order.retries++;
-      await savePendingOrder(order);
-    }
+  // Block ESC, F11
+  if (e.key === "Escape" || e.key === "F11") {
+    e.preventDefault();
+    e.stopPropagation();
   }
+});
 
-  syncing = false;
-  updateStatusBadge();
-  updatePendingBadge();
-}
-
-/* =========================================================
-   STATUS BADGE
-========================================================= */
-async function updateStatusBadge() {
-  const el = document.getElementById("statusBadge");
-  if (!el) return;
-
-  const orders = await getPendingOrders();
-  const pending = orders.filter(o => isSameBusinessDay(o.created_at)).length;
-
-  let status = "online";
-  if (!navigator.onLine) status = "offline";
-  if (pending && syncing) status = "syncing";
-
-  el.className = `status ${status}`;
-  el.textContent =
-    status === "offline"
-      ? "Offline – Orders saved"
-      : status === "syncing"
-      ? `Syncing ${pending} orders`
-      : "Online";
-}
-
-async function updatePendingBadge() {
-  const el = document.getElementById("pendingBadge");
-  if (!el) return;
-
-  const orders = await getPendingOrders();
-  const count = orders.filter(o => isSameBusinessDay(o.created_at)).length;
-  el.textContent = count ? `⏳ ${count}` : "";
-}
+  document.getElementById("searchInput")?.addEventListener("input", e => {
+    renderProducts(e.target.value.toLowerCase());
+  });
+  // 🔒 FORCE fullscreen on POS load (tablet safe)
+setTimeout(() => {
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 800);
+});
 
 /* =========================================================
-   LOAD DATA
+   LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
   const today = getPHDate();
@@ -213,25 +246,59 @@ async function loadAllData() {
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`).then(r => r.json())
+    fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    ).then(r => r.json())
   ]);
 
-  categories = categoriesData || [];
-  products = productsData || [];
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
   recipes = recipesData || {};
 
   inventory = {};
-  (inventoryRows || []).forEach(r => {
+
+  if (!Array.isArray(inventoryRows)) {
+    console.error("Invalid inventory response:", inventoryRows);
+    return;
+  }
+
+  inventoryRows.forEach(r => {
     inventory[r.item_id] = Number(r.remaining) || 0;
+  });
+
+  window.__debugInventory = inventory;
+window.__debugRecipes = recipes;
+window.__debugLocation = LOCATION;
+
+console.log("DEBUG INVENTORY:", inventory);
+console.log("DEBUG RECIPES:", recipes);
+console.log("DEBUG LOCATION:", LOCATION);
+
+}
+
+
+
+/* =========================================================
+   INVENTORY CHECK
+========================================================= */
+function canSell(product, qty = 1) {
+  const recipe = recipes[product.product_id];
+  if (!recipe || !recipe.length) return false;
+
+  return recipe.every(r => {
+    const available = inventory[r.item_id] || 0;
+    const needed = Number(r.qty_used) * qty;
+    return available >= needed;
   });
 }
 
 /* =========================================================
-   UI — CATEGORIES
+   CATEGORIES
 ========================================================= */
 function renderCategories() {
   const el = document.querySelector(".categories-top");
   el.innerHTML = "";
+
   el.appendChild(createCategoryBtn("All", null, true));
 
   categories.forEach(c => {
@@ -246,15 +313,17 @@ function createCategoryBtn(name, id, active = false) {
 
   btn.onclick = () => {
     activeCategoryId = id;
-    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".category-btn")
+      .forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     renderProducts();
   };
+
   return btn;
 }
 
 /* =========================================================
-   UI — PRODUCTS
+   PRODUCTS
 ========================================================= */
 function renderProducts(search = "") {
   const grid = document.getElementById("productGrid");
@@ -263,26 +332,50 @@ function renderProducts(search = "") {
   products
     .filter(p => p.active)
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
-    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
+    .filter(p =>
+      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
+    )
     .forEach(p => {
+      const disabled = !canSell(p);
+      const img = p.image_url?.trim()
+        ? p.image_url
+        : "images/placeholder.png";
+
       const card = document.createElement("div");
-      card.className = "product-card";
+      card.className = "product-card" + (disabled ? " disabled" : "");
+
       card.innerHTML = `
-        <div class="product-name">${p.product_name}</div>
-        <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+        <div class="product-img">
+          <img src="${img}" loading="lazy"
+               onerror="this.src='images/placeholder.png'">
+        </div>
+        <div class="product-info">
+          <div class="product-code">${p.product_code}</div>
+          <div class="product-name">${p.product_name}</div>
+          <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+        </div>
       `;
-      card.onclick = () => addToCart(p);
+
+      if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);
     });
 }
 
 /* =========================================================
-   UI — CART
+   CART
 ========================================================= */
 function addToCart(p) {
   const existing = cart.find(i => i.product_id === p.product_id);
+  const nextQty = existing ? existing.qty + 1 : 1;
+
+  // 🚫 HARD BLOCK if stock would be exceeded
+  if (!canSell(p, nextQty)) {
+    alert("❌ Not enough stock");
+    return;
+  }
+
   if (existing) {
-    existing.qty++;
+    existing.qty = nextQty;
     existing.total = existing.qty * existing.price;
   } else {
     cart.push({
@@ -293,12 +386,20 @@ function addToCart(p) {
       total: Number(p.price)
     });
   }
-  renderCart();
+
+  // ⏱ keep tablet-safe render fix
+  setTimeout(renderCart, 0);
+  renderProducts();
 }
 
 function renderCart() {
   const tbody = document.getElementById("orderTable");
   const sumEl = document.getElementById("sumTotal");
+
+  if (!tbody || !sumEl) {
+    console.warn("⚠️ Cart table not ready yet");
+    return;
+  }
 
   tbody.innerHTML = "";
   let sum = 0;
@@ -319,53 +420,404 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
-function clearCart() {
-  cart = [];
-  renderCart();
-  renderProducts();
+/* =========================================================
+   CHECKOUT
+========================================================= */
+async function checkoutPOS() {
+  if (!cart.length) {
+  alert("No items in cart");
+  return;
 }
 
-/* =========================================================
-   UTIL
-========================================================= */
-function showToast(msg, ms = 2000) {
-  const t = document.createElement("div");
-  t.textContent = msg;
-  Object.assign(t.style, {
-    position: "fixed",
-    bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "#2ecc71",
-    color: "#fff",
-    padding: "10px 16px",
-    borderRadius: "8px",
-    zIndex: 9999
-  });
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), ms);
+if (!window.__lastPayment) {
+  alert("Payment not confirmed");
+  return;
 }
 
-/* =========================================================
-   INIT
-========================================================= */
-document.addEventListener("DOMContentLoaded", async () => {
-  document.getElementById("cashierName").textContent = CASHIER_NAME;
-  document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
-  document.getElementById("cashierLocation").textContent = LOCATION;
+  showLoader("Processing order…");
 
-  document.querySelector(".checkout")?.addEventListener("click", () => {
-    if (!cart.length) return alert("No items in cart");
-    checkoutOfflineSafe([...cart]);
-  });
+  const ref = "ORD-" + Date.now();
 
-  await purgeOldPendingOrders();
-  await loadAllData();
-  renderCategories();
-  renderProducts();
-  renderCart();
+  try {
+    const payment = window.__lastPayment;
+    const body = new URLSearchParams({
+      action: "checkoutOrder",
+      ref_id: ref,
+      staff_id: STAFF_ID,
+      location: LOCATION,
+      items: JSON.stringify(cart)
 
-  syncPendingOrders();
-  updateStatusBadge();
-  updatePendingBadge();
+      
+    });
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Checkout failed");
+    }
+
+    cart = [];
+    await loadAllData();
+    renderProducts();
+    renderCart();
+
+    alert("✅ Order completed");
+    delete window.__lastPayment;
+  } catch (err) {
+    console.error(err);
+    alert("❌ Checkout failed");
+  } finally {
+    hideLoader();
+  }
+}
+
+let pendingPayment = null;
+
+function openPaymentModal(total) {
+  pendingPayment = { total };
+  
+paidValue = "0";
+document.getElementById("paidDisplay").textContent = "₱0.00";
+document.getElementById("changeAmount").textContent = "₱0.00";
+
+
+  document.getElementById("payTotal").textContent =
+    `₱${Number(total).toFixed(2)}`;
+
+  document.getElementById("gcashRef").value = "";
+
+  // 🔴 Disable confirm initially
+  const btn = document.getElementById("confirmPaymentBtn");
+  btn.classList.remove("enabled");
+  btn.disabled = true;
+
+  document.getElementById("paymentModal").classList.remove("hidden");
+}
+
+function closePaymentModal() {
+  document.getElementById("paymentModal").classList.add("hidden");
+  pendingPayment = null;
+}
+
+document.getElementById("paymentMethod")?.addEventListener("change", e => {
+  const method = e.target.value;
+
+  // update badge text
+  const badge = document.getElementById("methodBadge");
+  if (badge) badge.textContent = method;
+
+  // show / hide GCash reference
+  document.getElementById("gcashRefRow")
+    ?.classList.toggle("hidden", method !== "GCASH");
 });
+
+document.getElementById("amountPaid")?.addEventListener("input", e => {
+  const paid = Number(e.target.value) || 0;
+  const total = pendingPayment?.total || 0;
+  const change = paid - total;
+
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
+});
+
+
+
+function confirmPayment() {
+
+  // 🔒 EXTRA SAFETY GUARD (STEP 4)
+  if (document.getElementById("confirmPaymentBtn").disabled) {
+    return;
+  }
+
+  const paid = Number(paidValue);
+  const method = document.getElementById("paymentMethod").value;
+  const ref = document.getElementById("gcashRef").value || "";
+  const total = pendingPayment?.total || 0;
+
+  if (paid < total) {
+    alert("❌ Insufficient payment");
+    return;
+  }
+
+  // Store temporarily (used later in backend Step 3)
+  window.__lastPayment = {
+    total_bill: total,
+    amount_paid: paid,
+    change: paid - total,
+    payment_method: method,
+    gcash_ref: ref
+  };
+
+  closePaymentModal();
+
+  // ✅ NOW perform the real checkout
+  checkoutPOS();
+}
+
+let paidValue = "0";
+
+function keypadInput(val) {
+  if (val === "." && paidValue.includes(".")) return;
+
+  if (paidValue === "0" && val !== ".") {
+    paidValue = val;
+  } else {
+    paidValue += val;
+  }
+
+  updatePaidDisplay();
+}
+
+function keypadBackspace() {
+  paidValue = paidValue.slice(0, -1) || "0";
+  updatePaidDisplay();
+}
+
+function updatePaidDisplay() {
+  const paid = Number(paidValue) || 0;
+  const total = pendingPayment?.total || 0;
+
+  document.getElementById("paidDisplay").textContent =
+    `₱${paid.toFixed(2)}`;
+
+  const change = paid - total;
+  document.getElementById("changeAmount").textContent =
+    `₱${Math.max(change, 0).toFixed(2)}`;
+
+    // ✅ Enable confirm only if paid >= total
+  const btn = document.getElementById("confirmPaymentBtn");
+  if (paid >= total) {
+    btn.disabled = false;
+    btn.classList.add("enabled");
+  } else {
+    btn.disabled = true;
+    btn.classList.remove("enabled");
+  }
+  
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      alert("Fullscreen not supported");
+      console.error(err);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+
+document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
+
+async function openStocks() {
+  const tbody = document.getElementById("stocksTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+
+  try {
+    const res = await fetch(
+      `${API_URL}?type=todayStocks&location=${LOCATION}`
+    );
+
+    const rows = await res.json();
+    tbody.innerHTML = "";
+
+    if (!Array.isArray(rows) || !rows.length) {
+      tbody.innerHTML =
+        "<tr><td colspan='3'>No inventory data.</td></tr>";
+    } else {
+      rows.forEach(r => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.item_name}</td>
+            <td>${r.added_today}</td>
+            <td>${r.remaining}</td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById("stocksModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML =
+      "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
+  }
+}
+
+function closeStocks() {
+  document.getElementById("stocksModal").classList.add("hidden");
+}
+
+
+
+document.getElementById("salesBtn")?.addEventListener("click", openSales);
+
+async function openSales() {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align:center;color:#888">
+        Loading…
+      </td>
+    </tr>`;
+  totalEl.textContent = "0.00";
+
+  try {
+    const today = getPHDate(); // ✅ FIXED (PH DATE)
+
+    const res = await fetch(
+      `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
+    );
+
+    const orders = await res.json();
+
+    renderSalesTable(Array.isArray(orders) ? orders : []);
+    document.getElementById("salesModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:red">
+          Failed to load sales
+        </td>
+      </tr>`;
+  }
+}
+
+function closeSales() {
+  document.getElementById("salesModal").classList.add("hidden");
+}
+
+window.closeSales = closeSales;
+
+function renderSalesTable(orders) {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  tbody.innerHTML = "";
+  let grandTotal = 0;
+
+  if (!orders.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:#888">
+          No sales today
+        </td>
+      </tr>`;
+    totalEl.textContent = "0.00";
+    return;
+  }
+
+  orders.forEach((o, i) => {
+    // ✅ SAME LOGIC AS ADMIN
+    const transactionTotal = (o.items || []).reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
+
+    grandTotal += transactionTotal;
+
+    // TRANSACTION HEADER
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr style="background:#f4f4f4;font-weight:600">
+        <td>${i + 1}</td>
+        <td>
+          ${o.ref_id}<br>
+          <small>${formatDateTime(o.datetime)}</small>
+        </td>
+        <td></td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${transactionTotal.toFixed(2)}</td>
+      </tr>
+    `);
+
+    // PRODUCT ROWS
+    (o.items || []).forEach(item => {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td></td>
+          <td>${item.product_name}</td>
+          <td>${item.qty || 0}</td>
+          <td></td>
+          <td>₱${Number(item.total || 0).toFixed(2)}</td>
+        </tr>
+      `);
+    });
+  });
+
+  totalEl.textContent = grandTotal.toFixed(2);
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+function performLogout() {
+  // Clear session
+  localStorage.removeItem("userLocation");
+  localStorage.removeItem("staff_id");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userPosition");
+
+  alert("👋 Logged out");
+
+  // Exit fullscreen safely
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+
+  // Redirect to login
+  window.location.href = "index.html";
+}
+
+// 🔒 BLOCK keyboard fullscreen exit
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
+
+  if (
+    e.key === "Escape" ||
+    e.key === "F11" ||
+    (e.ctrlKey && e.key.toLowerCase() === "f") ||
+    (e.metaKey && e.ctrlKey)
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
+
+
+
+window.unlockPOS = unlockPOS;
+
+// 🔓 expose keypad + modal functions to HTML
+window.keypadInput = keypadInput;
+window.keypadBackspace = keypadBackspace;
+window.confirmPayment = confirmPayment;
+window.closePaymentModal = closePaymentModal;
+window.closeStocks = closeStocks;
