@@ -6,27 +6,6 @@ const API_URL =
 
 window.API_URL = API_URL;
 
-let POS_LOCKED = true;
-let PIN_ACTION = "unlock";
-const MANAGER_PIN = "1234";
-
-let relockTimer = null;
-
-/* =========================================================
-   LAYOUT
-========================================================= */
-function enforceBodyLayout() {
-  document.body.style.display = "flex";
-  document.body.style.flexDirection = "column";
-  document.body.style.height = "100vh";
-}
-
-function getPHDate() {
-  return new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
-  ).toISOString().slice(0, 10);
-}
-
 /* =========================================================
    SESSION
 ========================================================= */
@@ -50,65 +29,103 @@ let inventory = {};
 let cart = [];
 let activeCategoryId = null;
 
-let CHECKOUT_IN_PROGRESS = false;
 let syncing = false;
+let CHECKOUT_IN_PROGRESS = false;
 
 /* =========================================================
-   OFFLINE-SAFE CHECKOUT (ONLY PATH)
+   DATE HELPERS
+========================================================= */
+function getPHDate() {
+  return new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  ).toISOString().slice(0, 10);
+}
+
+function isSameBusinessDay(ts) {
+  const today = getPHDate();
+  const d = new Date(ts)
+    .toLocaleString("en-US", { timeZone: "Asia/Manila" })
+    .slice(0, 10);
+  return today === d;
+}
+
+/* =========================================================
+   OFFLINE STORAGE (IndexedDB WRAPPER)
+========================================================= */
+const DB_NAME = "pos_offline";
+const STORE = "orders";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(STORE, { keyPath: "id" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function savePendingOrder(order) {
+  const db = await openDB();
+  const tx = db.transaction(STORE, "readwrite");
+  tx.objectStore(STORE).put(order);
+  return tx.complete;
+}
+
+async function getPendingOrders() {
+  const db = await openDB();
+  const tx = db.transaction(STORE, "readonly");
+  return new Promise(resolve => {
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+  });
+}
+
+async function deletePendingOrder(id) {
+  const db = await openDB();
+  const tx = db.transaction(STORE, "readwrite");
+  tx.objectStore(STORE).delete(id);
+  return tx.complete;
+}
+
+async function purgeOldPendingOrders() {
+  const orders = await getPendingOrders();
+  for (const o of orders) {
+    if (!isSameBusinessDay(o.created_at)) {
+      await deletePendingOrder(o.id);
+    }
+  }
+}
+
+/* =========================================================
+   OFFLINE-FIRST CHECKOUT (ONLY PATH)
 ========================================================= */
 async function checkoutOfflineSafe(cartItems) {
   const order = {
     id: "OFF-" + Date.now(),
+    created_at: Date.now(),
+    retries: 0,
     payload: {
       action: "checkoutOrder",
       ref_id: "POS-" + Date.now(),
+      location: LOCATION,
+      staff_id: STAFF_ID,
       items: JSON.stringify(
         cartItems.map(i => ({
           product_id: i.product_id,
-          product_name: i.product_name,
-          qty: Number(i.qty),
-          price: Number(i.price),
-          total: Number(i.total)
+          qty: i.qty,
+          price: i.price,
+          total: i.total
         }))
-      ),
-      location: LOCATION,
-      staff_id: STAFF_ID,
-      cashier: CASHIER_NAME
-    },
-    retries: 0,
-    created_at: Date.now()
+      )
+    }
   };
 
   await savePendingOrder(order);
-
   clearCart();
   showToast("✅ Order saved");
-
-  CHECKOUT_IN_PROGRESS = false;
-
   setTimeout(syncPendingOrders, 500);
-}
-
-/* =========================================================
-   DISABLE LEGACY CHECKOUT (CRITICAL)
-========================================================= */
-async function checkoutPOS() {
-  alert("❌ Legacy checkout disabled. POS uses offline-safe checkout.");
-  return;
-}
-
-async function updatePendingBadge() {
-  const el = document.getElementById("pendingBadge");
-  if (!el) return;
-
-  const orders = await getPendingOrders();
-  const todayOrders = orders.filter(o =>
-    isSameBusinessDay(o.created_at)
-  );
-
-  el.textContent = todayOrders.length
-    ? `⏳ ${todayOrders.length}`
-    : "";
 }
 
 /* =========================================================
@@ -119,7 +136,6 @@ async function syncPendingOrders() {
 
   const orders = await getPendingOrders();
   const todayOrders = orders.filter(o => isSameBusinessDay(o.created_at));
-
   if (!todayOrders.length) {
     updateStatusBadge();
     updatePendingBadge();
@@ -135,16 +151,13 @@ async function syncPendingOrders() {
         method: "POST",
         body: new URLSearchParams(order.payload)
       });
-
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
       await deletePendingOrder(order.id);
-      console.log("✅ Synced:", order.payload.ref_id);
     } catch (err) {
-      order.retries = (order.retries || 0) + 1;
+      order.retries++;
       await savePendingOrder(order);
-      console.error("❌ Sync failed:", err);
     }
   }
 
@@ -176,8 +189,144 @@ async function updateStatusBadge() {
       : "Online";
 }
 
+async function updatePendingBadge() {
+  const el = document.getElementById("pendingBadge");
+  if (!el) return;
+
+  const orders = await getPendingOrders();
+  const count = orders.filter(o => isSameBusinessDay(o.created_at)).length;
+  el.textContent = count ? `⏳ ${count}` : "";
+}
+
 /* =========================================================
-   UTILITIES
+   LOAD DATA
+========================================================= */
+async function loadAllData() {
+  const today = getPHDate();
+
+  const [
+    categoriesData,
+    productsData,
+    recipesData,
+    inventoryRows
+  ] = await Promise.all([
+    fetch(`${API_URL}?type=categories`).then(r => r.json()),
+    fetch(`${API_URL}?type=products`).then(r => r.json()),
+    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
+    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`).then(r => r.json())
+  ]);
+
+  categories = categoriesData || [];
+  products = productsData || [];
+  recipes = recipesData || {};
+
+  inventory = {};
+  (inventoryRows || []).forEach(r => {
+    inventory[r.item_id] = Number(r.remaining) || 0;
+  });
+}
+
+/* =========================================================
+   UI — CATEGORIES
+========================================================= */
+function renderCategories() {
+  const el = document.querySelector(".categories-top");
+  el.innerHTML = "";
+  el.appendChild(createCategoryBtn("All", null, true));
+
+  categories.forEach(c => {
+    el.appendChild(createCategoryBtn(c.category_name, c.category_id));
+  });
+}
+
+function createCategoryBtn(name, id, active = false) {
+  const btn = document.createElement("button");
+  btn.className = "category-btn" + (active ? " active" : "");
+  btn.textContent = name;
+
+  btn.onclick = () => {
+    activeCategoryId = id;
+    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderProducts();
+  };
+  return btn;
+}
+
+/* =========================================================
+   UI — PRODUCTS
+========================================================= */
+function renderProducts(search = "") {
+  const grid = document.getElementById("productGrid");
+  grid.innerHTML = "";
+
+  products
+    .filter(p => p.active)
+    .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
+    .filter(p => `${p.product_name} ${p.product_code}`.toLowerCase().includes(search))
+    .forEach(p => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        <div class="product-name">${p.product_name}</div>
+        <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+      `;
+      card.onclick = () => addToCart(p);
+      grid.appendChild(card);
+    });
+}
+
+/* =========================================================
+   UI — CART
+========================================================= */
+function addToCart(p) {
+  const existing = cart.find(i => i.product_id === p.product_id);
+  if (existing) {
+    existing.qty++;
+    existing.total = existing.qty * existing.price;
+  } else {
+    cart.push({
+      product_id: p.product_id,
+      product_name: p.product_name,
+      price: Number(p.price),
+      qty: 1,
+      total: Number(p.price)
+    });
+  }
+  renderCart();
+}
+
+function renderCart() {
+  const tbody = document.getElementById("orderTable");
+  const sumEl = document.getElementById("sumTotal");
+
+  tbody.innerHTML = "";
+  let sum = 0;
+
+  cart.forEach((i, idx) => {
+    sum += i.total;
+    tbody.innerHTML += `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${i.product_name}</td>
+        <td>${i.qty}</td>
+        <td>₱${i.price.toFixed(2)}</td>
+        <td>₱${i.total.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  sumEl.textContent = sum.toFixed(2);
+}
+
+function clearCart() {
+  cart = [];
+  renderCart();
+  renderProducts();
+}
+
+/* =========================================================
+   UTIL
 ========================================================= */
 function showToast(msg, ms = 2000) {
   const t = document.createElement("div");
@@ -191,63 +340,10 @@ function showToast(msg, ms = 2000) {
     color: "#fff",
     padding: "10px 16px",
     borderRadius: "8px",
-    zIndex: 9999,
-    fontWeight: 600
+    zIndex: 9999
   });
   document.body.appendChild(t);
   setTimeout(() => t.remove(), ms);
-}
-
-function clearCart() {
-  cart = [];
-  renderCart();
-  renderProducts();
-}
-
-function isSameBusinessDay(ts) {
-  const today = getPHDate();
-  const d = new Date(ts)
-    .toLocaleString("en-US", { timeZone: "Asia/Manila" })
-    .slice(0, 10);
-  return today === d;
-}
-
-async function purgeOldPendingOrders() {
-  const orders = await getPendingOrders();
-  for (const o of orders) {
-    if (!isSameBusinessDay(o.created_at)) {
-      await deletePendingOrder(o.id);
-      console.log("🧹 Purged old offline order:", o.id);
-    }
-  }
-}
-
-async function loadAllData() {
-  const today = getPHDate();
-
-  const [
-    categoriesData,
-    productsData,
-    recipesData,
-    inventoryRows
-  ] = await Promise.all([
-    fetch(`${API_URL}?type=categories`).then(r => r.json()),
-    fetch(`${API_URL}?type=products`).then(r => r.json()),
-    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
-      .then(r => r.json())
-  ]);
-
-  categories = Array.isArray(categoriesData) ? categoriesData : [];
-  products = Array.isArray(productsData) ? productsData : [];
-  recipes = recipesData || {};
-
-  inventory = {};
-  if (Array.isArray(inventoryRows)) {
-    inventoryRows.forEach(r => {
-      inventory[r.item_id] = Number(r.remaining) || 0;
-    });
-  }
 }
 
 /* =========================================================
@@ -260,23 +356,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.querySelector(".checkout")?.addEventListener("click", () => {
     if (!cart.length) return alert("No items in cart");
-    openPaymentModal(cart.reduce((s, i) => s + i.total, 0));
+    checkoutOfflineSafe([...cart]);
   });
 
   await purgeOldPendingOrders();
-  await syncPendingOrders();
-  updateStatusBadge();
-  updatePendingBadge();
-
   await loadAllData();
   renderCategories();
   renderProducts();
   renderCart();
+
+  syncPendingOrders();
+  updateStatusBadge();
+  updatePendingBadge();
 });
-
-/* =========================================================
-   ⬇⬇ EVERYTHING BELOW THIS IS UNCHANGED ⬇⬇
-   (products, cart, payment, inventory, sales, etc.)
-========================================================= */
-
-/* 🔒 your remaining original functions stay EXACTLY as-is */
