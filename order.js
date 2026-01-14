@@ -538,17 +538,6 @@ document.getElementById("paymentMethod")?.addEventListener("change", e => {
     ?.classList.toggle("hidden", method !== "GCASH");
 });
 
-document.getElementById("amountPaid")?.addEventListener("input", e => {
-  const paid = Number(e.target.value) || 0;
-  const total = pendingPayment?.total || 0;
-  const change = paid - total;
-
-  document.getElementById("changeAmount").textContent =
-    `₱${Math.max(change, 0).toFixed(2)}`;
-});
-
-
-
 function confirmPayment() {
 
   // 🔒 EXTRA SAFETY GUARD (STEP 4)
@@ -678,52 +667,6 @@ function closeStocks() {
 }
 
 
-
-document.getElementById("salesBtn")?.addEventListener("click", openSales);
-
-async function openSales() {
-  const tbody = document.getElementById("salesBody");
-  const totalEl = document.getElementById("sumGross");
-
-  if (!tbody || !totalEl) {
-    alert("Sales report UI missing");
-    return;
-  }
-
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="5" style="text-align:center;color:#888">
-        Loading today’s sales…
-      </td>
-    </tr>`;
-  totalEl.textContent = "0.00";
-
-  try {
-    const today = getPHDate(); // ✅ PH date
-    const res = await fetch(
-      `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
-    );
-
-    const orders = await res.json();
-
-    if (!Array.isArray(orders)) {
-      throw new Error("Invalid sales data");
-    }
-
-    renderSalesTable(orders);
-    document.getElementById("salesModal").classList.remove("hidden");
-
-  } catch (err) {
-    console.error("Sales report error:", err);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5" style="text-align:center;color:red">
-          Failed to load sales
-        </td>
-      </tr>`;
-  }
-}
-
 function closeSales() {
   document.getElementById("salesModal").classList.add("hidden");
 }
@@ -822,21 +765,75 @@ function performLogout() {
   window.location.href = "index.html";
 }
 
-// 🔒 BLOCK keyboard fullscreen exit
-document.addEventListener("keydown", e => {
-  if (!POS_LOCKED) return;
+function loadTodaySales() {
+  return new Promise((resolve, reject) => {
+    const callbackName = "salesCallback_" + Date.now();
 
-  if (
-    e.key === "Escape" ||
-    e.key === "F11" ||
-    (e.ctrlKey && e.key.toLowerCase() === "f") ||
-    (e.metaKey && e.ctrlKey)
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
+    window[callbackName] = data => {
+      delete window[callbackName];
+      script.remove();
+      resolve(data);
+    };
+
+    const script = document.createElement("script");
+    script.src =
+      `${API_URL}?type=dailySalesReport` +
+      `&date=${getPHDate()}` +
+      `&location=${LOCATION}` +
+      `&callback=${callbackName}`;
+
+    script.onerror = () => {
+      delete window[callbackName];
+      script.remove();
+      reject(new Error("Failed to load sales"));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+document.getElementById("salesBtn")?.addEventListener("click", async () => {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  if (!tbody || !totalEl) {
+    alert("Sales report UI missing");
+    return;
+  }
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align:center;color:#888">
+        Loading today’s sales…
+      </td>
+    </tr>`;
+  totalEl.textContent = "0.00";
+
+  try {
+    showLoader("Loading sales report…");
+
+    // ✅ JSONP — NO CORS
+    const orders = await loadTodaySales();
+
+    if (!Array.isArray(orders)) {
+      throw new Error("Invalid sales data");
+    }
+
+    renderSalesTable(orders);
+    document.getElementById("salesModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error("Sales report error:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:red">
+          Failed to load sales
+        </td>
+      </tr>`;
+  } finally {
+    hideLoader();
   }
 });
-
 
 
 
