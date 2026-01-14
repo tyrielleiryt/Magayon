@@ -432,3 +432,29 @@ input, select, textarea {
     height: 72px;
   }
 }
+
+/* =========================================================
+   TABLET DENSITY BOOST (SAFE)
+========================================================= */
+@media (max-width: 1024px) {
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .product-card {
+    height: 145px;
+  }
+
+  .product-img {
+    height: 70px;
+  }
+
+}
+
+/* Extra density for LANDSCAPE tablets */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
