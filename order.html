@@ -41,7 +41,7 @@
   <!-- ================= MAIN LAYOUT ================= -->
   <div class="pos-container">
 
-    <aside class="categories-panel" id="categoryList">
+<aside class="categories-top" id="categoryList">
   <!-- categories injected by order.js -->
 </aside>
 
@@ -154,29 +154,41 @@
 
   <div class="modal-actions">
     <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button class="btn-confirm" onclick="confirmPayment()">Confirm</button>
+    <button
+  id="confirmPaymentBtn"
+  class="btn-confirm"
+  onclick="confirmPayment()">
+  Confirm
+</button>
+  </div>
+</div>   
   </div>
 
+   <div id="salesModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Today’s Sales</h2>
 
-</div>
-    </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Reference</th>
+            <th>Qty</th>
+            <th>Cashier</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="salesBody"></tbody>
+      </table>
 
-    <div class="payment-row hidden" id="gcashRefRow">
-      <label>GCash Reference (optional)</label>
-      <input type="text" id="gcashRef" />
-    </div>
+      <div class="total">
+        Gross Sales: ₱<span id="sumGross">0.00</span>
+      </div>
 
-    <div class="payment-row">
-      <label>Change</label>
-      <div id="changeAmount">₱0.00</div>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="closePaymentModal()">Cancel</button>
-      <button id="confirmPaymentBtn" onclick="confirmPayment()">Confirm</button>
+      <button onclick="closeSales()">Close</button>
     </div>
   </div>
-</div>
+
 
 
   <!-- ================= SCRIPT ================= -->
