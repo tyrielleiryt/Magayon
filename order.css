@@ -617,3 +617,104 @@ body.ultra-dense .cart-actions button {
   padding: 5px;
   font-size: 11px;
 }
+
+/* =========================================================
+   PAYMENT MODAL — SMALL SCREEN SAFE
+========================================================= */
+
+#paymentModal {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Main modal container */
+.modal-content.payment-ui {
+  width: min(360px, 96vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Allow internal scrolling instead of page scrolling */
+.payment-ui {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Payment summary compact */
+.payment-summary {
+  padding: 10px;
+  margin: 8px 0;
+}
+
+/* Keep keypad visible */
+.keypad {
+  margin-top: 8px;
+}
+
+/* Buttons always visible */
+.modal-actions {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 8px;
+  gap: 8px;
+}
+
+/* Prevent tap zoom / double-tap issues */
+.keypad button,
+.modal-actions button {
+  touch-action: manipulation;
+}
+
+/* =========================================================
+   SMALL TABLET / PHONE
+========================================================= */
+@media (max-height: 700px), (max-width: 480px) {
+
+  .modal-content.payment-ui {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .payment-header h2 {
+    font-size: 18px;
+  }
+
+  .summary-row strong {
+    font-size: 18px;
+  }
+
+  .keypad button {
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .modal-actions button {
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+/* Ultra dense payment mode */
+body.ultra-dense .modal-content.payment-ui {
+  width: 320px;
+  padding: 10px;
+}
+
+body.ultra-dense .keypad button {
+  height: 44px;
+  font-size: 15px;
+}
+
+body.ultra-dense .summary-row strong {
+  font-size: 16px;
+}
+
+body.ultra-dense .modal-content.payment-ui {
+  width: 320px;
+  max-width: 96vw; /* 👈 ADD THIS */
+  padding: 10px;
+}
