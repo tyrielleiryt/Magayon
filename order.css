@@ -86,6 +86,8 @@ input, select, textarea {
 .top-actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .top-actions button {
@@ -120,16 +122,21 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;           /* 🔑 allow shrinking */
+  flex-shrink: 1;
 }
 
 /* ===== CASHIER INFO INLINE (TOP BAR ONLY) ===== */
 .cashier-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 11px;
   color: #e5e7ff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;       /* 🔒 prevents layout break */
 }
 
 /* ================= MAIN LAYOUT ================= */
@@ -383,4 +390,8 @@ input, select, textarea {
   to {
     transform: rotate(360deg);
   }
+}
+
+.top-bar {
+  flex-wrap: nowrap; /* 🔒 NEVER allow wrap */
 }
