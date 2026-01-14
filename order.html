@@ -178,29 +178,44 @@
   </div>
 
    <div id="salesModal" class="modal hidden">
-    <div class="modal-content">
-      <h2>Today’s Sales</h2>
+  <div class="modal-content sales-ui">
 
-      <table>
+    <!-- HEADER -->
+    <div class="sales-header">
+      <div class="sales-title">📊 Today’s Sales</div>
+      <div class="sales-meta">
+        <span id="salesLocation"></span><br>
+        <span id="salesDate"></span>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="sales-body">
+      <table class="sales-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>Reference</th>
+            <th>Item / Ref</th>
             <th>Qty</th>
-            <th>Cashier</th>
             <th>Total</th>
           </tr>
         </thead>
         <tbody id="salesBody"></tbody>
       </table>
+    </div>
 
-      <div class="total">
-        Gross Sales: ₱<span id="sumGross">0.00</span>
+    <!-- FOOTER -->
+    <div class="sales-footer">
+      <div class="sales-total">
+        Gross Sales
+        <strong>₱<span id="sumGross">0.00</span></strong>
       </div>
 
-      <button onclick="closeSales()">Close</button>
+      <button class="btn-close" onclick="closeSales()">Close</button>
     </div>
+
   </div>
+</div>
 
   <!-- ================= STOCKS MODAL ================= -->
 <div id="stocksModal" class="modal hidden">
