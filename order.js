@@ -332,7 +332,7 @@ function renderProducts(search = "") {
   grid.innerHTML = "";
 
   products
-    .filter(p => p.active)
+    .filter(p => p.active === true || p.active === "TRUE")
     .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
     .filter(p =>
       `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
