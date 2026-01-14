@@ -13,6 +13,7 @@ const API_URL =
   let POS_LOCKED = true; // 🔒 default locked
   let PIN_ACTION = "unlock"; // 🔑 unlock | logout
 const MANAGER_PIN = "1234"; // 🔑 change this
+const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
 
 let relockTimer = null;
 
@@ -286,6 +287,17 @@ function canSell(product, qty = 1) {
   });
 }
 
+function getLowStockItems(product, qty = 1) {
+  const recipe = recipes[product.product_id];
+  if (!recipe || !Object.keys(inventory).length) return [];
+
+  return recipe.filter(r => {
+    const available = inventory[r.item_id] || 0;
+    const needed = Number(r.qty_used) * qty;
+    return available - needed <= LOW_STOCK_THRESHOLD;
+  });
+}
+
 function createCategoryBtn(name, id, active = false) {
   const btn = document.createElement("button");
   btn.className = "category-btn" + (active ? " active" : "");
@@ -348,12 +360,14 @@ function renderProducts(search = "") {
     )
     .forEach(p => {
       const disabled = !canSell(p);
+      const lowStock = getLowStockItems(p).length > 0;
       const img = p.image_url?.trim()
         ? p.image_url
         : "images/placeholder.png";
 
       const card = document.createElement("div");
-      card.className = "product-card" + (disabled ? " disabled" : "");
+      card.className = "product-card" + (disabled ? " disabled" : "") +
+         (lowStock ? " low-stock" : "");
 
       card.innerHTML = `
         <div class="product-img">
@@ -383,6 +397,13 @@ function addToCart(p) {
   if (!canSell(p, nextQty)) {
     alert("❌ Not enough stock");
     return;
+  }
+
+    // ⚠️ LOW STOCK WARNING
+  const lowItems = getLowStockItems(p, nextQty);
+  if (lowItems.length && navigator.onLine) {
+    const names = lowItems.map(i => i.item_name).join(", ");
+    alert(`⚠️ Low stock warning:\n${names}`);
   }
 
   if (existing) {
@@ -452,6 +473,23 @@ if (!window.__lastPayment) {
     return;
   }
 
+const warnings = cart.flatMap(i =>
+  getLowStockItems(
+    { product_id: i.product_id },
+    i.qty
+  )
+);
+
+if (warnings.length && navigator.onLine) {
+  const names = [...new Set(warnings.map(w => w.item_name))];
+  const proceed = confirm(
+    "⚠️ Some ingredients are low:\n\n" +
+    names.join("\n") +
+    "\n\nProceed anyway?"
+  );
+
+  if (!proceed) return;
+}
 
   showLoader("Processing order…");
 
