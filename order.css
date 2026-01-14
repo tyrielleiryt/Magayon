@@ -180,6 +180,7 @@ body {
   padding: 10px;
   display: flex;
   flex-direction: column;
+  min-width: 240px;
 }
 
 .cart-table {
@@ -520,6 +521,8 @@ body {
   .product-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 14px;
+      overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   }
 
   .product-card {
@@ -530,4 +533,85 @@ body {
     height: 110px;
   }
 
+}
+
+/* ================= AUTO DENSE MODE ================= */
+
+/* Small / unconventional tablets */
+@media (max-width: 900px) {
+
+  .pos-container {
+    grid-template-columns: 1fr 260px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 12px;
+  }
+
+  .product-card {
+    height: 195px;
+  }
+
+  .product-img {
+    height: 95px;
+  }
+
+  .product-name {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
+
+  .product-price {
+    font-size: 13px;
+  }
+
+  .cart-table {
+    font-size: 11px;
+  }
+
+  .cart-actions button {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .category-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ================= ULTRA DENSE MODE ================= */
+body.ultra-dense .product-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+body.ultra-dense .product-card {
+  height: 180px;
+}
+
+body.ultra-dense .product-img {
+  height: 85px;
+}
+
+body.ultra-dense .product-name {
+  font-size: 11px;
+}
+
+body.ultra-dense .product-price {
+  font-size: 12px;
+}
+
+body.ultra-dense .cart-panel {
+  padding: 6px;
+}
+
+body.ultra-dense .cart-table {
+  font-size: 10px;
+}
+
+body.ultra-dense .cart-actions button {
+  padding: 5px;
+  font-size: 11px;
 }

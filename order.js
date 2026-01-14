@@ -17,6 +17,21 @@ const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
 
 let relockTimer = null;
 
+// Auto-detect very small usable screens
+function autoDetectDenseMode() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  if (w < 900 || h < 600) {
+    document.body.classList.add("ultra-dense");
+  } else {
+    document.body.classList.remove("ultra-dense");
+  }
+}
+
+window.addEventListener("resize", autoDetectDenseMode);
+document.addEventListener("DOMContentLoaded", autoDetectDenseMode);
+
 function getPHDate() {
   const now = new Date();
   const ph = new Date(
@@ -348,17 +363,12 @@ function renderCategories() {
   });
 }
 
-function safeQuery(selector) {
-  const el = document.querySelector(selector);
-  if (!el) console.warn(`⚠️ Missing element: ${selector}`);
-  return el;
-}
-
 /* =========================================================
    PRODUCTS
 ========================================================= */
 function renderProducts(search = "") {
   const grid = document.getElementById("productGrid");
+  if (!grid) return;
   grid.innerHTML = "";
 
   products
