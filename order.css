@@ -395,24 +395,30 @@ input, select, textarea {
 .top-bar {
   flex-wrap: nowrap; /* 🔒 NEVER allow wrap */
 }
-
-/* ===== SYNC ICON STATE COLORS ===== */
+/* ===== SYNC BUTTON STATES ===== */
 #syncBtn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
-/* Online */
 #syncBtn.online {
   color: #16a34a; /* green */
 }
 
-/* Syncing */
 #syncBtn.syncing {
-  color: #f59e0b; /* yellow */
+  color: #f59e0b; /* orange */
   animation: spin 1s linear infinite;
 }
 
-/* Offline */
 #syncBtn.offline {
   color: #dc2626; /* red */
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
