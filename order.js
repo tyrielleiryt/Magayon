@@ -685,28 +685,36 @@ async function openSales() {
   const tbody = document.getElementById("salesBody");
   const totalEl = document.getElementById("sumGross");
 
+  if (!tbody || !totalEl) {
+    alert("Sales report UI missing");
+    return;
+  }
+
   tbody.innerHTML = `
     <tr>
       <td colspan="5" style="text-align:center;color:#888">
-        Loading…
+        Loading today’s sales…
       </td>
     </tr>`;
   totalEl.textContent = "0.00";
 
   try {
-    const today = getPHDate(); // ✅ FIXED (PH DATE)
-
+    const today = getPHDate(); // ✅ PH date
     const res = await fetch(
       `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
     );
 
     const orders = await res.json();
 
-    renderSalesTable(Array.isArray(orders) ? orders : []);
+    if (!Array.isArray(orders)) {
+      throw new Error("Invalid sales data");
+    }
+
+    renderSalesTable(orders);
     document.getElementById("salesModal").classList.remove("hidden");
 
   } catch (err) {
-    console.error(err);
+    console.error("Sales report error:", err);
     tbody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align:center;color:red">
