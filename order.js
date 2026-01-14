@@ -1,9 +1,98 @@
 
+
 /* =========================================================
    CONFIG
 ========================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
+
+
+  window.API_URL = API_URL; // 👈 ADD THIS
+
+  let POS_LOCKED = true; // 🔒 default locked
+  let PIN_ACTION = "unlock"; // 🔑 unlock | logout
+const MANAGER_PIN = "1234"; // 🔑 change this
+
+let relockTimer = null;
+
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
+}
+
+function showPinModal(action = "unlock") {
+  PIN_ACTION = action;
+
+  document.querySelector("#pinModal h2").textContent =
+  action === "logout"
+    ? "🔒 Manager Logout"
+    : "🔒 Manager Unlock";
+
+  const modal = document.getElementById("pinModal");
+  const input = document.getElementById("pinInput");
+
+  if (!modal || !input) return;
+
+  input.value = "";
+  modal.classList.remove("hidden");
+  input.focus();
+}
+
+function closePinModal() {
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout" &&
+    document.activeElement.tagName !== "INPUT") {
+    showPinModal();
+  }
+});
+
+function unlockPOS() {
+  const input = document.getElementById("pinInput");
+  const pin = input?.value.trim();
+
+  if (pin !== MANAGER_PIN) {
+    alert("❌ Invalid PIN");
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+   // 🔑 PIN OK
+  document.getElementById("pinModal")?.classList.add("hidden");
+
+   if (PIN_ACTION === "logout") {
+    performLogout();
+    return;
+  }
+
+  // 🔓 UNLOCK
+  POS_LOCKED = false;
+  closePinModal();
+  startRelockTimer();
+}
+
+function startRelockTimer() {
+  clearTimeout(relockTimer);
+
+  relockTimer = setTimeout(() => {
+    POS_LOCKED = true;
+
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
 
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
@@ -66,6 +155,13 @@ function disableWakeLock() {
   }
 }
 
+async function loadTodayStocks() {
+  const res = await fetch(
+    `${API_URL}?type=todayStocks&location=${LOCATION}`
+  );
+  return res.json();
+}
+
 
 /* =========================================================
    INIT
@@ -79,6 +175,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   showLoader("Loading POS data…");
 
+  // 🔒 Force fullscreen on POS load
+setTimeout(() => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 500);
+
   try {
     await loadAllData();
     renderCategories();
@@ -90,6 +193,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   } finally {
     hideLoader();
   }
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  showPinModal("logout");
+});
 
   document.querySelector(".checkout")?.addEventListener("click", () => {
   if (!cart.length) {
@@ -105,16 +212,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderProducts();
   });
 
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
+
+  // Block ESC, F11
+  if (e.key === "Escape" || e.key === "F11") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
+  // 🔒 FORCE fullscreen on POS load (tablet safe)
+setTimeout(() => {
+  if (POS_LOCKED && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}, 800);
 });
 
 /* =========================================================
    LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getPHDate();
 
   const [
     categoriesData,
@@ -175,7 +298,7 @@ function canSell(product, qty = 1) {
    CATEGORIES
 ========================================================= */
 function renderCategories() {
-  const el = document.querySelector(".categories-panel");
+  const el = document.querySelector(".categories-top");
   el.innerHTML = "";
 
   el.appendChild(createCategoryBtn("All", null, true));
@@ -407,6 +530,8 @@ document.getElementById("amountPaid")?.addEventListener("input", e => {
     `₱${Math.max(change, 0).toFixed(2)}`;
 });
 
+
+
 function confirmPayment() {
 
   // 🔒 EXTRA SAFETY GUARD (STEP 4)
@@ -492,15 +617,209 @@ function toggleFullscreen() {
   }
 }
 
-// update button icon/state
-document.addEventListener("fullscreenchange", () => {
-  const btn = document.getElementById("fullscreenBtn");
-  if (!btn) return;
-  btn.textContent = document.fullscreenElement ? "⛶ Exit" : "⛶";
+
+document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
+
+async function openStocks() {
+  const tbody = document.getElementById("stocksTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+
+  try {
+    const res = await fetch(
+      `${API_URL}?type=todayStocks&location=${LOCATION}`
+    );
+
+    const rows = await res.json();
+    tbody.innerHTML = "";
+
+    if (!Array.isArray(rows) || !rows.length) {
+      tbody.innerHTML =
+        "<tr><td colspan='3'>No inventory data.</td></tr>";
+    } else {
+      rows.forEach(r => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.item_name}</td>
+            <td>${r.added_today}</td>
+            <td>${r.remaining}</td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById("stocksModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML =
+      "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
+  }
+}
+
+function closeStocks() {
+  document.getElementById("stocksModal").classList.add("hidden");
+}
+
+
+
+document.getElementById("salesBtn")?.addEventListener("click", openSales);
+
+async function openSales() {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align:center;color:#888">
+        Loading…
+      </td>
+    </tr>`;
+  totalEl.textContent = "0.00";
+
+  try {
+    const today = getPHDate(); // ✅ FIXED (PH DATE)
+
+    const res = await fetch(
+      `${API_URL}?type=dailySalesReport&date=${today}&location=${LOCATION}`
+    );
+
+    const orders = await res.json();
+
+    renderSalesTable(Array.isArray(orders) ? orders : []);
+    document.getElementById("salesModal").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:red">
+          Failed to load sales
+        </td>
+      </tr>`;
+  }
+}
+
+function closeSales() {
+  document.getElementById("salesModal").classList.add("hidden");
+}
+
+window.closeSales = closeSales;
+
+function renderSalesTable(orders) {
+  const tbody = document.getElementById("salesBody");
+  const totalEl = document.getElementById("sumGross");
+
+  tbody.innerHTML = "";
+  let grandTotal = 0;
+
+  if (!orders.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;color:#888">
+          No sales today
+        </td>
+      </tr>`;
+    totalEl.textContent = "0.00";
+    return;
+  }
+
+  orders.forEach((o, i) => {
+    // ✅ SAME LOGIC AS ADMIN
+    const transactionTotal = (o.items || []).reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
+
+    grandTotal += transactionTotal;
+
+    // TRANSACTION HEADER
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr style="background:#f4f4f4;font-weight:600">
+        <td>${i + 1}</td>
+        <td>
+          ${o.ref_id}<br>
+          <small>${formatDateTime(o.datetime)}</small>
+        </td>
+        <td></td>
+        <td>${o.cashier || "-"}</td>
+        <td>₱${transactionTotal.toFixed(2)}</td>
+      </tr>
+    `);
+
+    // PRODUCT ROWS
+    (o.items || []).forEach(item => {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td></td>
+          <td>${item.product_name}</td>
+          <td>${item.qty || 0}</td>
+          <td></td>
+          <td>₱${Number(item.total || 0).toFixed(2)}</td>
+        </tr>
+      `);
+    });
+  });
+
+  totalEl.textContent = grandTotal.toFixed(2);
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+function performLogout() {
+  // Clear session
+  localStorage.removeItem("userLocation");
+  localStorage.removeItem("staff_id");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userPosition");
+
+  alert("👋 Logged out");
+
+  // Exit fullscreen safely
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+
+  // Redirect to login
+  window.location.href = "index.html";
+}
+
+// 🔒 BLOCK keyboard fullscreen exit
+document.addEventListener("keydown", e => {
+  if (!POS_LOCKED) return;
+
+  if (
+    e.key === "Escape" ||
+    e.key === "F11" ||
+    (e.ctrlKey && e.key.toLowerCase() === "f") ||
+    (e.metaKey && e.ctrlKey)
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 });
+
+
+
+
+window.unlockPOS = unlockPOS;
 
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
 window.keypadBackspace = keypadBackspace;
 window.confirmPayment = confirmPayment;
 window.closePaymentModal = closePaymentModal;
+window.closeStocks = closeStocks;
