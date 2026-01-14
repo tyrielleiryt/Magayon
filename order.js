@@ -159,6 +159,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("cashierLocation").textContent = LOCATION;
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
+enableWakeLock();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js");
+}
 
   showLoader("Loading POS data…");
 
@@ -227,14 +231,24 @@ async function loadAllData() {
     ).then(r => r.json())
   ]);
 
-  categories = Array.isArray(categoriesData) ? categoriesData : [];
-  products = Array.isArray(productsData) ? productsData : [];
-  recipes = recipesData || {};
+  categories = Array.isArray(categoriesData)
+  ? categoriesData
+  : JSON.parse(localStorage.getItem("categories") || "[]");
+
+products = Array.isArray(productsData)
+  ? productsData
+  : JSON.parse(localStorage.getItem("products") || "[]");
+
+recipes = recipesData || JSON.parse(localStorage.getItem("recipes") || "{}");
+
+localStorage.setItem("categories", JSON.stringify(categories));
+localStorage.setItem("products", JSON.stringify(products));
+localStorage.setItem("recipes", JSON.stringify(recipes));
 
   inventory = {};
 
   if (!Array.isArray(inventoryRows)) {
-    console.error("Invalid inventory response:", inventoryRows);
+    console.warn("⚠️ Inventory unavailable (offline mode)");
     return;
   }
 
@@ -258,6 +272,10 @@ console.log("DEBUG LOCATION:", LOCATION);
    INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
+    // ✅ allow selling if inventory not loaded (offline)
+  if (!Object.keys(inventory).length) return true;
+
+
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
 
@@ -427,6 +445,14 @@ if (!window.__lastPayment) {
   return;
 }
 
+
+  // ✅ INVENTORY SAFETY (ONLINE ONLY)
+  if (!Object.keys(inventory).length && navigator.onLine) {
+    alert("Inventory not loaded yet. Please wait.");
+    return;
+  }
+
+
   showLoader("Processing order…");
 
   const ref = "ORD-" + Date.now();
@@ -442,6 +468,29 @@ if (!window.__lastPayment) {
 
       
     });
+
+    // ✅ OFFLINE CHECKOUT
+if (!navigator.onLine) {
+  const pending = getPendingOrders();
+
+  pending.push({
+    ref_id: ref,
+    staff_id: STAFF_ID,
+    location: LOCATION,
+    items: cart,
+    time: Date.now()
+  });
+
+  savePendingOrders(pending);
+
+  cart = [];
+  renderCart();
+  renderProducts();
+
+  alert("📴 Offline — order saved and will sync when online");
+  hideLoader();
+  return;
+}
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -597,6 +646,14 @@ function toggleFullscreen() {
   }
 }
 
+function getPendingOrders() {
+  return JSON.parse(localStorage.getItem("pendingOrders") || "[]");
+}
+
+function savePendingOrders(list) {
+  localStorage.setItem("pendingOrders", JSON.stringify(list));
+}
+
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
@@ -638,6 +695,37 @@ async function openStocks() {
     tbody.innerHTML =
       "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
   }
+}
+
+async function syncPendingOrders() {
+  if (!navigator.onLine) return;
+
+  const pending = getPendingOrders();
+  if (!pending.length) return;
+
+  for (const o of pending) {
+    try {
+      const body = new URLSearchParams({
+        action: "checkoutOrder",
+        ref_id: o.ref_id,
+        staff_id: o.staff_id,
+        location: o.location,
+        items: JSON.stringify(o.items)
+      });
+
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body
+      });
+    } catch (err) {
+      console.warn("Sync failed for order:", o.ref_id);
+      return; // stop on first failure
+    }
+  }
+
+  savePendingOrders([]);
+  console.log("✅ Offline orders synced");
 }
 
 function closeStocks() {
@@ -727,6 +815,7 @@ function formatDateTime(value) {
 
 function performLogout() {
   // Clear session
+  disableWakeLock();
   localStorage.removeItem("userLocation");
   localStorage.removeItem("staff_id");
   localStorage.removeItem("userName");
@@ -770,9 +859,37 @@ function loadTodaySales() {
   });
 }
 
+function updateNetStatus() {
+  const el = document.getElementById("netStatus");
+  if (!el) return;
+
+  if (navigator.onLine) {
+    el.textContent = "ONLINE";
+    el.className = "net online";
+  } else {
+    el.textContent = "OFFLINE";
+    el.className = "net offline";
+  }
+}
+
+window.addEventListener("online", updateNetStatus);
+window.addEventListener("offline", updateNetStatus);
+updateNetStatus();
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    enableWakeLock();
+  }
+});
+
 document.getElementById("salesBtn")?.addEventListener("click", async () => {
   const tbody = document.getElementById("salesBody");
   const totalEl = document.getElementById("sumGross");
+
+  if (!navigator.onLine) {
+  alert("📴 Sales report unavailable offline");
+  return;
+}
 
   if (!tbody || !totalEl) {
     alert("Sales report UI missing");
@@ -813,7 +930,7 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
   }
 });
 
-
+window.addEventListener("online", syncPendingOrders);
 
 window.unlockPOS = unlockPOS;
 

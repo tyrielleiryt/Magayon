@@ -465,3 +465,11 @@ body {
   cursor: pointer;
   opacity: 1;
 }
+
+.net {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.net.offline { background:#c62828; color:white; }
+.net.online { background:#2e7d32; color:white; }
