@@ -291,11 +291,20 @@ function getLowStockItems(product, qty = 1) {
   const recipe = recipes[product.product_id];
   if (!recipe || !Object.keys(inventory).length) return [];
 
-  return recipe.filter(r => {
-    const available = inventory[r.item_id] || 0;
-    const needed = Number(r.qty_used) * qty;
-    return available - needed <= LOW_STOCK_THRESHOLD;
-  });
+  return recipe
+    .map(r => {
+      const available = inventory[r.item_id] || 0;
+      const needed = Number(r.qty_used) * qty;
+
+      return {
+        ...r,
+        available,
+        needed,
+        // ✅ GUARANTEED name (fallback-safe)
+        item_name: r.item_name || r.item_id
+      };
+    })
+    .filter(r => r.available - r.needed <= LOW_STOCK_THRESHOLD);
 }
 
 function createCategoryBtn(name, id, active = false) {
@@ -360,7 +369,9 @@ function renderProducts(search = "") {
     )
     .forEach(p => {
       const disabled = !canSell(p);
-      const lowStock = getLowStockItems(p).length > 0;
+      const lowStock =
+  Object.keys(inventory).length &&
+  getLowStockItems(p).length > 0;
       const img = p.image_url?.trim()
         ? p.image_url
         : "images/placeholder.png";
