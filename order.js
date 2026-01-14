@@ -145,13 +145,21 @@ let CHECKOUT_IN_PROGRESS = false;
 async function checkoutOfflineSafe(cartItems) {
   const order = {
     id: "OFF-" + Date.now(),
-    payload: {
-      action: "checkoutOrder",
-      ref_id: "POS-" + Date.now(),
-      items: JSON.stringify(cartItems),
-      location: LOCATION,
-      staff_id: STAFF_ID
-    },
+payload: {
+  action: "checkoutOrder",
+  ref_id: "POS-" + Date.now(),
+  items: JSON.stringify(
+    cartItems.map(i => ({
+      product_id: i.product_id,
+      product_name: i.product_name,
+      qty: Number(i.qty),
+      price: Number(i.price),
+      total: Number(i.total)
+    }))
+  ),
+  location: LOCATION,
+  staff_id: STAFF_ID
+},
     retries: 0,
     created_at: Date.now()
   };
@@ -165,8 +173,8 @@ async function checkoutOfflineSafe(cartItems) {
 
   CHECKOUT_IN_PROGRESS = false; // 🔓 UNLOCK
 
-  // ✅ Background sync
-  syncPendingOrders();
+  // ✅ GUARANTEED background sync (tablet-safe)
+  setTimeout(syncPendingOrders, 500);
   
 }
 
@@ -223,6 +231,7 @@ async function syncPendingOrders() {
     syncing = false;
     updateStatusBadge();
     updatePendingBadge();
+    
   }
 }
 
@@ -242,13 +251,13 @@ const pending = todayOrders.length;
 
   let nextStatus;
 
-  if (!navigator.onLine && pending > 0) {
-    nextStatus = "offline";
-} else if (pending > 0 && syncing) {
-    nextStatus = "syncing";
-  } else {
-    nextStatus = "online";
-  }
+if (!navigator.onLine) {
+  nextStatus = pending > 0 ? "offline" : "offline";
+} else if (pending > 0) {
+  nextStatus = syncing ? "syncing" : "online";
+} else {
+  nextStatus = "online";
+}
 
   // ⛔ Prevent unnecessary DOM updates
   if (nextStatus === lastStatus && nextStatus !== "syncing") return;
@@ -701,6 +710,8 @@ function renderCart() {
 /* =========================================================
    CHECKOUT
 ========================================================= */
+// ⚠️ LEGACY — DO NOT USE
+// Online-only checkout (replaced by offline-first flow)
 async function checkoutPOS() {
   if (!cart.length) {
   alert("No items in cart");
@@ -847,6 +858,7 @@ function confirmPayment() {
 
   // ✅ Offline-safe checkout
   checkoutOfflineSafe([...cart]);
+  setTimeout(syncPendingOrders, 1000);
 }
 
 let paidValue = "0";
