@@ -216,7 +216,7 @@ input, select, textarea {
   border: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  height: 210px;
+  height: 180px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -244,7 +244,7 @@ input, select, textarea {
 }
 
 .product-info {
-  padding: 6px 8px;
+  padding: 4px 6px;
   text-align: center;
   flex: 1;
 }
@@ -255,8 +255,8 @@ input, select, textarea {
 }
 
 .product-name {
-  font-size: 13px;
-  font-weight: 700;
+    font-size: 12.5px;
+  line-height: 1.15;
 }
 
 .product-price {
@@ -386,36 +386,10 @@ input, select, textarea {
   animation: spin 0.9s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+
 
 .top-bar {
   flex-wrap: nowrap; /* 🔒 NEVER allow wrap */
-}
-/* ===== SYNC BUTTON STATES ===== */
-#syncBtn {
-  background: transparent;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-#syncBtn.online {
-  color: #16a34a; /* green */
-}
-
-#syncBtn.syncing {
-  color: #f59e0b; /* orange */
-  animation: spin 1s linear infinite;
-}
-
-#syncBtn.offline {
-  color: #dc2626; /* red */
-  cursor: not-allowed;
 }
 
 @keyframes spin {
