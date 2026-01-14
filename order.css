@@ -666,3 +666,55 @@ body.ultra-dense .modal-actions button {
 .modal-actions button {
   touch-action: manipulation;
 }
+
+.sale-total {
+  font-weight: 800;
+  color: #2e7d32;
+}
+
+#sumGross {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1b5e20;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sales-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.sale-transaction {
+  background: #f6f8ff;
+  font-weight: 600;
+}
+
+.sale-transaction td {
+  border-top: 2px solid #ddd;
+}
+
+.sales-body {
+  max-height: 65vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.ultra-dense .sales-table {
+  font-size: 11px;
+}
+
+body.ultra-dense #sumGross {
+  font-size: 18px;
+}
+
+.empty-sales {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+  font-size: 14px;
+}

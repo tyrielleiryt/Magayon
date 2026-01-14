@@ -520,7 +520,6 @@ if (warnings.length && navigator.onLine) {
   const ref = "ORD-" + Date.now();
 
   try {
-    const payment = window.__lastPayment;
     const body = new URLSearchParams({
       action: "checkoutOrder",
       ref_id: ref,
@@ -825,7 +824,9 @@ function renderSalesTable(orders) {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align:center;color:#888">
-          No sales today
+          <div class="empty-sales">
+  💤 No sales recorded yet today
+</div>
         </td>
       </tr>`;
     totalEl.textContent = "0.00";
@@ -843,7 +844,7 @@ function renderSalesTable(orders) {
 
     // TRANSACTION HEADER
     tbody.insertAdjacentHTML("beforeend", `
-      <tr style="background:#f4f4f4;font-weight:600">
+       <tr class="sale-transaction">
         <td>${i + 1}</td>
         <td>
           ${o.ref_id}<br>
@@ -851,7 +852,7 @@ function renderSalesTable(orders) {
         </td>
         <td></td>
         <td>${o.cashier || "-"}</td>
-        <td>₱${transactionTotal.toFixed(2)}</td>
+        <td class="sale-total">₱${transactionTotal.toFixed(2)}</td>
       </tr>
     `);
 
@@ -960,7 +961,13 @@ document.addEventListener("visibilitychange", () => {
 document.getElementById("salesBtn")?.addEventListener("click", async () => {
   const tbody = document.getElementById("salesBody");
   const totalEl = document.getElementById("sumGross");
-
+  document.getElementById("salesLocation")?.textContent = LOCATION;
+document.getElementById("salesDate")?.textContent =
+  new Date().toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
   if (!navigator.onLine) {
   alert("📴 Sales report unavailable offline");
   return;
