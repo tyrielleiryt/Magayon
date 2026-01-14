@@ -51,33 +51,8 @@ body {
 /* ================= MAIN LAYOUT ================= */
 .pos-container {
   display: grid;
-  grid-template-columns: 200px 1fr 360px;
+  grid-template-columns: 1fr 360px;
   height: calc(100vh - 52px);
-}
-
-/* ================= LEFT: CATEGORIES ================= */
-.categories-panel {
-  background: #ffffff;
-  border-right: 1px solid #ddd;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-.category-btn {
-  width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  border: none;
-  border-radius: 6px;
-  background: #f0f2f8;
-  text-align: left;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.category-btn.active {
-  background: #2f3457;
-  color: #fff;
 }
 
 /* ================= CENTER: PRODUCTS ================= */
@@ -89,21 +64,12 @@ body {
   background: #f4f6fb;
 }
 
-/* ================= SEARCH BOX (FIXED) ================= */
-.search-box {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #f5f5f5;
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
-}
-
 .search-box input {
   width: 100%;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  font-size: 15px;
 }
 
 /* ================= PRODUCT GRID (SCROLLABLE) ================= */
@@ -133,11 +99,6 @@ body {
 .product-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.product-card.disabled {
-  opacity: 0.45;
-  pointer-events: none;
 }
 
 .product-card.low-stock {
@@ -473,3 +434,72 @@ body {
 }
 .net.offline { background:#c62828; color:white; }
 .net.online { background:#2e7d32; color:white; }
+
+.product-card.low-stock {
+  border: 2px solid #ff9800;
+  position: relative;
+}
+
+.product-card.low-stock::after {
+  content: "LOW";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #ff9800;
+  color: #000;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* ================= TOP BAR INSIDE PRODUCTS ================= */
+.products-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+}
+
+/* Categories row */ 
+.categories-top {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex: 1;
+}
+
+/* Hide scrollbar (tablet clean look) */
+.categories-top::-webkit-scrollbar {
+  display: none;
+}
+
+/* Category buttons */
+.category-btn {
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.category-btn.active {
+  background: #111;
+  color: #fff;
+}
+
+/* Search box */
+.search-box {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px;
+  font-size: 15px;
+}

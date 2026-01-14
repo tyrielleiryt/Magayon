@@ -41,20 +41,32 @@
   <!-- ================= MAIN LAYOUT ================= -->
   <div class="pos-container">
 
-<aside class="categories-top" id="categoryList">
-  <!-- categories injected by order.js -->
-</aside>
+<main class="products-panel">
 
-    <!-- ========== CENTER : PRODUCTS ========== -->
-    <main class="products-panel">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Search products" />
-      </div>
+  <!-- TOP BAR: categories + search -->
+  <div class="products-top-bar">
 
-      <div id="productGrid" class="product-grid">
-        <!-- Product cards injected by order.js -->
-      </div>
-    </main>
+    <div class="categories-top" id="categoryList">
+      <!-- injected by order.js -->
+    </div>
+
+    <div class="search-box">
+      <input
+  type="text"
+  id="searchInput"
+  placeholder="Search products"
+  aria-label="Search products"
+  autocomplete="off"
+/>
+    </div>
+
+  </div>
+
+  <div id="productGrid" class="product-grid">
+    <!-- Product cards -->
+  </div>
+
+</main>
 
     <!-- ========== RIGHT : CART ========== -->
     <aside class="cart-panel">
