@@ -175,24 +175,24 @@ async function checkoutOfflineSafe(cartItems) {
 let syncing = false;
 
 async function syncPendingOrders() {
-  if (!navigator.onLine) return; // ✅ ADD THIS
+  if (!navigator.onLine) return;
   if (syncing) return;
-  syncing = true;
 
-  let orders = [];
+  const orders = await getPendingOrders();
+  const todayOrders = orders.filter(o => isSameBusinessDay(o.created_at));
+
+  // ✅ NOTHING TO SYNC → DO NOT ENTER SYNC STATE
+  if (!todayOrders.length) {
+    syncing = false;
+    updateStatusBadge();
+    updatePendingBadge();
+    return;
+  }
+
+  syncing = true; // ✅ ONLY SET WHEN THERE IS REAL WORK
 
   try {
-    orders = await getPendingOrders();
-    console.log("🔁 Sync started", orders.length);
-
-if (!orders.length) {
-  syncing = false;
-  updateStatusBadge();
-  updatePendingBadge();
-  return; // finally still runs
-}
-
-    for (const order of orders) {
+    for (const order of todayOrders) {
       try {
         const res = await fetch(API_URL, {
           method: "POST",
@@ -214,9 +214,6 @@ if (!orders.length) {
         await savePendingOrder(order);
 
         showToast("❌ Some orders failed to sync", 3000);
-
-        // ✅ continue syncing other orders (NOT break)
-        continue;
       }
     }
   } catch (err) {
@@ -224,8 +221,8 @@ if (!orders.length) {
     showToast("❌ Sync failed — check network", 3000);
   } finally {
     syncing = false;
-    updateStatusBadge(); // 🔄 always refresh UI
-    updatePendingBadge(); // ✅ ADD THIS
+    updateStatusBadge();
+    updatePendingBadge();
   }
 }
 
@@ -247,7 +244,7 @@ const pending = todayOrders.length;
 
   if (!navigator.onLine) {
     nextStatus = "offline";
-  } else if (pending > 0) {
+} else if (pending > 0 && syncing) {
     nextStatus = "syncing";
   } else {
     nextStatus = "online";
