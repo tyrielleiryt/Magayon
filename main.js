@@ -82,6 +82,9 @@ function openCloseDayModal(date, location) {
   confirmBtn.disabled = true;
 
   document.getElementById("closeDayModal").classList.remove("hidden");
+
+    // ✅ LOAD INVENTORY SUMMARY
+  loadInventorySummary(date, location);
 }
 
 document.getElementById("closeDayBtn")?.addEventListener("click", () => {

@@ -68,6 +68,30 @@
       <div><strong>Location:</strong> <span id="closeDayLocation"></span></div>
     </div>
 
+    <div class="inventory-summary">
+  <h3>📦 Remaining Inventory Summary</h3>
+
+  <div class="summary-table">
+    <div class="summary-header">
+      <span>Item</span>
+      <span>Remaining</span>
+    </div>
+
+    <div id="inventorySummaryLoading" class="muted">
+  Loading inventory…
+</div>
+
+    <div id="inventorySummaryList" class="summary-body">
+      <!-- rows injected by JS -->
+    </div>
+  </div>
+
+  <div class="summary-footer">
+    <strong>Total Items:</strong>
+    <span id="inventorySummaryCount">0</span>
+  </div>
+</div>
+
     <label class="checkbox">
       <input type="checkbox" id="confirmCloseDayCheckbox" />
       I understand this action cannot be undone

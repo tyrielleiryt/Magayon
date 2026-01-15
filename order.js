@@ -848,6 +848,27 @@ async function openStocks() {
   }
 }
 
+async function checkIfPosLocked() {
+  const location = localStorage.getItem("userLocation");
+  if (!location) return;
+
+  const date = getPHDate();
+
+  const res = await fetch(
+    `${API_URL}?type=dailyInventory`
+  );
+  const days = await res.json();
+
+  const today = days.find(d =>
+    d.date === date && d.location === location
+  );
+
+  if (!today || today.status === "CLOSED") {
+   POS_CLOSED = true;
+  enterSalesOnlyMode();
+  }
+}
+
 async function syncPendingOrders() {
   if (!navigator.onLine) return;
 
@@ -877,6 +898,27 @@ async function syncPendingOrders() {
 
   savePendingOrders([]);
   console.log("✅ Offline orders synced");
+}
+
+function lockPosUI() {
+  // Disable all buttons
+  document
+    .querySelectorAll("button, input, select")
+    .forEach(el => {
+      el.disabled = true;
+    });
+
+  // Add overlay
+  const overlay = document.createElement("div");
+  overlay.id = "posLockedOverlay";
+  overlay.innerHTML = `
+    <div class="pos-locked-box">
+      🔒 POS is locked<br>
+      <small>Inventory day has been closed</small>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
 }
 
 function closeStocks() {
@@ -1097,3 +1139,7 @@ window.__products = () => products;
 window.__categories = () => categories;
 window.__inventory = () => inventory;
 window.__recipes = () => recipes;
+
+document.addEventListener("DOMContentLoaded", () => {
+  checkIfPosLocked();
+});
