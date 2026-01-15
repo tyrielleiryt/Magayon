@@ -616,3 +616,22 @@ body.ultra-dense .cart-actions button {
   padding: 5px;
   font-size: 11px;
 }
+
+#salesOnlyBanner {
+  background: #b00020;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  z-index: 9999;
+}
+
+body.sales-only .product-card {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+body.sales-only .checkout {
+  opacity: 0.5;
+  pointer-events: none;
+}

@@ -54,6 +54,36 @@
   <div class="loader-text">Loading data…</div>
 </div>
 
+<!-- CLOSE DAY MODAL -->
+<div id="closeDayModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>🔒 Close Inventory Day</h2>
+
+    <p class="muted">
+      This will permanently close today’s inventory and lock the POS.
+    </p>
+
+    <div class="info-box">
+      <div><strong>Date:</strong> <span id="closeDayDate"></span></div>
+      <div><strong>Location:</strong> <span id="closeDayLocation"></span></div>
+    </div>
+
+    <label class="checkbox">
+      <input type="checkbox" id="confirmCloseDayCheckbox" />
+      I understand this action cannot be undone
+    </label>
+
+    <div class="modal-actions">
+      <button id="cancelCloseDayBtn" class="btn secondary">Cancel</button>
+      <button id="confirmCloseDayBtn" class="btn danger" disabled>
+        Confirm Close Day
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="admin-close-day.js"></script>
 <script type="module" src="admin.js"></script>
+
 </body>
 </html>

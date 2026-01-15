@@ -28,6 +28,83 @@ function autoDetectDenseMode() {
   }
 }
 
+let POS_CLOSED = false;
+
+function checkInventoryStatus(dailyInventory) {
+  if (!Array.isArray(dailyInventory)) return;
+
+  const today = getPHDate();
+  const todayRow = dailyInventory.find(d => d.date === today);
+
+  if (!todayRow) {
+    // No inventory created yet → stay locked
+    POS_CLOSED = true;
+    enterSalesOnlyMode();
+    return;
+  }
+
+  if (todayRow.status === "CLOSED") {
+    POS_CLOSED = true;
+    enterSalesOnlyMode();
+  } else {
+    // ✅ OPEN DAY → AUTO UNLOCK
+    exitSalesOnlyMode();
+  }
+}
+
+function exitSalesOnlyMode() {
+  POS_CLOSED = false;
+
+  document.body.classList.remove("sales-only");
+
+  // Enable checkout
+  const checkoutBtn = document.querySelector(".checkout");
+  if (checkoutBtn) checkoutBtn.disabled = false;
+
+
+   // 🔁 Re-render products to restore click handlers
+  renderProducts();
+
+
+  // Re-enable product clicks
+  document.querySelectorAll(".product-card").forEach(card => {
+    card.classList.remove("disabled");
+  });
+
+  // Remove banner
+  document.getElementById("salesOnlyBanner")?.remove();
+}
+
+function enterSalesOnlyMode() {
+  document.body.classList.add("sales-only");
+
+  // Disable checkout
+  const checkoutBtn = document.querySelector(".checkout");
+  if (checkoutBtn) checkoutBtn.disabled = true;
+
+  // Disable product clicks
+  document.querySelectorAll(".product-card").forEach(card => {
+    card.classList.add("disabled");
+    card.onclick = null;
+  });
+
+  // Show banner
+  showSalesOnlyBanner();
+}
+
+function showSalesOnlyBanner() {
+  if (document.getElementById("salesOnlyBanner")) return;
+
+  const banner = document.createElement("div");
+  banner.id = "salesOnlyBanner";
+  banner.innerHTML = `
+    🔒 Inventory Closed<br>
+    Automatically closed at end of day.<br>
+    Please wait for admin to start a new day.
+  `;
+  document.body.prepend(banner);
+}
+
 window.addEventListener("resize", autoDetectDenseMode);
 document.addEventListener("DOMContentLoaded", autoDetectDenseMode);
 
@@ -232,19 +309,24 @@ document.addEventListener("keydown", e => {
 async function loadAllData() {
   const today = getPHDate();
 
-  const [
-    categoriesData,
-    productsData,
-    recipesData,
-    inventoryRows
-  ] = await Promise.all([
-    fetch(`${API_URL}?type=categories`).then(r => r.json()),
-    fetch(`${API_URL}?type=products`).then(r => r.json()),
-    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-    ).then(r => r.json())
-  ]);
+const [
+  categoriesData,
+  productsData,
+  recipesData,
+  inventoryRows,
+  dailyInventory
+] = await Promise.all([
+  fetch(`${API_URL}?type=categories`).then(r => r.json()),
+  fetch(`${API_URL}?type=products`).then(r => r.json()),
+  fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
+  fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
+    .then(r => r.json()),
+  fetch(`${API_URL}?type=dailyInventory&location=${LOCATION}`)
+    .then(r => r.json())
+]);
+
+// ✅ CORRECT SOURCE
+checkInventoryStatus(dailyInventory);
 
   categories = Array.isArray(categoriesData)
   ? categoriesData
@@ -413,6 +495,11 @@ function addToCart(p) {
   const existing = cart.find(i => i.product_id === p.product_id);
   const nextQty = existing ? existing.qty + 1 : 1;
 
+    if (POS_CLOSED) {
+    alert("🔒 Inventory is closed.");
+    return;
+  }
+
   // 🚫 HARD BLOCK if stock would be exceeded
   if (!canSell(p, nextQty)) {
     alert("❌ Not enough stock");
@@ -472,10 +559,16 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
+
 /* =========================================================
    CHECKOUT
 ========================================================= */
 async function checkoutPOS() {
+  if (POS_CLOSED) {
+    alert("🔒 Inventory is closed. Sales are disabled.");
+    return;
+  }
+
   if (!cart.length) {
   alert("No items in cart");
   return;

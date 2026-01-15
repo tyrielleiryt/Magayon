@@ -71,23 +71,66 @@ function getPHDate() {
   return ph.toISOString().slice(0, 10);
 }
 
-document.getElementById("closeDayBtn")?.addEventListener("click", async () => {
-  if (!confirm("Close inventory for today? This will record wastage.")) return;
+function openCloseDayModal(date, location) {
+  document.getElementById("closeDayDate").textContent = date;
+  document.getElementById("closeDayLocation").textContent = location;
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "closeInventoryDay",
-      date: getPHDate(),
-      location: localStorage.getItem("userLocation")
-    })
+  const checkbox = document.getElementById("confirmCloseDayCheckbox");
+  const confirmBtn = document.getElementById("confirmCloseDayBtn");
+
+  checkbox.checked = false;
+  confirmBtn.disabled = true;
+
+  document.getElementById("closeDayModal").classList.remove("hidden");
+}
+
+document.getElementById("closeDayBtn")?.addEventListener("click", () => {
+  const date = getPHDate();
+  const location = localStorage.getItem("userLocation");
+
+  if (!location) {
+    alert("Location not set.");
+    return;
+  }
+  // ✅ THIS WAS MISSING
+  openCloseDayModal(date, location);
+
+});
+
+document.getElementById("confirmCloseDayCheckbox")
+  ?.addEventListener("change", e => {
+    document.getElementById("confirmCloseDayBtn").disabled = !e.target.checked;
   });
 
-  const data = await res.json();
+document.getElementById("cancelCloseDayBtn")
+  ?.addEventListener("click", () => {
+    document.getElementById("closeDayModal").classList.add("hidden");
+  });
 
-  if (data.success) {
-    alert("✅ Inventory closed. Wastage recorded.");
-  } else {
-    alert("❌ Failed to close inventory.");
-  }
+  document.getElementById("confirmCloseDayBtn")
+  ?.addEventListener("click", async () => {
+
+    const date = document.getElementById("closeDayDate").textContent;
+    const location = document.getElementById("closeDayLocation").textContent;
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: new URLSearchParams({
+          action: "closeInventoryDay",
+          date,
+          location
+        })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.error);
+
+     alert("✅ Inventory successfully closed.");
+      window.location.reload(); // ✅ FIXED
+
+    } catch (err) {
+      alert("❌ " + err.message);
+    }
 });
