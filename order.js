@@ -312,6 +312,14 @@ const [
 
 applyInventoryGate(inventoryRows);
 
+// 🚫 Inventory started but no items added
+if (Array.isArray(inventoryRows) && inventoryRows.length === 0) {
+  POS_CLOSED = true;
+  enterSalesOnlyMode();
+
+  console.warn("⚠️ Inventory day exists but no inventory items found");
+}
+
   categories = Array.isArray(categoriesData)
   ? categoriesData
   : JSON.parse(localStorage.getItem("categories") || "[]");
@@ -543,7 +551,6 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
-
 /* =========================================================
    CHECKOUT
 ========================================================= */
@@ -557,6 +564,12 @@ async function checkoutPOS() {
   alert("No items in cart");
   return;
 }
+
+  // 🚫 BLOCK checkout if no inventory for today
+  if (!Object.keys(inventory).length) {
+    alert("⚠️ Inventory not started for today.\nPlease ask admin to start inventory.");
+    return;
+  }
 
 if (!window.__lastPayment) {
   alert("Payment not confirmed");
@@ -599,7 +612,14 @@ if (warnings.length && navigator.onLine) {
       ref_id: ref,
       staff_id: STAFF_ID,
       location: LOCATION,
-      items: JSON.stringify(cart)
+      items: JSON.stringify(
+  cart.map(i => ({
+    product_id: i.product_id,
+    qty: i.qty,
+    price: i.price,
+    total: i.qty * i.price // ✅ ADD THIS
+  }))
+)
 
       
     });
