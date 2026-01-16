@@ -92,63 +92,6 @@ function openCloseDayModal(date, location) {
   }
 }
 
-/* ================= INVENTORY DAY ACTIONS ================= */
-
-function getPHDate() {
-  const now = new Date();
-  const ph = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
-  );
-  return ph.toISOString().slice(0, 10);
-}
-
-document.getElementById("startDayBtn")?.addEventListener("click", async () => {
-  console.log("START DAY CLICKED");
-
-  if (!confirm("Start today's inventory? This will close yesterday if needed.")) {
-    return;
-  }
-
-  const today = getPHDate();
-  const location = localStorage.getItem("userLocation");
-  const adminUser = localStorage.getItem("admin_email") || "ADMIN";
-
-  if (!location) {
-    alert("❌ Location not set.");
-    return;
-  }
-
-  try {
-    showLoader("Starting inventory day…");
-
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "manualStartInventoryDay",
-        date: today,
-        location,
-        adminUser
-      })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      alert("❌ " + data.error);
-      return;
-    }
-
-    alert("✅ Inventory day started successfully");
-    window.location.reload();
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Failed to start inventory day");
-  } finally {
-    hideLoader();
-  }
-});
-
 document.getElementById("closeDayBtn")?.addEventListener("click", () => {
   const date = getPHDate();
   const location = localStorage.getItem("userLocation");
