@@ -452,17 +452,25 @@ function toggleProductStatus(product) {
     },
     body: new URLSearchParams({
       action: "toggleProductStatus",
-      product_id: product.product_id,
-active: (!product.active).toString()
+      product_id: product.product_id,   // ✅ FIXED
+      active: (!product.active).toString() // ✅ FIXED
     })
   })
-    .then(r => r.json())
-    .then(res => {
+    .then(r => r.text()) // 🔥 REQUIRED for Apps Script
+    .then(text => {
+      const clean = text.replace(/^\)\]\}',?\n?/, "");
+      const res = JSON.parse(clean);
+
       if (!res.success) {
-        alert("Failed to update product status");
-        return;
+        throw new Error(res.error || "Update failed");
       }
+
+      // ✅ refresh table
       loadProducts();
+    })
+    .catch(err => {
+      console.error("STATUS UPDATE ERROR:", err);
+      alert("Failed to update product status");
     })
     .finally(hideLoader);
 }
