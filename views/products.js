@@ -181,7 +181,7 @@ document.getElementById("deleteBtn").disabled = false;
 statusBtn.onclick = (e) => {
   e.stopPropagation(); // 🚫 prevent row select
   console.log("STATUS BUTTON CLICKED", statusBtn.dataset);
-  
+
   toggleProductStatus({
     product_id: statusBtn.dataset.id,
     active: statusBtn.dataset.active === "true"
@@ -453,7 +453,7 @@ function toggleProductStatus(product) {
     body: new URLSearchParams({
       action: "toggleProductStatus",
       product_id: product.product_id,
-      active: !product.active
+active: (!product.active).toString()
     })
   })
     .then(r => r.json())
