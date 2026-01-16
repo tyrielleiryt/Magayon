@@ -8,6 +8,7 @@ html, body {
   height: 100%;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
+    overflow: hidden; /* 🚫 body must NEVER scroll */
 }
 
 /* ================= TOP BAR ================= */
@@ -64,15 +65,19 @@ html, body {
 .content {
   flex: 1;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .content-box {
   background: white;
   border: 1px solid #aaa;
-  height: calc(100vh - 96px);
   padding: 12px;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow: hidden; /* 🔒 important */
 }
 
 /* ================= ACTION BAR ================= */
@@ -286,4 +291,28 @@ html, body {
 
 .loader.hidden {
   display: none;
+}
+
+/* ================= LOADING SPINNER ================= */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #dcdcdc;
+  border-top: 5px solid #2f3457;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2f3457;
+  letter-spacing: 0.5px;
 }
