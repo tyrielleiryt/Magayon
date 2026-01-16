@@ -1,3 +1,4 @@
+console.log("ADMIN.JS LOADED");
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -59,7 +60,9 @@ setInterval(updateDateTime, 60000);
 /* SIDEBAR NAVIGATION */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    window.location.href = btn.dataset.page;
+    const view = btn.dataset.view;
+    if (!view) return;
+    window.location.href = `${view}.html`;
   });
 });
 
@@ -83,21 +86,22 @@ function openCloseDayModal(date, location) {
 
   document.getElementById("closeDayModal").classList.remove("hidden");
 
-    // ✅ LOAD INVENTORY SUMMARY
-  loadInventorySummary(date, location);
+  // 🛡 SAFE CALL
+  if (typeof loadInventorySummary === "function") {
+    loadInventorySummary(date, location);
+  }
 }
 
 document.getElementById("closeDayBtn")?.addEventListener("click", () => {
   const date = getPHDate();
   const location = localStorage.getItem("userLocation");
 
-if (!location) {
-  alert("❌ Location not set.");
-  return;
-}
-  // ✅ THIS WAS MISSING
-  openCloseDayModal(date, location);
+  if (!location) {
+    alert("❌ Location not set.");
+    return;
+  }
 
+  openCloseDayModal(date, location);
 });
 
 document.getElementById("confirmCloseDayCheckbox")
@@ -105,14 +109,13 @@ document.getElementById("confirmCloseDayCheckbox")
     document.getElementById("confirmCloseDayBtn").disabled = !e.target.checked;
   });
 
-document.getElementById("cancelCloseDayBtn")
+  document.getElementById("cancelCloseDayBtn")
   ?.addEventListener("click", () => {
     document.getElementById("closeDayModal").classList.add("hidden");
   });
 
   document.getElementById("confirmCloseDayBtn")
   ?.addEventListener("click", async () => {
-
     const date = document.getElementById("closeDayDate").textContent;
     const location = document.getElementById("closeDayLocation").textContent;
 
@@ -127,36 +130,32 @@ document.getElementById("cancelCloseDayBtn")
       });
 
       const data = await res.json();
-
       if (!data.success) throw new Error(data.error);
 
-     alert("✅ Inventory successfully closed.");
-      window.location.reload(); // ✅ FIXED
-
+      alert("✅ Inventory successfully closed.");
+      window.location.reload();
     } catch (err) {
       alert("❌ " + err.message);
     }
-});
+  });
 
-document.getElementById("startDayBtn")?.addEventListener("click", async () => {
+  document.getElementById("startDayBtn")?.addEventListener("click", async () => {
+  console.log("START DAY CLICKED");
+
   if (!confirm("Start today's inventory? This will close yesterday if needed.")) {
     return;
   }
 
-  if (window.showGlobalLoader) {
-    showGlobalLoader("Starting inventory day…");
+  const today = getPHDate();
+  const location = localStorage.getItem("userLocation");
+  const adminUser = auth.currentUser?.email || "ADMIN";
+
+  if (!location) {
+    alert("❌ Location not set.");
+    return;
   }
 
   try {
-    const today = getPHDate(); // ✅ PH timezone
-    const location = localStorage.getItem("userLocation");
-    const adminUser = auth.currentUser?.email || "ADMIN";
-
-    if (!location) {
-      alert("❌ Location not set.");
-      if (window.hideGlobalLoader) hideGlobalLoader();
-      return;
-    }
     const res = await fetch(API_URL, {
       method: "POST",
       body: new URLSearchParams({
@@ -173,14 +172,10 @@ document.getElementById("startDayBtn")?.addEventListener("click", async () => {
       alert("❌ " + data.error);
     } else {
       alert("✅ Inventory day started successfully");
-      window.location.reload(); // safest
+      window.location.reload();
     }
   } catch (err) {
-    alert("❌ Failed to start inventory day");
     console.error(err);
-  } finally {
-    if (window.hideGlobalLoader) {
-      hideGlobalLoader();
-    }
+    alert("❌ Failed to start inventory day");
   }
 });
