@@ -30,28 +30,6 @@ function autoDetectDenseMode() {
 
 let POS_CLOSED = false;
 
-function checkInventoryStatus(dailyInventory) {
-  if (!Array.isArray(dailyInventory)) return;
-
-  const today = getPHDate();
-  const todayRow = dailyInventory.find(d => d.date === today);
-
-  if (!todayRow) {
-    // No inventory created yet → stay locked
-    POS_CLOSED = true;
-    enterSalesOnlyMode();
-    return;
-  }
-
-  if (todayRow.status === "CLOSED") {
-    POS_CLOSED = true;
-    enterSalesOnlyMode();
-  } else {
-    // ✅ OPEN DAY → AUTO UNLOCK
-    exitSalesOnlyMode();
-  }
-}
-
 function exitSalesOnlyMode() {
   POS_CLOSED = false;
 
@@ -90,6 +68,16 @@ function enterSalesOnlyMode() {
 
   // Show banner
   showSalesOnlyBanner();
+}
+
+function applyInventoryGate(inventoryRows) {
+  if (!Array.isArray(inventoryRows) || inventoryRows.length === 0) {
+    POS_CLOSED = true;
+    enterSalesOnlyMode();
+  } else {
+    POS_CLOSED = false;
+    exitSalesOnlyMode();
+  }
 }
 
 function showSalesOnlyBanner() {
@@ -313,20 +301,16 @@ const [
   categoriesData,
   productsData,
   recipesData,
-  inventoryRows,
-  dailyInventory
+  inventoryRows
 ] = await Promise.all([
   fetch(`${API_URL}?type=categories`).then(r => r.json()),
   fetch(`${API_URL}?type=products`).then(r => r.json()),
   fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
   fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
-    .then(r => r.json()),
-  fetch(`${API_URL}?type=dailyInventory&location=${LOCATION}`)
     .then(r => r.json())
 ]);
 
-// ✅ CORRECT SOURCE
-checkInventoryStatus(dailyInventory);
+applyInventoryGate(inventoryRows);
 
   categories = Array.isArray(categoriesData)
   ? categoriesData
@@ -848,26 +832,7 @@ async function openStocks() {
   }
 }
 
-async function checkIfPosLocked() {
-  const location = localStorage.getItem("userLocation");
-  if (!location) return;
 
-  const date = getPHDate();
-
-  const res = await fetch(
-    `${API_URL}?type=dailyInventory`
-  );
-  const days = await res.json();
-
-  const today = days.find(d =>
-    d.date === date && d.location === location
-  );
-
-  if (!today || today.status === "CLOSED") {
-   POS_CLOSED = true;
-  enterSalesOnlyMode();
-  }
-}
 
 async function syncPendingOrders() {
   if (!navigator.onLine) return;
@@ -1139,7 +1104,3 @@ window.__products = () => products;
 window.__categories = () => categories;
 window.__inventory = () => inventory;
 window.__recipes = () => recipes;
-
-document.addEventListener("DOMContentLoaded", () => {
-  checkIfPosLocked();
-});
