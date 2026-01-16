@@ -91,10 +91,10 @@ document.getElementById("closeDayBtn")?.addEventListener("click", () => {
   const date = getPHDate();
   const location = localStorage.getItem("userLocation");
 
-  if (!location) {
-    alert("Location not set.");
-    return;
-  }
+if (!location) {
+  alert("❌ Location not set.");
+  return;
+}
   // ✅ THIS WAS MISSING
   openCloseDayModal(date, location);
 
@@ -136,4 +136,51 @@ document.getElementById("cancelCloseDayBtn")
     } catch (err) {
       alert("❌ " + err.message);
     }
+});
+
+document.getElementById("startDayBtn")?.addEventListener("click", async () => {
+  if (!confirm("Start today's inventory? This will close yesterday if needed.")) {
+    return;
+  }
+
+  if (window.showGlobalLoader) {
+    showGlobalLoader("Starting inventory day…");
+  }
+
+  try {
+    const today = getPHDate(); // ✅ PH timezone
+    const location = localStorage.getItem("userLocation");
+    const adminUser = auth.currentUser?.email || "ADMIN";
+
+    if (!location) {
+      alert("❌ Location not set.");
+      if (window.hideGlobalLoader) hideGlobalLoader();
+      return;
+    }
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "manualStartInventoryDay",
+        date: today,
+        location,
+        adminUser
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("❌ " + data.error);
+    } else {
+      alert("✅ Inventory day started successfully");
+      window.location.reload(); // safest
+    }
+  } catch (err) {
+    alert("❌ Failed to start inventory day");
+    console.error(err);
+  } finally {
+    if (window.hideGlobalLoader) {
+      hideGlobalLoader();
+    }
+  }
 });
