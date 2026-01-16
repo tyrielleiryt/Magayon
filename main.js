@@ -1,8 +1,8 @@
-console.log("ADMIN.JS LOADED");
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+console.log("ADMIN.JS LOADED");
 /* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
