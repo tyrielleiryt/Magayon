@@ -1121,3 +1121,4 @@ window.__products = () => products;
 window.__categories = () => categories;
 window.__inventory = () => inventory;
 window.__recipes = () => recipes;
+

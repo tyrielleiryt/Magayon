@@ -116,6 +116,8 @@
 <div id="paymentModal" class="modal hidden">
   <div class="modal-content payment-ui">
 
+<div class="modal-body">
+
   <div class="payment-header">
     <h2>Payment</h2>
     <span class="payment-method-badge" id="methodBadge">CASH</span>
@@ -165,16 +167,19 @@
     <input type="text" id="gcashRef" inputmode="text" placeholder="GCash Reference (optional)">
   </div>
 
-  <div class="modal-actions">
-    <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-    <button
-  id="confirmPaymentBtn"
-  class="btn-confirm"
-  onclick="confirmPayment()">
-  Confirm
-</button>
-  </div>
-</div>   
+
+    </div> <!-- ✅ END modal-body -->
+
+<div class="modal-footer">
+  <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+  <button
+    id="confirmPaymentBtn"
+    class="btn-confirm"
+    onclick="confirmPayment()">
+    Confirm
+  </button>
+</div>
+
   </div>
 
    <div id="salesModal" class="modal hidden">
