@@ -361,10 +361,9 @@ console.log("DEBUG LOCATION:", LOCATION);
    INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
-    // ✅ allow selling if inventory not loaded (offline)
+   // ✅ allow selling if inventory not loaded yet
   if (!Object.keys(inventory).length) return true;
-
-
+  
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
 
@@ -372,6 +371,24 @@ function canSell(product, qty = 1) {
     const available = inventory[r.item_id] || 0;
     const needed = Number(r.qty_used) * qty;
     return available >= needed;
+  });
+}
+
+/* =========================================================
+   FOR LOCAL INVENTORY DEDUCTIONS
+========================================================= */
+
+function deductLocalInventory(cartItems) {
+  cartItems.forEach(item => {
+    const recipe = recipes[item.product_id];
+    if (!recipe) return;
+
+    recipe.forEach(r => {
+inventory[r.item_id] = Math.max(
+  0,
+  (inventory[r.item_id] || 0) - r.qty_used * item.qty
+);
+    });
   });
 }
 
@@ -500,10 +517,9 @@ function addToCart(p) {
 
     // ⚠️ LOW STOCK WARNING
   const lowItems = getLowStockItems(p, nextQty);
-  if (lowItems.length && navigator.onLine) {
-    const names = lowItems.map(i => i.item_name).join(", ");
-    alert(`⚠️ Low stock warning:\n${names}`);
-  }
+if (lowItems.length) {
+  console.warn("Low stock warning:", lowItems);
+}
 
   if (existing) {
     existing.qty = nextQty;
@@ -554,54 +570,33 @@ function renderCart() {
 /* =========================================================
    CHECKOUT
 ========================================================= */
-async function checkoutPOS() {
+async function checkoutPOS(cartItems) {
   if (POS_CLOSED) {
     alert("🔒 Inventory is closed. Sales are disabled.");
     return;
   }
 
-  if (!cart.length) {
+  if (!cartItems || !cartItems.length) {
   alert("No items in cart");
   return;
 }
-
-  // 🚫 BLOCK checkout if no inventory for today
-  if (!Object.keys(inventory).length) {
-    alert("⚠️ Inventory not started for today.\nPlease ask admin to start inventory.");
-    return;
-  }
 
 if (!window.__lastPayment) {
   alert("Payment not confirmed");
   return;
 }
 
-
-  // ✅ INVENTORY SAFETY (ONLINE ONLY)
-  if (!Object.keys(inventory).length && navigator.onLine) {
-    alert("Inventory not loaded yet. Please wait.");
-    return;
-  }
-
-const warnings = cart.flatMap(i =>
+const warnings = cartItems.flatMap(i =>
   getLowStockItems(
     { product_id: i.product_id },
     i.qty
   )
 );
 
-if (warnings.length && navigator.onLine) {
-  const names = [...new Set(warnings.map(w => w.item_name))];
-  const proceed = confirm(
-    "⚠️ Some ingredients are low:\n\n" +
-    names.join("\n") +
-    "\n\nProceed anyway?"
-  );
-
-  if (!proceed) return;
+if (warnings.length) {
+  console.warn("Low stock items:", warnings);
 }
 
-  showLoader("Processing order…");
 
   const ref = "ORD-" + Date.now();
 
@@ -612,8 +607,9 @@ if (warnings.length && navigator.onLine) {
       ref_id: ref,
       staff_id: STAFF_ID,
       location: LOCATION,
+      payment: JSON.stringify(window.__lastPayment),
       items: JSON.stringify(
-  cart.map(i => ({
+  cartItems.map(i => ({
     product_id: i.product_id,
     qty: i.qty,
     price: i.price,
@@ -632,18 +628,13 @@ if (!navigator.onLine) {
     ref_id: ref,
     staff_id: STAFF_ID,
     location: LOCATION,
-    items: cart,
+    items: cartItems,
     time: Date.now()
   });
 
   savePendingOrders(pending);
 
-  cart = [];
-  renderCart();
-  renderProducts();
 
-  alert("📴 Offline — order saved and will sync when online");
-  hideLoader();
   return;
 }
 
@@ -661,18 +652,12 @@ if (!navigator.onLine) {
       throw new Error(data.error || "Checkout failed");
     }
 
-    cart = [];
-    await loadAllData();
-    renderProducts();
-    renderCart();
-
-    alert("✅ Order completed");
     delete window.__lastPayment;
   } catch (err) {
     console.error(err);
     alert("❌ Checkout failed");
   } finally {
-    hideLoader();
+    
   }
 }
 
@@ -742,10 +727,22 @@ function confirmPayment() {
     gcash_ref: ref
   };
 
-  closePaymentModal();
+// 🔥 OPTIMISTIC CHECKOUT (NO WAITING)
+const currentCart = [...cart];
 
-  // ✅ NOW perform the real checkout
-  checkoutPOS();
+// 🔥 CLEAR CART IMMEDIATELY
+cart = [];
+renderCart();
+renderProducts();
+
+// 1️⃣ Deduct inventory immediately (UI only)
+deductLocalInventory(currentCart);
+
+// 3️⃣ Close modal immediately
+closePaymentModal();
+
+// 4️⃣ Send order to backend in background
+checkoutPOS(currentCart);
 }
 
 let paidValue = "0";
