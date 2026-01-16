@@ -17,15 +17,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ================= INVENTORY DAY ACTIONS ================= */
-
-function getPHDate() {
-  const now = new Date();
-  const ph = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
-  );
-  return ph.toISOString().slice(0, 10);
-}
 
 
 /* ADMIN GUARD */
@@ -66,6 +57,23 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
+/* SIDEBAR NAVIGATION */
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const view = btn.dataset.view;
+    if (!view) return;
+    window.location.href = `${view}.html`;
+  });
+});
+
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
+}
+
 function openCloseDayModal(date, location) {
   document.getElementById("closeDayDate").textContent = date;
   document.getElementById("closeDayLocation").textContent = location;
@@ -84,19 +92,15 @@ function openCloseDayModal(date, location) {
   }
 }
 
-function showLoader(text = "Loading…") {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-  loader.querySelector(".loader-text").textContent = text;
-  loader.classList.remove("hidden");
-}
+/* ================= INVENTORY DAY ACTIONS ================= */
 
-function hideLoader() {
-  const loader = document.getElementById("globalLoader");
-  if (!loader) return;
-  loader.classList.add("hidden");
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
 }
-
 
 document.getElementById("startDayBtn")?.addEventListener("click", async () => {
   console.log("START DAY CLICKED");
@@ -157,8 +161,6 @@ document.getElementById("closeDayBtn")?.addEventListener("click", () => {
   openCloseDayModal(date, location);
 });
 
-
-
 document.getElementById("confirmCloseDayCheckbox")
   ?.addEventListener("change", e => {
     document.getElementById("confirmCloseDayBtn").disabled = !e.target.checked;
@@ -193,3 +195,44 @@ document.getElementById("confirmCloseDayCheckbox")
       alert("❌ " + err.message);
     }
   });
+
+  document.getElementById("startDayBtn")?.addEventListener("click", async () => {
+  console.log("START DAY CLICKED");
+
+  if (!confirm("Start today's inventory? This will close yesterday if needed.")) {
+    return;
+  }
+
+  const today = getPHDate();
+  const location = localStorage.getItem("userLocation");
+  const adminUser = auth.currentUser?.email || "ADMIN";
+
+  if (!location) {
+    alert("❌ Location not set.");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "manualStartInventoryDay",
+        date: today,
+        location,
+        adminUser
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("❌ " + data.error);
+    } else {
+      alert("✅ Inventory day started successfully");
+      window.location.reload();
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to start inventory day");
+  }
+});
