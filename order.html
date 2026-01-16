@@ -112,75 +112,79 @@
 </div>
 
 
-  <!-- ================= Payment ================= -->
+<!-- ================= Payment ================= -->
 <div id="paymentModal" class="modal hidden">
   <div class="modal-content payment-ui">
 
-<div class="modal-body">
+    <div class="modal-body">
 
-  <div class="payment-header">
-    <h2>Payment</h2>
-    <span class="payment-method-badge" id="methodBadge">CASH</span>
-  </div>
+      <div class="payment-layout">
 
-  <div class="payment-summary">
-    <div class="summary-row total">
-      <span>Total</span>
-      <strong id="payTotal">₱0.00</strong>
+        <!-- LEFT -->
+        <div class="payment-left">
+          <div class="payment-header">
+            <h2>Payment</h2>
+            <span class="payment-method-badge" id="methodBadge">CASH</span>
+          </div>
+
+          <div class="payment-summary">
+            <div class="summary-row total">
+              <span>Total</span>
+              <strong id="payTotal">₱0.00</strong>
+            </div>
+            <div class="summary-row paid">
+              <span>Paid</span>
+              <strong id="paidDisplay">₱0.00</strong>
+            </div>
+            <div class="summary-row change">
+              <span>Change</span>
+              <strong id="changeAmount">₱0.00</strong>
+            </div>
+          </div>
+
+          <select id="paymentMethod" class="payment-method">
+            <option value="CASH">Cash</option>
+            <option value="GCASH">GCash</option>
+          </select>
+
+          <div id="gcashRefRow" class="gcash-row hidden">
+            <input type="text" id="gcashRef" placeholder="GCash Reference (optional)">
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="payment-right">
+          <div class="keypad">
+            <button onclick="keypadInput('7')">7</button>
+            <button onclick="keypadInput('8')">8</button>
+            <button onclick="keypadInput('9')">9</button>
+
+            <button onclick="keypadInput('4')">4</button>
+            <button onclick="keypadInput('5')">5</button>
+            <button onclick="keypadInput('6')">6</button>
+
+            <button onclick="keypadInput('1')">1</button>
+            <button onclick="keypadInput('2')">2</button>
+            <button onclick="keypadInput('3')">3</button>
+
+            <button class="key-wide" onclick="keypadInput('0')">0</button>
+            <button onclick="keypadInput('.')">.</button>
+            <button class="key-back" onclick="keypadBackspace()">⌫</button>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <div class="summary-row paid">
-      <span>Paid</span>
-      <strong id="paidDisplay">₱0.00</strong>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+      <button id="confirmPaymentBtn" class="btn-confirm" onclick="confirmPayment()">
+        Confirm
+      </button>
     </div>
 
-    <div class="summary-row change">
-      <span>Change</span>
-      <strong id="changeAmount">₱0.00</strong>
-    </div>
   </div>
-
-  <select id="paymentMethod" class="payment-method">
-    <option value="CASH">Cash</option>
-    <option value="GCASH">GCash</option>
-  </select>
-
-  <div class="keypad">
-    <button onclick="keypadInput('7')">7</button>
-    <button onclick="keypadInput('8')">8</button>
-    <button onclick="keypadInput('9')">9</button>
-
-    <button onclick="keypadInput('4')">4</button>
-    <button onclick="keypadInput('5')">5</button>
-    <button onclick="keypadInput('6')">6</button>
-
-    <button onclick="keypadInput('1')">1</button>
-    <button onclick="keypadInput('2')">2</button>
-    <button onclick="keypadInput('3')">3</button>
-
-    <button class="key-wide" onclick="keypadInput('0')">0</button>
-    <button onclick="keypadInput('.')">.</button>
-    <button class="key-back" onclick="keypadBackspace()">⌫</button>
-  </div>
-
-  <div id="gcashRefRow" class="gcash-row hidden">
-    <input type="text" id="gcashRef" inputmode="text" placeholder="GCash Reference (optional)">
-  </div>
-
-
-    </div> <!-- ✅ END modal-body -->
-
-<div class="modal-footer">
-  <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
-  <button
-    id="confirmPaymentBtn"
-    class="btn-confirm"
-    onclick="confirmPayment()">
-    Confirm
-  </button>
 </div>
-
-  </div>
 
    <div id="salesModal" class="modal hidden">
     <div class="modal-content">

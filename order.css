@@ -305,9 +305,6 @@ body {
 .modal-content {
   background: #fff;
   border-radius: 8px;
-  width: 420px;          /* ⬅ fixed desktop width */
-  max-width: 90vw;
-  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -325,6 +322,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
+}
+
+.payment-header h2 {
+  font-size: 18px;
+}
+
+.payment-method {
+  margin: 6px 0;
+  padding: 8px;
 }
 
 .payment-method-badge {
@@ -334,13 +341,6 @@ body {
   border-radius: 12px;
   font-size: 12px;
   font-weight: bold;
-}
-
-.payment-summary {
-  background: #f4f6fb;
-  border-radius: 10px;
-  padding: 12px;
-  margin: 12px 0;
 }
 
 .summary-row {
@@ -360,24 +360,28 @@ body {
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
+
 .keypad button {
-  padding: 16px;
-  height: 56px;
-  font-size: 18px;
+  height: 52px;
+  font-size: 15px;
   font-weight: bold;
-  border-radius: 10px;
+  border-radius: 8px;
   border: none;
   background: #f1f3f6;
   cursor: pointer;
 }
 
-.keypad button:hover {
-  background: #e1e5ec;
+@media (max-height:700px) {
+  .keypad button {
+    height: 44px;
+    font-size: 14px;
+  }
 }
+
 
 .key-wide {
   grid-column: span 2;
@@ -676,26 +680,47 @@ body.sales-only .checkout {
   }
 }
 
-.keypad button {
-  min-height: 52px;
-  font-size: 1.4rem;
-}
-
-@media (max-height: 600px) {
+@media (max-height:700px) {
   .keypad button {
     min-height: 44px;
-    font-size: 1.2rem;
+    font-size: 15px;
   }
 }
 
 .payment-summary {
+  background: #f4f6fb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 8px 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px 12px;
+}
+
+.summary-row {
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.summary-row.total strong {
+  font-size: 18px;
 }
 
 @media (max-width: 600px) {
   .payment-summary {
     grid-template-columns: 1fr;
   }
+}
+
+.payment-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.payment-left,
+.payment-right {
+  display: flex;
+  flex-direction: column;
 }
