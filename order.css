@@ -810,3 +810,67 @@ body.sales-only .checkout {
 #paymentModal:not(.hidden) .modal-content {
   animation: modalPop 0.18s ease-out;
 }
+
+/* ================= SALES REPORT SCROLL ================= */
+
+.sales-modal {
+  width: 700px;
+  max-width: 95vw;
+  max-height: 80vh;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scroll container */
+.sales-table-wrapper {
+  flex: 1;                     /* takes remaining height */
+  overflow-y: auto;
+  margin: 12px 0;
+
+  border: 1px solid #ddd;
+  border-radius: 6px;
+
+  -webkit-overflow-scrolling: touch; /* smooth tablet scroll */
+}
+
+/* Table layout */
+.sales-table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sales-table-wrapper thead th {
+  position: sticky;
+  top: 0;
+
+  background: #f0f2f8;
+  border-bottom: 1px solid #ccc;
+  padding: 6px;
+  z-index: 2;
+}
+
+.sales-table-wrapper td {
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Gross total */
+.sales-modal .total {
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+/* Tablet optimization */
+@media (max-width: 768px) {
+  .sales-modal {
+    width: 96vw;
+    max-height: 85vh;
+  }
+
+  .sales-table-wrapper {
+    font-size: 12px;
+  }
+}
