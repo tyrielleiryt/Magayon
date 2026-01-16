@@ -667,11 +667,20 @@ body.sales-only .checkout {
   z-index: 10;
 }
 
-@media (max-width: 900px), (max-height: 600px) {
+@media (max-width: 600px){
   #paymentModal .modal-content {
     width: 100vw;
     height: 100vh;
     border-radius: 0;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  #paymentModal .modal-content {
+    width: 90vw;
+    max-width: 480px;
+    max-height: 90vh;
+    border-radius: 12px;
   }
 }
 
