@@ -62,6 +62,11 @@ import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
 import loadDashboardView from "./views/dashboard.js";
 
+function clearView() {
+  document.getElementById("actionBar")?.replaceChildren();
+  document.getElementById("contentBox")?.replaceChildren();
+}
+
 /* ================= SPA NAV (WITH LOADER) ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.onclick = async () => {
@@ -72,10 +77,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.add("active");
 
     // Reset UI
-    const actionBar = document.getElementById("actionBar");
-    const contentBox = document.getElementById("contentBox");
-    actionBar.innerHTML = "";
-    contentBox.innerHTML = "";
+clearView();
 
     // 🔥 SHOW LOADER
     showLoader("Loading module…");
