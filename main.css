@@ -731,3 +731,44 @@ html, body {
   text-align: right;
   font-size: 14px;
 }
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 6px 0;
+  border-bottom: 1px dashed #ddd;
+}
+
+.summary-row.zero-stock {
+  color: #b00020;
+  font-weight: 600;
+}
+
+.summary-row.zero-stock span:last-child::after {
+  content: " ⚠️";
+}
+
+/* ==========================================
+   ADMIN PRODUCT LIST – HOVER & SELECTION
+========================================== */
+
+.product-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* Hover (mouse / trackpad) */
+.product-table tbody tr:hover {
+  background-color: #f4f6fa;
+}
+
+/* Selected row (clicked) */
+.product-table tbody tr.selected {
+  background-color: #e9f0ff;
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+
+/* Selected + hover */
+.product-table tbody tr.selected:hover {
+  background-color: #dfe9ff;
+}
