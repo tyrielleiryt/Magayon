@@ -187,8 +187,11 @@
 </div>
 
    <div id="salesModal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content sales-modal">
       <h2>Today’s Sales</h2>
+
+          <!-- SCROLLABLE AREA -->
+    <div class="sales-table-wrapper">
 
       <table>
         <thead>
@@ -202,6 +205,7 @@
         </thead>
         <tbody id="salesBody"></tbody>
       </table>
+      </div>
 
       <div class="total">
         Gross Sales: ₱<span id="sumGross">0.00</span>
