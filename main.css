@@ -65,6 +65,10 @@ html, body {
 .content {
   flex: 1;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;   /* ✅ REQUIRED FOR SCROLL */
 }
 
 .content-box {
@@ -75,6 +79,8 @@ html, body {
   flex-direction: column;
   flex: 1;
   overflow: hidden; /* 🔒 important */
+  min-height: 0;   /* ✅ CRITICAL — THIS FIXES SCROLL */
+
 }
 
 /* ================= ACTION BAR ================= */
@@ -272,6 +278,7 @@ html, body {
 .data-scroll {
   flex: 1;
   overflow-y: auto;
+    min-height: 0;
 }
 
 /* ================= GLOBAL LOADER ================= */
@@ -289,3 +296,4 @@ html, body {
 .loader.hidden {
   display: none;
 }
+
