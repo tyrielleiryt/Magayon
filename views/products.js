@@ -55,9 +55,17 @@ function renderActionBar() {
     <button id="deleteBtn" class="category-action-btn" disabled>🗑️ Delete</button>
   `;
 
-  document.getElementById("addBtn").onclick = () => openProductModal();
-  document.getElementById("editBtn").onclick = () =>
-    selected && openProductModal(selected);
+  document.getElementById("addBtn").onclick = () => {
+  selected = null; // ✅ RESET EDIT STATE
+  openProductModal();
+};
+ document.getElementById("editBtn").onclick = () => {
+  if (!selected) {
+    alert("Please select a product first.");
+    return;
+  }
+  openProductModal(selected);
+};
   document.getElementById("deleteBtn").onclick = deleteProduct;
 }
 
@@ -94,7 +102,8 @@ async function loadCategories() {
 }
 
 async function loadProducts() {
-  products = await fetch(API_URL + "?type=products").then(r => r.json());
+  products = (await fetch(API_URL + "?type=products").then(r => r.json()))
+  .filter(p => p.active === true);
   selected = null;
   document.getElementById("editBtn").disabled = true;
   document.getElementById("deleteBtn").disabled = true;
@@ -142,6 +151,13 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
+}
+
+async function loadProductRecipe(productId) {
+  const allRecipes = await fetch(API_URL + "?type=allProductRecipes")
+    .then(r => r.json());
+
+  return allRecipes[productId] || [];
 }
 
 /* ================= MODAL ================= */
@@ -196,9 +212,16 @@ async function openProductModal(product = {}) {
 
   try {
     await loadInventory();
-    document.getElementById("addIngredientBtn").onclick = addRecipeRow;
-    document.getElementById("saveProductBtn").onclick = saveProduct;
-    addRecipeRow();
+document.getElementById("recipeList").innerHTML = ""; // ✅ CLEAR OLD RECIPES
+
+document.getElementById("addIngredientBtn").onclick = addRecipeRow;
+document.getElementById("saveProductBtn").onclick = saveProduct;
+    if (product.product_id) {
+  const recipe = await loadProductRecipe(product.product_id);
+  recipe.forEach(r => addRecipeRowWithData(r));
+} else {
+  addRecipeRow();
+}
   } finally {
     hideLoader();
   }
@@ -233,6 +256,32 @@ function addRecipeRow() {
     </select>
     <button class="recipe-btn minus">−</button>
     <input class="recipe-qty" type="number" value="1" min="1">
+    <button class="recipe-btn plus">+</button>
+    <div class="recipe-cost">₱0.00</div>
+  `;
+
+  list.appendChild(row);
+  bindRecipeEvents(row);
+}
+
+function addRecipeRowWithData(r) {
+  const list = document.getElementById("recipeList");
+
+  const row = document.createElement("div");
+  row.className = "recipe-row";
+
+  row.innerHTML = `
+    <select class="recipe-item">
+      ${Object.entries(inventoryMap)
+        .map(([id, i]) =>
+          `<option value="${id}" ${id === r.item_id ? "selected" : ""}>
+            ${i.name}
+          </option>`
+        )
+        .join("")}
+    </select>
+    <button class="recipe-btn minus">−</button>
+    <input class="recipe-qty" type="number" value="${r.qty_used}" min="1">
     <button class="recipe-btn plus">+</button>
     <div class="recipe-cost">₱0.00</div>
   `;
@@ -322,23 +371,29 @@ function saveProduct() {
 
 /* ================= DELETE ================= */
 function deleteProduct() {
-  if (!selected) return;
+  if (!selected) {
+    alert("Please select a product first.");
+    return;
+  }
+
   if (!confirm(`Delete ${selected.product_name}?`)) return;
 
   showLoader("Deleting product…");
 
-fetch(API_URL, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded"
-  },
-  body: new URLSearchParams({
-    action: "deleteProduct",
-    product_id: selected.product_id
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      action: "deleteProduct",
+      product_id: selected.product_id
+    })
   })
-})
-.finally(() => {
-  setTimeout(loadProducts, 300);
-  hideLoader();
-});
+    .then(r => r.json())
+    .then(() => {
+      selected = null;      // ✅ reset state
+      loadProducts();       // ✅ reload AFTER delete
+    })
+    .finally(hideLoader);
 }
