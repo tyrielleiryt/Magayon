@@ -59,11 +59,19 @@ function renderActionBar() {
   selected = null; // ✅ RESET EDIT STATE
   openProductModal();
 };
- document.getElementById("editBtn").onclick = () => {
+
+document.getElementById("editBtn").onclick = () => {
   if (!selected) {
     alert("Please select a product first.");
     return;
   }
+
+  // 🔒 OPTIONAL SAFETY GUARD — PUT IT HERE
+  if (!selected.active) {
+    alert("Inactive products cannot be edited.");
+    return;
+  }
+
   openProductModal(selected);
 };
   document.getElementById("deleteBtn").onclick = deleteProduct;
@@ -84,6 +92,7 @@ function renderTableLayout() {
               <th>Name</th>
               <th>Category</th>
               <th>Price</th>
+              <th>Status</th>
               <th>Image</th>
             </tr>
           </thead>
@@ -102,8 +111,8 @@ async function loadCategories() {
 }
 
 async function loadProducts() {
-  products = (await fetch(API_URL + "?type=products").then(r => r.json()))
-  .filter(p => p.active === true);
+  products = await fetch(API_URL + "?type=products").then(r => r.json());
+
   selected = null;
   document.getElementById("editBtn").disabled = true;
   document.getElementById("deleteBtn").disabled = true;
@@ -118,7 +127,7 @@ function renderTable() {
   if (!products.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align:center;color:#888">
+        <td colspan="7" style="text-align:center;color:#888">
           No products found
         </td>
       </tr>
@@ -136,20 +145,47 @@ function renderTable() {
       <td>${p.product_name}</td>
       <td>${cat ? cat.category_name : ""}</td>
       <td>₱${Number(p.price).toFixed(2)}</td>
+      <td>
+          <button
+    class="status-toggle ${p.active ? "active" : "inactive"}"
+    data-id="${p.product_id}"
+    data-active="${p.active}">
+    ${p.active ? "ACTIVE" : "INACTIVE"}
+  </button>
+      </td>
       <td>${p.image_url ? "✔" : "-"}</td>
     `;
+
+    if (!p.active) {
+  tr.classList.add("inactive");
+}
 
     tr.onclick = () => {
       document
         .querySelectorAll("#productBody tr")
         .forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
-      selected = p;
-      document.getElementById("editBtn").disabled = false;
-      document.getElementById("deleteBtn").disabled = false;
+selected = p;
+
+// ⛔ Edit only allowed if ACTIVE
+document.getElementById("editBtn").disabled = !p.active;
+
+// 🗑️ Delete allowed for both (or change if you want stricter rules)
+document.getElementById("deleteBtn").disabled = false;
     };
 
     tbody.appendChild(tr);
+
+    const statusBtn = tr.querySelector(".status-toggle");
+
+statusBtn.onclick = (e) => {
+  e.stopPropagation(); // 🚫 prevent row select
+  toggleProductStatus({
+    product_id: statusBtn.dataset.id,
+    active: statusBtn.dataset.active === "true"
+  });
+};
+
   });
 }
 
@@ -394,6 +430,37 @@ function deleteProduct() {
     .then(() => {
       selected = null;      // ✅ reset state
       loadProducts();       // ✅ reload AFTER delete
+    })
+    .finally(hideLoader);
+}
+
+function toggleProductStatus(product) {
+
+  // ✅ CONFIRM BEFORE DEACTIVATING
+  if (product.active && !confirm("Deactivate this product?")) {
+    return;
+  }
+
+  showLoader("Updating product status…");
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      action: "toggleProductStatus",
+      product_id: product.product_id,
+      active: !product.active
+    })
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) {
+        alert("Failed to update product status");
+        return;
+      }
+      loadProducts();
     })
     .finally(hideLoader);
 }

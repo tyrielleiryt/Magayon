@@ -66,7 +66,6 @@ html, body {
   padding: 16px;
 }
 
-/* ================= CONTENT BOX ================= */
 .content-box {
   background: white;
   border: 1px solid #aaa;
@@ -74,7 +73,6 @@ html, body {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  overflow: visible;
 }
 
 /* ================= ACTION BAR ================= */
@@ -122,7 +120,55 @@ html, body {
   text-align: center;
 }
 
-/* ================= MODAL OVERLAY ================= */
+/* ================= ADMIN TABLE UX ================= */
+.product-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.product-table tbody tr:hover {
+  background-color: #f4f6fa;
+}
+
+.product-table tbody tr.selected {
+  background-color: #e9f0ff;
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+
+.product-table tbody tr.selected:hover {
+  background-color: #dfe9ff;
+}
+
+.product-table tr.inactive {
+  opacity: 0.55;
+  background: #f5f5f5;
+}
+
+.product-table tr.inactive td {
+  color: #777;
+}
+
+/* ================= STATUS TOGGLE ================= */
+.status-toggle {
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-toggle.active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status-toggle.inactive {
+  background: #fdecea;
+  color: #b00020;
+}
+
+/* ================= MODAL (USED BY JS) ================= */
 #modalOverlay {
   position: fixed;
   inset: 0;
@@ -133,12 +179,10 @@ html, body {
   z-index: 9999;
 }
 
-/* 🔥 CRITICAL FIX — allows clicking again */
 #modalOverlay.hidden {
   display: none !important;
 }
 
-/* ================= MODAL BOX ================= */
 #modalBox {
   background: #fff;
   width: 520px;
@@ -151,6 +195,20 @@ html, body {
   overflow: hidden;
 }
 
+.modal-header {
+  padding: 16px 20px;
+  background: #2f3457;
+  color: white;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* ================= MODAL FORM ================= */
 #modalBox label {
   margin-top: 12px;
@@ -159,8 +217,8 @@ html, body {
 }
 
 #modalBox input,
-#modalBox textarea,
-#modalBox select {
+#modalBox select,
+#modalBox textarea {
   width: 100%;
   padding: 8px 10px;
   margin-top: 6px;
@@ -174,363 +232,10 @@ html, body {
   min-height: 70px;
 }
 
-/* ================= PRODUCT RECIPE ================= */
-.recipe-section {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #ddd;
-}
-
-.recipe-scroll {
-  max-height: 220px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 6px;
-}
-
-/* Recipe row */
-.recipe-row {
-  display: grid;
-  grid-template-columns: 1fr 28px 50px 28px 70px;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-/* Inventory select */
-.recipe-item {
-  height: 32px;
-  font-size: 13px;
-}
-
-/* Quantity input (compact) */
-#modalBox input.recipe-qty {
-  width: 50px !important;
-  height: 32px;
-  padding: 2px 4px;
-  font-size: 13px;
-  text-align: center;
-}
-
-/* + / - buttons */
-.recipe-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: #2f3457;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.recipe-btn:hover {
-  background: #1f2447;
-}
-
-.recipe-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-/* Cost */
-.recipe-cost {
-  font-size: 12px;
-  min-width: 70px;
-  text-align: right;
-}
-
-/* Warning */
-.recipe-warning {
-  font-size: 11px;
-  color: #c0392b;
-  margin-bottom: 6px;
-}
-
-/* Add ingredient */
-.add-ingredient-btn {
-  margin-top: 8px;
-  padding: 8px;
-  background: #2f3457;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ================= DAILY INVENTORY (IMPROVED, SAME LAYOUT) ================= */
-
-.daily-inventory-row {
-  display: grid;
-  grid-template-columns: 1.6fr 90px 90px 110px 110px 110px;
-  align-items: center;
-  padding: 6px 4px;
-  font-size: 13px;
-}
-
-.daily-inventory-row:nth-child(even) {
-  background: #fafafa;
-}
-
-.money {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Summary */
-.inventory-summary {
-  margin-top: 12px;
-  padding: 10px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.inventory-summary .net {
-  font-weight: bold;
-  color: #2f3457;
-}
-
-/* ================= MODAL ACTIONS ================= */
-.modal-actions {
-  margin-top: auto;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.btn-danger {
-  background: #e06780;
-  color: white;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.btn-back {
-  background: #ddd;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-/* ================= READONLY ================= */
-.readonly {
-  background: #f3f3f3;
-  cursor: not-allowed;
-}
-
-/* Modal body layout */
-.inventory-modal-body {
-  display: flex;
-  flex-direction: column;
-  height: 60vh;
-  padding: 12px;
-}
-
-/* Search */
-.inventory-search {
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 10px;
-}
-
-/* Scrollable list */
-.inventory-scroll {
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 6px;
-}
-
-/* Inventory row */
-.inventory-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.inventory-row:last-child {
-  border-bottom: none;
-}
-
-/* Name */
-.inv-name {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.inv-name small {
-  display: block;
-  font-size: 11px;
-  color: #888;
-}
-
-/* Controls */
-.inv-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.inv-controls button {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  background: #f0f2f8;
-}
-
-.inv-controls span {
-  min-width: 24px;
-  text-align: center;
-  font-weight: bold;
-}
-
-/* Sticky footer */
-.inventory-modal-footer {
-  display: flex;
-  gap: 10px;
-  padding: 12px;
-  border-top: 1px solid #ddd;
-  background: #fff;
-  position: sticky;
-  bottom: 0;
-}
-
-/* ================= GLOBAL LOADER ================= */
-.loader {
-  position: fixed;
-  inset: 0;
-  background: rgba(244, 246, 251, 0.85);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.loader.hidden {
-  display: none;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 5px solid #dcdcdc;
-  border-top: 5px solid #2f3457;
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
-
-.loader-text {
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2f3457;
-  letter-spacing: 0.5px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.data-scroll {
-  flex: 1;
-  overflow-y: auto;
-}
-
-/* ✅ REQUIRED FOR SCROLLING DATA TABLES */
-#contentBox,
-.data-box,
-.data-scroll {
-  min-height: 0;
-}
-
-/* ✅ FORCE CONTENT AREA TO BE SCROLLABLE */
-#contentBox {
-  height: calc(100vh - 140px); /* adjust header size if needed */
-  display: flex;
-  flex-direction: column;
-}
-
-.data-box {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.data-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.hidden {
-  display: none;
-}
-
-.modal-content {
-  background: #fff;
-  padding: 24px;
-  width: 380px;
-  border-radius: 8px;
-}
-
-.modal-content h2 {
-  margin-top: 0;
-}
-
-.muted {
-  color: #666;
-  font-size: 14px;
-}
-
-.info-box {
-  background: #f6f6f6;
-  padding: 10px;
-  margin: 12px 0;
-  border-radius: 6px;
-}
-
-.checkbox {
-  display: flex;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
+/* ================= BUTTONS ================= */
 .btn {
   padding: 8px 14px;
-  border-radius: 5px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
 }
@@ -549,226 +254,36 @@ html, body {
   cursor: not-allowed;
 }
 
-.modal {
-  background: #fff;
-  padding: 20px;
-  max-width: 420px;
-  margin: auto;
-  border-radius: 10px;
+/* ================= SCROLL FIX ================= */
+#contentBox,
+.data-box,
+.data-scroll {
+  min-height: 0;
 }
 
-.warning-box {
-  margin: 15px 0;
-  padding: 10px;
-  background: #fff3cd;
-  border-left: 4px solid #ffc107;
-}
-
-.modal-actions {
+.data-box {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  flex-direction: column;
+  flex: 1;
 }
 
-.inventory-summary {
-  max-height: 300px;
+.data-scroll {
+  flex: 1;
   overflow-y: auto;
 }
 
-.inventory-summary table {
-  width: 100%;
-  font-size: 14px;
-}
-
-.inventory-summary td:last-child {
-  color: red;
-}
-
-/* MODAL BACKDROP */
-.modal {
+/* ================= GLOBAL LOADER ================= */
+.loader {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(244, 246, 251, 0.85);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  flex-direction: column;
 }
 
-.hidden {
+.loader.hidden {
   display: none;
-}
-
-/* MODAL BOX */
-.modal-box {
-  background: #fff;
-  width: 90%;
-  max-width: 700px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-}
-
-/* HEADER */
-.modal-header {
-  padding: 16px 20px;
-  color: white;
-}
-
-.modal-header.danger {
-  background: #c62828;
-}
-
-/* INFO */
-.modal-info {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: #f5f5f5;
-  font-size: 14px;
-}
-
-/* INVENTORY TABLE */
-.inventory-summary {
-  padding: 16px 20px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.inventory-summary table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.inventory-summary th,
-.inventory-summary td {
-  border-bottom: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.inventory-summary th {
-  background: #fafafa;
-}
-
-/* WARNING */
-.modal-warning {
-  background: #fff3cd;
-  padding: 12px 20px;
-  font-size: 14px;
-}
-
-/* CONFIRM */
-.confirm-check {
-  display: block;
-  padding: 12px 20px;
-  font-weight: bold;
-}
-
-/* ACTIONS */
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px;
-}
-
-.btn {
-  padding: 10px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-
-.btn.secondary {
-  background: #e0e0e0;
-}
-
-.btn.danger {
-  background: #c62828;
-  color: white;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.inventory-summary {
-  margin-top: 15px;
-  border-top: 1px solid #ddd;
-  padding-top: 10px;
-}
-
-.summary-table {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-}
-
-.summary-header,
-.summary-row {
-  display: grid;
-  grid-template-columns: 1fr 80px;
-  padding: 6px 10px;
-}
-
-.summary-header {
-  background: #f3f3f3;
-  font-weight: bold;
-  font-size: 13px;
-}
-
-.summary-row {
-  border-top: 1px solid #eee;
-  font-size: 13px;
-}
-
-.summary-footer {
-  margin-top: 8px;
-  text-align: right;
-  font-size: 14px;
-}
-
-.summary-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  padding: 6px 0;
-  border-bottom: 1px dashed #ddd;
-}
-
-.summary-row.zero-stock {
-  color: #b00020;
-  font-weight: 600;
-}
-
-.summary-row.zero-stock span:last-child::after {
-  content: " ⚠️";
-}
-
-/* ==========================================
-   ADMIN PRODUCT LIST – HOVER & SELECTION
-========================================== */
-
-.product-table tbody tr {
-  cursor: pointer;
-  transition: background-color 0.12s ease, box-shadow 0.12s ease;
-}
-
-/* Hover (mouse / trackpad) */
-.product-table tbody tr:hover {
-  background-color: #f4f6fa;
-}
-
-/* Selected row (clicked) */
-.product-table tbody tr.selected {
-  background-color: #e9f0ff;
-  box-shadow: inset 4px 0 0 #2563eb;
-}
-
-/* Selected + hover */
-.product-table tbody tr.selected:hover {
-  background-color: #dfe9ff;
 }
