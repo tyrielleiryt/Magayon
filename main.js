@@ -150,6 +150,12 @@ document.getElementById("confirmCloseDayCheckbox")
   const location = localStorage.getItem("userLocation");
   const adminUser = auth.currentUser?.email || "ADMIN";
 
+  console.log("START INVENTORY PAYLOAD", {
+    today,
+    location,
+    adminUser
+  });
+
   if (!location) {
     alert("❌ Location not set.");
     return;
@@ -166,7 +172,16 @@ document.getElementById("confirmCloseDayCheckbox")
       })
     });
 
-    const data = await res.json();
+const raw = await res.text();
+console.log("RAW SERVER RESPONSE:", raw);
+
+let data;
+try {
+  data = JSON.parse(raw);
+} catch (e) {
+  alert("❌ Server returned invalid JSON");
+  return;
+}
 
     if (!data.success) {
       alert("❌ " + data.error);
