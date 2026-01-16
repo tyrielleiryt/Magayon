@@ -286,29 +286,38 @@ function saveProduct() {
     qty_used: Number(r.querySelector(".recipe-qty").value)
   }));
 
-  let url =
-    API_URL +
-    `?action=saveProduct` +
-    `&product_code=${encodeURIComponent(code)}` +
-    `&product_name=${encodeURIComponent(name)}` +
-    `&category_id=${category}` +
-    `&price=${price}` +
-    `&image_url=${encodeURIComponent(image)}` +
-    `&recipe=${encodeURIComponent(JSON.stringify(recipe))}`;
 
-  if (selected?.product_id) url += `&product_id=${selected.product_id}`;
+  fetch(API_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  body: new URLSearchParams({
+    action: "saveProduct",
+    product_id: selected?.product_id || "",
+    product_code: code,
+    product_name: name,
+    category_id: category,
+    price: price,
+    image_url: image,
+    recipe: JSON.stringify(recipe)
+  })
+})
+.then(r => r.json())
+.then(res => {
+  if (!res.success && res.error === "DUPLICATE_CODE") {
+    alert("❌ Product code already exists.");
+    return;
+  }
 
-  fetch(url)
-    .then(r => r.json())
-    .then(res => {
-      if (!res.success && res.error === "DUPLICATE_CODE") {
-        alert("❌ Product code already exists.");
-        return;
-      }
-      closeModal();
-      setTimeout(loadProducts, 500);
-    })
-    .finally(hideLoader);
+  closeModal();
+  setTimeout(loadProducts, 300);
+})
+.catch(err => {
+  console.error(err);
+  alert("❌ Failed to save product");
+})
+.finally(hideLoader);
 }
 
 /* ================= DELETE ================= */
@@ -318,9 +327,18 @@ function deleteProduct() {
 
   showLoader("Deleting product…");
 
-  fetch(API_URL + `?action=deleteProduct&product_id=${selected.product_id}`)
-    .finally(() => {
-      setTimeout(loadProducts, 500);
-      hideLoader();
-    });
+fetch(API_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  body: new URLSearchParams({
+    action: "deleteProduct",
+    product_id: selected.product_id
+  })
+})
+.finally(() => {
+  setTimeout(loadProducts, 300);
+  hideLoader();
+});
 }
