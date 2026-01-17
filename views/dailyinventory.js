@@ -181,7 +181,7 @@ function renderTable() {
 
 
 const openToday = dailyInventory.some(d =>
-  new Date(d.date).toISOString().slice(0, 10) === today &&
+  String(d.date).slice(0, 10) === today &&
   d.status === "OPEN" &&
   d.location === userLocation
 );
