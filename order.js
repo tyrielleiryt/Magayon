@@ -192,6 +192,23 @@ function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
+/* ================= TOAST ================= */
+
+let inventoryToastTimer = null;
+
+function showInventoryToast(text) {
+  const el = document.getElementById("inventoryToast");
+  if (!el) return;
+
+  el.textContent = text;
+  el.classList.add("show");
+
+  clearTimeout(inventoryToastTimer);
+  inventoryToastTimer = setTimeout(() => {
+    el.classList.remove("show");
+  }, 2000);
+}
+
 /* =========================================================
    STATE
 ========================================================= */
@@ -269,6 +286,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
 enableWakeLock();
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js");
 }
@@ -286,6 +304,12 @@ if ("serviceWorker" in navigator) {
   } finally {
     hideLoader();
   }
+
+  document
+  .getElementById("syncInventoryBtn")
+  ?.addEventListener("click", () => {
+    refreshInventoryOnly();
+  });
 
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
   showPinModal("logout");
@@ -387,6 +411,50 @@ console.log("DEBUG LOCATION:", LOCATION);
 
 }
 
+/* =========================================================
+   BELOW HELPERS Auto Inventory Refresh
+========================================================= */
+
+async function refreshInventoryOnly({ silent = false } = {}) {
+  if (!navigator.onLine) return;
+  if (document.getElementById("paymentModal")?.classList.contains("hidden") === false) return;
+
+  const today = getPHDate();
+
+  try {
+    if (!silent) {
+      showInventoryToast("🔄 Syncing inventory…");
+    }
+
+    const rows = await fetch(
+      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+    ).then(r => r.json());
+
+    if (!Array.isArray(rows)) return;
+
+    // 🔁 Replace inventory with admin source of truth
+    inventory = {};
+    inventoryNames = {};
+
+    rows.forEach(r => {
+      inventory[r.item_id] = Number(r.remaining) || 0;
+      inventoryNames[r.item_id] = r.item_name;
+    });
+
+    applyInventoryGate(rows);   // 🔥 ADD THIS
+    renderProducts(); // 🔥 update grid, LOW badges, disabled states
+    window.__lastInventorySync = new Date();
+    if (!silent) {
+      showInventoryToast("✅ Inventory updated");
+    }
+
+  } catch (err) {
+    console.warn("Inventory refresh failed", err);
+    if (!silent) {
+      showInventoryToast("⚠️ Inventory sync failed");
+    }
+  }
+}
 
 
 /* =========================================================
@@ -1221,3 +1289,9 @@ setInterval(() => {
     syncPendingOrders();
   }
 }, 5000);
+
+//🔁 Auto-refresh every 30 seconds for POS inventory
+
+setInterval(() => {
+  refreshInventoryOnly({ silent: true });
+}, 30000); // every 30s
