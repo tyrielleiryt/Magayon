@@ -57,14 +57,31 @@ export default function loadDailyInventoryView() {
   loadDailyInventory();
 }
 
+function getPHDate() {
+  const now = new Date();
+  const ph = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+  );
+  return ph.toISOString().slice(0, 10);
+}
+
 /* ================= ACTION BAR ================= */
 function renderActionBar() {
   el("actionBar").innerHTML = `
     <input id="searchDateInput" placeholder="Search date" />
     <input id="searchLocationInput" placeholder="Search location" />
+
+            <button id="startDayBtn" class="primary">
+  🌅 Start Inventory Day
+</button>
+
     <button class="category-action-btn" id="addTodayBtn">
       + Add Today's Inventory
     </button>
+
+    <button id="closeDayBtn" class="danger">
+  🔒 Close Inventory Day
+</button>
   `;
 
   el("searchDateInput").oninput = e => {
@@ -78,6 +95,55 @@ function renderActionBar() {
   };
 
   el("addTodayBtn").onclick = openAddTodayModal;
+  el("startDayBtn").onclick = startInventoryDay; // ✅ THIS WAS MISSING
+  
+}
+
+/* =================  Start Inventory ================= */
+
+async function startInventoryDay() {
+  if (!confirm("Start today's inventory?")) return;
+
+  const date = getPHDate();
+const location = localStorage.getItem("userLocation");
+
+  const adminUser =
+    localStorage.getItem("admin_email") || "ADMIN";
+
+  if (!location) {
+    alert("❌ Location not set");
+    return;
+  }
+
+  showLoader("Starting inventory day…");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "manualStartInventoryDay",
+        date,
+        location,
+        adminUser
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("❌ " + data.error);
+      return;
+    }
+
+    alert("✅ Inventory day started");
+    loadDailyInventory(); // refresh table
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to start inventory day");
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= LOAD DAILY INVENTORY ================= */
@@ -109,6 +175,19 @@ function renderTable() {
     (!searchLocation ||
       (d.location || "").toLowerCase().includes(searchLocation))
   );
+
+  const today = getPHDate();
+const openToday = dailyInventory.some(
+  d =>
+    new Date(d.date).toISOString().slice(0, 10) === today &&
+    d.status === "OPEN"
+);
+
+const startBtn = el("startDayBtn");
+const addBtn = el("addTodayBtn");
+
+if (startBtn) startBtn.disabled = openToday;
+if (addBtn) addBtn.disabled = !openToday;
 
   if (!filtered.length) {
     tbody.innerHTML = `
