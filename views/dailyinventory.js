@@ -8,6 +8,10 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
 
 const STAFF_ID = localStorage.getItem("staff_id");
+const CREATED_BY =
+  localStorage.getItem("admin_email") ||
+  localStorage.getItem("staff_id") ||
+  "ADMIN";
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -101,14 +105,13 @@ async function startInventoryDay() {
 
   const date = getPHDate();
 const location = localStorage.getItem("userLocation");
+if (!location) {
+  alert("❌ Location missing. Please reload or reselect location.");
+  return;
+}
 
   const adminUser =
     localStorage.getItem("admin_email") || "ADMIN";
-
-  if (!location) {
-    alert("❌ Location not set");
-    return;
-  }
 
   showLoader("Starting inventory day…");
 
@@ -345,7 +348,7 @@ window.saveInventoryForDay = function (date, location) {
     `${API_URL}?action=addDailyInventory` +
     `&date=${encodeURIComponent(date)}` +
     `&location=${encodeURIComponent(location)}` +
-    `&created_by=${encodeURIComponent(STAFF_ID)}` +
+    `&created_by=${encodeURIComponent(CREATED_BY)}` +
     `&items=${encodeURIComponent(JSON.stringify(items))}`
   )
     .then(r => r.json())
