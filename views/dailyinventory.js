@@ -178,17 +178,15 @@ function renderTable() {
 
   const today = getPHDate();
   const userLocation = localStorage.getItem("userLocation");
-
-
-const userLocationName = localStorage.getItem("userLocationName");
+  
+const userLocationId = localStorage.getItem("userLocation");
 
 const openToday = dailyInventory.some(d => {
   const rowDay = new Date(d.date).toISOString().slice(0, 10);
 
   return (
     rowDay === today &&
-    String(d.status).toUpperCase() === "OPEN" &&
-    String(d.location) === String(userLocationName)
+    String(d.location_id) === String(userLocationId)
   );
 });
 
