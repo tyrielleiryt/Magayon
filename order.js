@@ -13,7 +13,7 @@ const API_URL =
   let PIN_ACTION = "unlock"; // 🔑 unlock | logout
 const MANAGER_PIN = "1234"; // 🔑 change this
 const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
-
+let SYNC_IN_PROGRESS = false;
 let relockTimer = null;
 
 // Auto-detect very small usable screens
@@ -289,6 +289,8 @@ document.addEventListener("keydown", e => {
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
+
+    updateSyncCounter(); // 👈 ADD THIS
 });
 
 /* =========================================================
@@ -631,9 +633,10 @@ if (!navigator.onLine) {
     items: cartItems,
     time: Date.now()
   });
+  setPendingOrders(pending); // 👈 instead of savePendingOrders
 
-  savePendingOrders(pending);
-
+  delete window.__lastPayment;
+updateSyncCounter(); // optional safety refresh
 
   return;
 }
@@ -802,12 +805,61 @@ function getPendingOrders() {
   return JSON.parse(localStorage.getItem("pendingOrders") || "[]");
 }
 
-function savePendingOrders(list) {
-  localStorage.setItem("pendingOrders", JSON.stringify(list));
+
+function setPendingOrders(arr) {
+  localStorage.setItem("pendingOrders", JSON.stringify(arr));
+  updateSyncCounter();
 }
 
+function updateSyncCounter() {
+  const pending = getPendingOrders();
+  const el = document.getElementById("syncCount");
+
+  if (!el) return;
+
+
+
+  // Optional visual warning
+  const box = document.getElementById("syncStatus");
+  if (pending.length > 0) {
+    box.style.background = "#b45309"; // orange
+  } else {
+    box.style.background = "#15803d"; // green
+  }
+
+  if (SYNC_IN_PROGRESS) {
+  box.style.background = "#1e40af"; // blue
+  el.textContent = "⟳";
+  return;
+}
+  el.textContent = pending.length;
+  box.style.background = pending.length > 0
+  ? "#b45309"   // orange
+  : "#15803d"; // green
+
+  document.getElementById("syncStatus")?.onclick = () => {
+  alert(
+    getPendingOrders()
+      .map(o => o.ref_id)
+      .join("\n") || "All orders synced"
+  );
+};
+}
+
+function saveOrderLocally(order) {
+  const pending = getPendingOrders();
+
+  pending.push({
+    ...order,
+    synced: false,
+    created_at: Date.now()
+  });
+
+  setPendingOrders(pending);
+}
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
+
 
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
@@ -852,10 +904,15 @@ async function openStocks() {
 
 
 async function syncPendingOrders() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine || SYNC_IN_PROGRESS) return;
+
+  SYNC_IN_PROGRESS = true;
 
   const pending = getPendingOrders();
-  if (!pending.length) return;
+  if (!pending.length) {
+    SYNC_IN_PROGRESS = false;
+    return;
+  }
 
   for (const o of pending) {
     try {
@@ -872,13 +929,17 @@ async function syncPendingOrders() {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body
       });
+
     } catch (err) {
       console.warn("Sync failed for order:", o.ref_id);
-      return; // stop on first failure
+      SYNC_IN_PROGRESS = false;
+      return;
     }
   }
 
-  savePendingOrders([]);
+  setPendingOrders([]);
+  SYNC_IN_PROGRESS = false;
+  updateSyncCounter();
   console.log("✅ Offline orders synced");
 }
 
@@ -1122,3 +1183,9 @@ window.__categories = () => categories;
 window.__inventory = () => inventory;
 window.__recipes = () => recipes;
 
+// 🔁 Auto-sync every 5 seconds when online
+setInterval(() => {
+  if (navigator.onLine) {
+    syncPendingOrders();
+  }
+}, 5000);
