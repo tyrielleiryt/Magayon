@@ -220,7 +220,7 @@ window.showRecipeInfo = function (productId, event) {
     if (available === 0) status = "❌ OUT";
     else if (available <= LOW_STOCK_THRESHOLD) status = "⚠️ LOW";
 
-    return `• ${r.item_name}: ${available} left (uses ${needed}) ${status}`;
+    return `• ${itemName}: ${available} left (uses ${needed}) ${status}`;
   });
 
   alert("🧪 Recipe & Inventory\n\n" + lines.join("\n"));
