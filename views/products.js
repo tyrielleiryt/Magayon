@@ -202,8 +202,10 @@ async function loadProductRecipe(productId) {
 async function openProductModal(product = {}) {
   openModal(`
     <div class="modal-header">
-      ${product.product_id ? "Edit" : "Add"} Product
+    <h2>${product.product_id ? "Edit" : "Add"} Product</h2>
     </div>
+
+      <div class="modal-body">
 
     <label>Product Code</label>
     <input id="productCode" value="${product.product_code || ""}">
@@ -240,7 +242,9 @@ async function openProductModal(product = {}) {
       </button>
     </div>
 
-    <div class="modal-actions">
+    </div>
+  
+<div class="modal-footer">
       <button class="btn-danger" id="saveProductBtn">Save</button>
       <button class="btn-back" onclick="closeModal()">Cancel</button>
     </div>

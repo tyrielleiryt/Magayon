@@ -297,3 +297,57 @@ html, body {
   display: none;
 }
 
+/* ================= ADMIN MODAL SCROLL FIX ================= */
+
+#modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#modalOverlay.hidden {
+  display: none;
+}
+
+/* Main modal container */
+#modalBox {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 650px;
+  max-width: 95vw;
+  max-height: 85vh;          /* 🔥 LIMIT HEIGHT */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;          /* IMPORTANT */
+}
+
+/* Header / footer stay visible */
+#modalBox .modal-header,
+#modalBox .modal-footer {
+  flex-shrink: 0;
+}
+
+/* Scrollable content */
+#modalBox .modal-body {
+  flex: 1;                   /* 🔥 takes remaining space */
+  overflow-y: auto;          /* 🔼🔽 SCROLL HERE */
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.recipe-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px;
+  margin: 8px 0;
+}
