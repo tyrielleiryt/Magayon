@@ -177,10 +177,13 @@ function renderTable() {
   );
 
   const today = getPHDate();
-const openToday = dailyInventory.some(
-  d =>
-    new Date(d.date).toISOString().slice(0, 10) === today &&
-    d.status === "OPEN"
+  const userLocation = localStorage.getItem("userLocation");
+
+
+const openToday = dailyInventory.some(d =>
+  new Date(d.date).toISOString().slice(0, 10) === today &&
+  d.status === "OPEN" &&
+  d.location === userLocation
 );
 
 const startBtn = el("startDayBtn");
@@ -297,12 +300,14 @@ async function openAddTodayModal() {
       `
       <div class="modal-header">Add Today's Inventory</div>
 
-      <label>Location</label>
-      <select id="dailyLocation">
-        ${locations.map(
-          l => `<option value="${l.location_id}">${l.location_name}</option>`
-        ).join("")}
-      </select>
+<label>Location</label>
+<select id="dailyLocation" disabled>
+  ${locations
+    .filter(l => l.location_id === localStorage.getItem("userLocation"))
+    .map(l =>
+      `<option value="${l.location_id}">${l.location_name}</option>`
+    ).join("")}
+</select>
 
       <div style="max-height:320px;overflow:auto;margin-top:12px">
         ${inventoryItems.map(i => `
