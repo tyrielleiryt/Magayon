@@ -75,10 +75,6 @@ function renderActionBar() {
   🌅 Start Inventory Day
 </button>
 
-    <button class="category-action-btn" id="addTodayBtn">
-      + Add Today's Inventory
-    </button>
-
     <button id="closeDayBtn" class="danger">
   🔒 Close Inventory Day
 </button>
@@ -94,7 +90,6 @@ function renderActionBar() {
     renderTable();
   };
 
-  el("addTodayBtn").onclick = openAddTodayModal;
   el("startDayBtn").onclick = startInventoryDay; // ✅ THIS WAS MISSING
   
 }
@@ -176,27 +171,6 @@ function renderTable() {
       (d.location || "").toLowerCase().includes(searchLocation))
   );
 
-  const today = getPHDate();
-  const userLocation = localStorage.getItem("userLocation");
-  
-const userLocationId = localStorage.getItem("userLocation");
-
-const openToday = dailyInventory.some(d => {
-  const rowDay = new Date(d.date).toISOString().slice(0, 10);
-
-  return (
-    rowDay === today &&
-    String(d.location_id) === String(userLocationId) &&
-    String(d.status).toUpperCase() === "OPEN"
-  );
-});
-
-
-const startBtn = el("startDayBtn");
-const addBtn = el("addTodayBtn");
-
-if (startBtn) startBtn.disabled = openToday;
-if (addBtn) addBtn.disabled = !openToday;
 
   if (!filtered.length) {
     tbody.innerHTML = `
@@ -209,15 +183,17 @@ if (addBtn) addBtn.disabled = !openToday;
   }
 
   filtered.forEach((d, i) => {
-    const dayKey = new Date(d.date).toLocaleDateString("en-CA");
-
     tbody.innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${new Date(d.date).toLocaleDateString()}</td>
         <td>
-          <button class="btn-view"
-            onclick="viewDailyInventory('${dayKey}','${d.location}')">
+<button class="btn-view"
+  onclick="viewDailyInventory(
+  '${d.date}',
+    '${d.location}',
+    '${d.status}'
+  )">
             View
           </button>
         </td>
@@ -229,7 +205,7 @@ if (addBtn) addBtn.disabled = !openToday;
 }
 
 /* ================= VIEW DAILY INVENTORY ITEMS ================= */
-window.viewDailyInventory = async function (date, location) {
+window.viewDailyInventory = async function (date, location, status) {
   showLoader("Loading inventory…");
 
   try {
@@ -276,9 +252,19 @@ window.viewDailyInventory = async function (date, location) {
         </table>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn-back" onclick="closeModal()">Close</button>
-      </div>
+${String(status).toUpperCase() === "OPEN" ? `
+  <div class="modal-actions">
+    <button class="btn-primary"
+      onclick="openAddInventoryForDay('${date}','${location}')">
+      ➕ Add Inventory
+    </button>
+    <button class="btn-back" onclick="closeModal()">Close</button>
+  </div>
+` : `
+  <div class="modal-actions">
+    <button class="btn-back" onclick="closeModal()">Close</button>
+  </div>
+`}
     `,
       true
     );
@@ -290,30 +276,22 @@ window.viewDailyInventory = async function (date, location) {
   }
 };
 
-/* ================= ADD TODAY INVENTORY ================= */
-async function openAddTodayModal() {
+/* ================= NEW ADD TODAY INVENTORY ================= */
+
+
+window.openAddInventoryForDay = async function (date, location) {
   showLoader("Loading data…");
 
   try {
-    [inventoryItems, locations] = await Promise.all([
-      fetch(`${API_URL}?type=inventoryItems&callback=?`).then(r => r.json()),
-      fetch(`${API_URL}?type=locations&callback=?`).then(r => r.json())
+    [inventoryItems] = await Promise.all([
+      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
     ]);
-
-    locations = locations.filter(l => l.active);
 
     openModal(
       `
-      <div class="modal-header">Add Today's Inventory</div>
-
-<label>Location</label>
-<select id="dailyLocation" disabled>
-  ${locations
-    .filter(l => l.location_id === localStorage.getItem("userLocation"))
-    .map(l =>
-      `<option value="${l.location_id}">${l.location_name}</option>`
-    ).join("")}
-</select>
+      <div class="modal-header">
+        Add Inventory — ${date}
+      </div>
 
       <div style="max-height:320px;overflow:auto;margin-top:12px">
         ${inventoryItems.map(i => `
@@ -328,27 +306,24 @@ async function openAddTodayModal() {
       </div>
 
       <div class="modal-actions">
-        <button class="btn-danger" id="saveDaily">Save</button>
+        <button class="btn-danger"
+          onclick="saveInventoryForDay('${date}','${location}')">
+          Save
+        </button>
         <button class="btn-back" onclick="closeModal()">Cancel</button>
       </div>
       `,
       true
     );
-
-    document.getElementById("saveDaily").onclick = saveDailyInventory;
   } catch (err) {
     console.error(err);
-    alert("Failed to load data");
+    alert("Failed to load inventory");
   } finally {
     hideLoader();
   }
-}
+};
 
-/* ================= SAVE DAILY INVENTORY ================= */
-function saveDailyInventory() {
-  const location = document.getElementById("dailyLocation")?.value;
-  if (!location) return alert("Select location");
-
+window.saveInventoryForDay = function (date, location) {
   const inputs = document.querySelectorAll("[data-id]");
   const items = [];
 
@@ -368,9 +343,10 @@ function saveDailyInventory() {
 
   fetch(
     `${API_URL}?action=addDailyInventory` +
-      `&location=${encodeURIComponent(location)}` +
-      `&created_by=${encodeURIComponent(STAFF_ID)}` +
-      `&items=${encodeURIComponent(JSON.stringify(items))}`
+    `&date=${encodeURIComponent(date)}` +
+    `&location=${encodeURIComponent(location)}` +
+    `&created_by=${encodeURIComponent(STAFF_ID)}` +
+    `&items=${encodeURIComponent(JSON.stringify(items))}`
   )
     .then(r => r.json())
     .then(res => {
@@ -382,4 +358,4 @@ function saveDailyInventory() {
       loadDailyInventory();
     })
     .finally(hideLoader);
-}
+};
