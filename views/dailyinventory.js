@@ -218,42 +218,65 @@ window.viewDailyInventory = async function (date, location, status) {
       `&location=${encodeURIComponent(location)}`
     );
 
-    const items = await res.json();
+const data = await res.json();
 
-    openModal(
-      `
-      <div class="modal-header">
-        Inventory — ${date}
-      </div>
+// 🛑 NO ACTIVE INVENTORY
+if (data.status === "NO_ACTIVE_INVENTORY") {
+  openModal(
+    `
+    <div class="modal-header">
+      Inventory — ${date}
+    </div>
 
-      <div class="inventory-scroll">
-        <table class="inventory-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Total Added</th>
-              <th>Remaining</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              !Array.isArray(items) || !items.length
-                ? `<tr>
-                     <td colspan="3" style="text-align:center;color:#888">
-                       No data
-                     </td>
-                   </tr>`
-                : items.map(i => `
-                    <tr>
-                      <td>${i.item_name}</td>
-                      <td>${Number(i.qty_added) || 0}</td>
-                      <td>${Number(i.remaining) || 0}</td>
-                    </tr>
-                  `).join("")
-            }
-          </tbody>
-        </table>
-      </div>
+    <div style="padding:16px;text-align:center;color:#888">
+      No active inventory for today
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+    `,
+    true
+  );
+  return;
+}
+
+const items = data.items || [];
+
+openModal(
+  `
+  <div class="modal-header">
+    Inventory — ${date}
+  </div>
+
+  <div class="inventory-scroll">
+    <table class="inventory-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Total Added</th>
+          <th>Remaining</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${
+          !items.length
+            ? `<tr>
+                 <td colspan="3" style="text-align:center;color:#888">
+                   No data
+                 </td>
+               </tr>`
+            : items.map(i => `
+                <tr>
+                  <td>${i.item_name}</td>
+                  <td>${Number(i.qty_added) || 0}</td>
+                  <td>${Number(i.remaining) || 0}</td>
+                </tr>
+              `).join("")
+        }
+      </tbody>
+    </table>
+  </div>
 
 ${String(status).toUpperCase() === "OPEN" ? `
   <div class="modal-actions">

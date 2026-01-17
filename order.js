@@ -74,10 +74,11 @@ function applyInventoryGate(inventoryRows) {
   if (!Array.isArray(inventoryRows) || inventoryRows.length === 0) {
     POS_CLOSED = true;
     enterSalesOnlyMode();
-  } else {
-    POS_CLOSED = false;
-    exitSalesOnlyMode();
+    return;
   }
+
+  POS_CLOSED = false;
+  exitSalesOnlyMode();
 }
 
 function showSalesOnlyBanner() {
@@ -352,60 +353,47 @@ document.addEventListener("keydown", e => {
 async function loadAllData() {
   const today = getPHDate();
 
-const [
-  categoriesData,
-  productsData,
-  recipesData,
-  inventoryRows
-] = await Promise.all([
-  fetch(`${API_URL}?type=categories`).then(r => r.json()),
-  fetch(`${API_URL}?type=products`).then(r => r.json()),
-  fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-  fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
-    .then(r => r.json())
-]);
+  const [
+    categoriesData,
+    productsData,
+    recipesData,
+    inventoryResponse
+  ] = await Promise.all([
+    fetch(`${API_URL}?type=categories`).then(r => r.json()),
+    fetch(`${API_URL}?type=products`).then(r => r.json()),
+    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
+    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
+      .then(r => r.json())
+  ]);
 
-applyInventoryGate(inventoryRows);
-
-// 🚫 Inventory started but no items added
-if (Array.isArray(inventoryRows) && inventoryRows.length === 0) {
-  POS_CLOSED = true;
-  enterSalesOnlyMode();
-
-  console.warn("⚠️ Inventory day exists but no inventory items found");
-}
-
-  categories = Array.isArray(categoriesData)
-  ? categoriesData
-  : JSON.parse(localStorage.getItem("categories") || "[]");
-
-products = Array.isArray(productsData)
-  ? productsData
-  : JSON.parse(localStorage.getItem("products") || "[]");
-
-recipes = recipesData || JSON.parse(localStorage.getItem("recipes") || "{}");
-
-localStorage.setItem("categories", JSON.stringify(categories));
-localStorage.setItem("products", JSON.stringify(products));
-localStorage.setItem("recipes", JSON.stringify(recipes));
-
-  inventory = {};
-
-  if (!Array.isArray(inventoryRows)) {
-    console.warn("⚠️ Inventory unavailable (offline mode)");
+  // 🔒 INVENTORY GATE
+  if (inventoryResponse.status !== "OPEN") {
+    POS_CLOSED = true;
+    enterSalesOnlyMode();
     return;
   }
 
+  const inventoryRows = inventoryResponse.items || [];
+
+  applyInventoryGate(inventoryRows);
+
+  inventory = {};
+  inventoryNames = {};
+
   inventoryRows.forEach(r => {
     inventory[r.item_id] = Number(r.remaining) || 0;
-      inventoryNames[r.item_id] = r.item_name; // ✅ ADD
+    inventoryNames[r.item_id] = r.item_name;
   });
 
-  window.__debugInventory = inventory;
-window.__debugRecipes = recipes;
-window.__debugLocation = LOCATION;
+  categories = Array.isArray(categoriesData) ? categoriesData : [];
+  products = Array.isArray(productsData) ? productsData : [];
+  recipes = recipesData || {};
 
-console.log("DEBUG INVENTORY:", inventory);
+  localStorage.setItem("categories", JSON.stringify(categories));
+  localStorage.setItem("products", JSON.stringify(products));
+  localStorage.setItem("recipes", JSON.stringify(recipes));
+
+  console.log("DEBUG INVENTORY:", inventory);
 console.log("DEBUG RECIPES:", recipes);
 console.log("DEBUG LOCATION:", LOCATION);
 
@@ -426,23 +414,28 @@ async function refreshInventoryOnly({ silent = false } = {}) {
       showInventoryToast("🔄 Syncing inventory…");
     }
 
-    const rows = await fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-    ).then(r => r.json());
+   const data = await fetch(
+  `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
+).then(r => r.json());
 
-    if (!Array.isArray(rows)) return;
+if (data.status !== "OPEN") {
+  POS_CLOSED = true;
+  enterSalesOnlyMode();
+  return;
+}
 
-    // 🔁 Replace inventory with admin source of truth
-    inventory = {};
-    inventoryNames = {};
+const rows = data.items || [];
 
-    rows.forEach(r => {
-      inventory[r.item_id] = Number(r.remaining) || 0;
-      inventoryNames[r.item_id] = r.item_name;
-    });
+inventory = {};
+inventoryNames = {};
 
-    applyInventoryGate(rows);   // 🔥 ADD THIS
-    renderProducts(); // 🔥 update grid, LOW badges, disabled states
+rows.forEach(r => {
+  inventory[r.item_id] = Number(r.remaining) || 0;
+  inventoryNames[r.item_id] = r.item_name;
+});
+
+applyInventoryGate(rows);
+renderProducts(); // 🔥 update grid, LOW badges, disabled states
     window.__lastInventorySync = new Date();
     if (!silent) {
       showInventoryToast("✅ Inventory updated");
@@ -462,7 +455,7 @@ async function refreshInventoryOnly({ silent = false } = {}) {
 ========================================================= */
 function canSell(product, qty = 1) {
    // ✅ allow selling if inventory not loaded yet
-  if (!Object.keys(inventory).length) return true;
+  if (!Object.keys(inventory).length) return false;
   
   const recipe = recipes[product.product_id];
   if (!recipe || !recipe.length) return false;
@@ -978,31 +971,39 @@ async function openStocks() {
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
 
   try {
-
-    const today = getPHDate(); // ✅ ADD THIS LINE
-
+    const today = getPHDate();
 
     const res = await fetch(
       `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
     );
 
-    const rows = await res.json();
+    const data = await res.json();
+
+    if (data.status !== "OPEN") {
+      tbody.innerHTML =
+        "<tr><td colspan='3'>Inventory is closed.</td></tr>";
+      return;
+    }
+
+    const rows = data.items || [];
+
     tbody.innerHTML = "";
 
-    if (!Array.isArray(rows) || !rows.length) {
+    if (!rows.length) {
       tbody.innerHTML =
         "<tr><td colspan='3'>No inventory data.</td></tr>";
-    } else {
-      rows.forEach(r => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${r.item_name}</td>
-            <td>${r.qty_added}</td>
-            <td>${r.remaining}</td>
-          </tr>
-        `;
-      });
+      return;
     }
+
+    rows.forEach(r => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${r.item_name}</td>
+          <td>${r.qty_added}</td>
+          <td>${r.remaining}</td>
+        </tr>
+      `;
+    });
 
     document.getElementById("stocksModal").classList.remove("hidden");
 
@@ -1012,7 +1013,6 @@ async function openStocks() {
       "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
   }
 }
-
 
 
 async function syncPendingOrders() {
