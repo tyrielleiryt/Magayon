@@ -202,6 +202,30 @@ let inventory = {};      // item_id → remaining
 let cart = [];
 let activeCategoryId = null;
 
+window.showRecipeInfo = function (productId, event) {
+  event.stopPropagation(); // 🚫 don't add to cart
+
+  const recipe = recipes[productId];
+
+  if (!recipe || !recipe.length) {
+    alert("🧪 No recipe assigned for this product");
+    return;
+  }
+
+  const lines = recipe.map(r => {
+    const available = inventory[r.item_id] ?? 0;
+    const needed = Number(r.qty_used);
+
+    let status = "✅ OK";
+    if (available === 0) status = "❌ OUT";
+    else if (available <= LOW_STOCK_THRESHOLD) status = "⚠️ LOW";
+
+    return `• ${r.item_name}: ${available} left (uses ${needed}) ${status}`;
+  });
+
+  alert("🧪 Recipe & Inventory\n\n" + lines.join("\n"));
+};
+
 
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
@@ -472,9 +496,9 @@ function renderProducts(search = "") {
     .forEach(p => {
       const disabled = !canSell(p);
       const lowStock =
-  Object.keys(inventory).length &&
-  getLowStockItems(p).length > 0;
-      const img = p.image_url?.trim()
+        Object.keys(inventory).length &&
+        getLowStockItems(p).length > 0;
+        const img = p.image_url?.trim()
         ? p.image_url
         : "images/placeholder.png";
 
@@ -482,17 +506,23 @@ function renderProducts(search = "") {
       card.className = "product-card" + (disabled ? " disabled" : "") +
          (lowStock ? " low-stock" : "");
 
-      card.innerHTML = `
-        <div class="product-img">
-          <img src="${img}" loading="lazy"
-               onerror="this.src='images/placeholder.png'">
-        </div>
-        <div class="product-info">
-          <div class="product-code">${p.product_code}</div>
-          <div class="product-name">${p.product_name}</div>
-          <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
-        </div>
-      `;
+card.innerHTML = `
+  <div class="recipe-indicator"  ${disabled ? "style='opacity:.4;pointer-events:none'" : ""}
+       onclick="showRecipeInfo('${p.product_id}', event)">
+    🧪
+  </div>
+
+  <div class="product-img">
+    <img src="${img}" loading="lazy"
+         onerror="this.src='images/placeholder.png'">
+  </div>
+
+  <div class="product-info">
+    <div class="product-code">${p.product_code}</div>
+    <div class="product-name">${p.product_name}</div>
+    <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+  </div>
+`;
 
       if (!disabled) card.onclick = () => addToCart(p);
       grid.appendChild(card);

@@ -95,6 +95,7 @@ body {
   flex-direction: column;
   height: 220px; /* 🔥 FIXED CARD HEIGHT */
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+    position: relative;
 }
 
 .product-card:hover {
@@ -104,6 +105,33 @@ body {
 
 .product-card.low-stock {
   outline: 3px solid #f39c12;
+}
+
+.product-card.low-stock::after {
+  content: "LOW";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #b45309;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.recipe-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 3;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border-radius: 50%;
+  padding: 4px;
 }
 
 /* ================= IMAGE ================= */
@@ -877,4 +905,8 @@ body.sales-only .checkout {
 
 #netStatus {
   margin-left: 10px;
+}
+
+.product-card.low-stock .recipe-indicator {
+  top: 28px;
 }
