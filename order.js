@@ -203,7 +203,7 @@ let cart = [];
 let activeCategoryId = null;
 
 window.showRecipeInfo = function (productId, event) {
-  event.stopPropagation(); // 🚫 don't add to cart
+  event.stopPropagation();
 
   const recipe = recipes[productId];
 
@@ -215,6 +215,7 @@ window.showRecipeInfo = function (productId, event) {
   const lines = recipe.map(r => {
     const available = inventory[r.item_id] ?? 0;
     const needed = Number(r.qty_used);
+    const itemName = r.item_name || r.item_id; // ✅ FIX
 
     let status = "✅ OK";
     if (available === 0) status = "❌ OUT";
