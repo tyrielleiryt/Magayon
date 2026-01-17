@@ -180,11 +180,17 @@ function renderTable() {
   const userLocation = localStorage.getItem("userLocation");
 
 
-const openToday = dailyInventory.some(d =>
-  String(d.date).slice(0, 10) === today &&
-  d.status === "OPEN" &&
-  d.location === userLocation
-);
+const userLocationName = localStorage.getItem("userLocationName");
+
+const openToday = dailyInventory.some(d => {
+  const rowDay = new Date(d.date).toISOString().slice(0, 10);
+
+  return (
+    rowDay === today &&
+    String(d.status).toUpperCase() === "OPEN" &&
+    String(d.location) === String(userLocationName)
+  );
+});
 
 const startBtn = el("startDayBtn");
 const addBtn = el("addTodayBtn");
