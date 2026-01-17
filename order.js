@@ -703,8 +703,13 @@ if (warnings.length) {
   console.warn("Low stock items:", warnings);
 }
 
+if (!window.__lastPayment?.payment_status) {
+  console.warn("⚠️ Payment status missing, forcing EXACT");
+  window.__lastPayment.payment_status = "EXACT";
+}
 
   const ref = "ORD-" + Date.now();
+
 
   try {
     const payment = window.__lastPayment;
@@ -735,6 +740,7 @@ if (!navigator.onLine) {
     staff_id: STAFF_ID,
     location: LOCATION,
     items: cartItems,
+    payment: window.__lastPayment, // ✅ ADD THIS
     time: Date.now()
   });
   setPendingOrders(pending); // 👈 instead of savePendingOrders
@@ -825,13 +831,19 @@ function confirmPayment() {
     return;
   }
 
+  const payment_status =
+  paid < total ? "UNDERPAID" :
+  paid > total ? "OVERPAID" :
+  "EXACT";
+
   // Store temporarily (used later in backend Step 3)
   window.__lastPayment = {
     total_bill: total,
     amount_paid: paid,
     change: paid - total,
     payment_method: method,
-    gcash_ref: ref
+    gcash_ref: ref,
+    payment_status // ✅ ADD THIS
   };
 
 // 🔥 OPTIMISTIC CHECKOUT (NO WAITING)
@@ -1021,7 +1033,8 @@ async function syncPendingOrders() {
         ref_id: o.ref_id,
         staff_id: o.staff_id,
         location: o.location,
-        items: JSON.stringify(o.items)
+        items: JSON.stringify(o.items),
+        payment: JSON.stringify(o.payment || {}) // ✅ ADD
       });
 
       await fetch(API_URL, {
