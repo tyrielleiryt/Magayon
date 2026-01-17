@@ -186,9 +186,11 @@ const openToday = dailyInventory.some(d => {
 
   return (
     rowDay === today &&
-    String(d.location_id) === String(userLocationId)
+    String(d.location_id) === String(userLocationId) &&
+    String(d.status).toUpperCase() === "OPEN"
   );
 });
+
 
 const startBtn = el("startDayBtn");
 const addBtn = el("addTodayBtn");
