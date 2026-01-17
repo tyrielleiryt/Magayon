@@ -874,3 +874,7 @@ body.sales-only .checkout {
     font-size: 12px;
   }
 }
+
+#netStatus {
+  margin-left: 10px;
+}
