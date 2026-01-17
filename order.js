@@ -199,6 +199,7 @@ let products = [];
 let categories = [];
 let recipes = {};        // product_id → recipe[]
 let inventory = {};      // item_id → remaining
+let inventoryNames = {};  // item_id → item_name ✅ ADD THIS
 let cart = [];
 let activeCategoryId = null;
 
@@ -215,7 +216,10 @@ window.showRecipeInfo = function (productId, event) {
   const lines = recipe.map(r => {
     const available = inventory[r.item_id] ?? 0;
     const needed = Number(r.qty_used);
-    const itemName = r.item_name || r.item_id; // ✅ FIX
+const itemName =
+  inventoryNames[r.item_id] ||
+  r.item_name ||
+  r.item_id;
 
     let status = "✅ OK";
     if (available === 0) status = "❌ OUT";
@@ -370,6 +374,7 @@ localStorage.setItem("recipes", JSON.stringify(recipes));
 
   inventoryRows.forEach(r => {
     inventory[r.item_id] = Number(r.remaining) || 0;
+      inventoryNames[r.item_id] = r.item_name; // ✅ ADD
   });
 
   window.__debugInventory = inventory;
