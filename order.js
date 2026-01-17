@@ -814,36 +814,32 @@ function setPendingOrders(arr) {
 function updateSyncCounter() {
   const pending = getPendingOrders();
   const el = document.getElementById("syncCount");
-
-  if (!el) return;
-
-
-
-  // Optional visual warning
   const box = document.getElementById("syncStatus");
-  if (pending.length > 0) {
-    box.style.background = "#b45309"; // orange
-  } else {
-    box.style.background = "#15803d"; // green
+
+  if (!el || !box) return;
+
+  // 🔄 Sync in progress
+  if (SYNC_IN_PROGRESS) {
+    el.textContent = "⟳";
+    box.style.background = "#1e40af"; // blue
+    return;
   }
 
-  if (SYNC_IN_PROGRESS) {
-  box.style.background = "#1e40af"; // blue
-  el.textContent = "⟳";
-  return;
-}
+  // 📦 Pending count
   el.textContent = pending.length;
-  box.style.background = pending.length > 0
-  ? "#b45309"   // orange
-  : "#15803d"; // green
 
-  document.getElementById("syncStatus")?.onclick = () => {
-  alert(
-    getPendingOrders()
-      .map(o => o.ref_id)
-      .join("\n") || "All orders synced"
-  );
-};
+  box.style.background =
+    pending.length > 0
+      ? "#b45309"  // orange
+      : "#15803d"; // green
+
+  box.onclick = () => {
+    alert(
+      pending.length
+        ? pending.map(o => o.ref_id).join("\n")
+        : "All orders synced"
+    );
+  };
 }
 
 function saveOrderLocally(order) {
