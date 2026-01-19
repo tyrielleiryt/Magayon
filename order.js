@@ -30,6 +30,7 @@ function autoDetectDenseMode() {
 
 let POS_CLOSED = false;
 let chatBox = null;
+let POS_CHAT_ENABLED = true; // 🔒 admin can disable POS chat
 
 function exitSalesOnlyMode() {
   POS_CLOSED = false;
@@ -297,8 +298,13 @@ enableWakeLock();
   if (chatBox && chatToggle) {
     initChatUI();
 
-    chatToggle.addEventListener("click", () => {
-      chatBox.classList.toggle("hidden");
+chatToggle.addEventListener("click", () => {
+  if (!POS_CHAT_ENABLED) {
+    alert("💬 Chat is currently disabled by admin");
+    return;
+  }
+
+  chatBox.classList.toggle("hidden");
 
       // 🔥 load messages immediately when opened
       if (!chatBox.classList.contains("hidden")) {
@@ -368,6 +374,7 @@ document.addEventListener("keydown", e => {
   });
 
     updateSyncCounter(); // 👈 ADD THIS
+    chatBox?.classList.add("hidden");
 });
 
 /* =========================================================
@@ -1285,6 +1292,7 @@ let lastChatHash = "";
 let chatLoading = false;
 
 function loadPOSChat() {
+    if (!POS_CHAT_ENABLED) return;
   if (chatLoading) return;
   chatLoading = true;
 
@@ -1323,28 +1331,27 @@ function loadPOSChat() {
 
 // 🔁 SINGLE poll
 setInterval(() => {
-  if (!chatBox?.classList.contains("hidden")) {
-    loadPOSChat();
-  }
+  if (!POS_CHAT_ENABLED) return;
+  if (!chatBox) return;
+  if (chatBox.classList.contains("hidden")) return;
+
+  loadPOSChat();
 }, 3000);
 
 function initChatUI() {
     if (!chatBox) return; // 🛑 safety guard
-  chatBox.innerHTML = `
-    <div style="padding:10px;font-weight:bold;border-bottom:1px solid #ddd">
-      Admin Chat
-    </div>
+chatBox.innerHTML = `
+  <div class="pos-chat-header">
+    💬 Admin Chat
+  </div>
 
-    <div id="chatMessages"
-         style="flex:1;overflow-y:auto;padding:10px"></div>
+  <div id="chatMessages" class="pos-chat-messages"></div>
 
-    <div style="display:flex;border-top:1px solid #ddd">
-      <input id="chatInput"
-             style="flex:1;padding:8px;border:none"
-             placeholder="Type message…" />
-      <button id="chatSendBtn" style="padding:8px 12px">Send</button>
-    </div>
-  `;
+  <div class="pos-chat-input">
+    <input id="chatInput" placeholder="Type a message…" />
+    <button id="chatSendBtn">Send</button>
+  </div>
+`;
 
   document.getElementById("chatSendBtn").onclick = sendChat;
 
@@ -1379,25 +1386,26 @@ function renderChatMessages(messages = []) {
 }
 
 function sendChat() {
+  if (!POS_CHAT_ENABLED) {
+  alert("💬 Chat is currently disabled by admin");
+  return;
+}
+
   const input = document.getElementById("chatInput");
+  if (!input) return;
   const msg = input.value.trim();
   if (!msg) return;
 
-  renderChatMessages([
-  ...(JSON.parse(lastChatHash || "[]")),
-  { sender_role: "CASHIER", message: msg }
-]);
-
-  fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "sendChatMessage",
-      sender_role: "CASHIER",
-      sender_id: localStorage.getItem("staff_id"),
-      location: localStorage.getItem("userLocation"),
-      message: msg
-    })
-  });
+fetch(API_URL, {
+  method: "POST",
+  body: new URLSearchParams({
+    action: "sendChatMessage",
+    sender_role: "CASHIER",
+    sender_id: STAFF_ID,
+    location: LOCATION,
+    message: msg
+  })
+}).then(() => loadPOSChat());
 
   input.value = "";
 }
@@ -1412,6 +1420,8 @@ document.addEventListener("visibilitychange", () => {
     enableWakeLock();
   }
 });
+
+
 
 document.getElementById("salesBtn")?.addEventListener("click", async () => {
   const tbody = document.getElementById("salesBody");

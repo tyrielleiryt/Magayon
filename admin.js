@@ -204,17 +204,29 @@ function loadAdminChat() {
   document.body.appendChild(script);
 }
 
-
+let currentReplyLocation = "ALL"; // default
 
 function renderAdminChat(messages = []) {
   const box = document.getElementById("adminChatMessages");
   if (!box) return;
+
+  // ✅ FIND LAST CASHIER MESSAGE AND SET REPLY LOCATION
+  const lastCashier = [...messages]
+    .reverse()
+    .find(m => m.sender_role === "CASHIER");
+
+  if (lastCashier?.location) {
+    currentReplyLocation = lastCashier.location;
+  }
 
   box.innerHTML = messages.map(m => `
     <div style="
       margin-bottom:8px;
       text-align:${m.sender_role === "ADMIN" ? "right" : "left"};
     ">
+      <div style="font-size:11px;color:#6b7280">
+        ${m.sender_role} • ${m.location}
+      </div>
       <span style="
         display:inline-block;
         padding:6px 10px;
@@ -244,7 +256,7 @@ function sendAdminChat() {
       action: "sendChatMessage",
       sender_role: "ADMIN",
       sender_id: "ADMIN",
-      location: ADMIN_LOCATION,
+      location: currentReplyLocation, // ✅ NOT "ALL"
       message: msg
     })
   }).catch(err => {
