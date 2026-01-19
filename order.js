@@ -1089,11 +1089,14 @@ function closeSales() {
 window.closeSales = closeSales;
 
 function renderSalesTable(orders) {
+
   const tbody = document.getElementById("salesBody");
   const totalEl = document.getElementById("sumGross");
 
   tbody.innerHTML = "";
   let grandTotal = 0;
+  let cashTotal = 0;
+  let gcashTotal = 0;
 
   if (!orders.length) {
     tbody.innerHTML = `
@@ -1115,6 +1118,14 @@ function renderSalesTable(orders) {
 
     grandTotal += transactionTotal;
 
+    const method = o.payment?.payment_method || "CASH";
+
+if (method === "GCASH") {
+  gcashTotal += transactionTotal;
+} else {
+  cashTotal += transactionTotal;
+}
+
     // TRANSACTION HEADER
     tbody.insertAdjacentHTML("beforeend", `
       <tr style="background:#f4f4f4;font-weight:600">
@@ -1122,6 +1133,9 @@ function renderSalesTable(orders) {
         <td>
           ${o.ref_id}<br>
           <small>${formatDateTime(o.datetime)}</small>
+            <small>
+              💳 ${o.payment?.payment_method || "CASH"}
+           </small>
         </td>
         <td></td>
         <td>${o.cashier || "-"}</td>
@@ -1143,7 +1157,12 @@ function renderSalesTable(orders) {
     });
   });
 
-  totalEl.textContent = grandTotal.toFixed(2);
+  // SUMMARY
+totalEl.innerHTML = `
+  <div><strong>Gross Sales:</strong> ₱${grandTotal.toFixed(2)}</div>
+  <div>💵 Cash: ₱${cashTotal.toFixed(2)}</div>
+  <div>📱 GCash: ₱${gcashTotal.toFixed(2)}</div>
+`;
 }
 
 function formatDateTime(value) {
