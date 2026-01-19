@@ -816,6 +816,7 @@ function confirmPayment() {
 
   const paid = Number(paidValue);
   const method = document.getElementById("paymentMethod").value;
+  const isGCash = method === "GCASH"; // ✅ ADD THIS LINE
   const ref = document.getElementById("gcashRef").value || "";
   const total = pendingPayment?.total || 0;
 
@@ -835,6 +836,7 @@ function confirmPayment() {
     amount_paid: paid,
     change: paid - total,
     payment_method: method,
+    gcash_payment: isGCash, // ✅ ADD THIS
     gcash_ref: ref,
     payment_status // ✅ ADD THIS
   };
@@ -1134,7 +1136,13 @@ if (method === "GCASH") {
           ${o.ref_id}<br>
           <small>${formatDateTime(o.datetime)}</small>
             <small>
-              💳 ${o.payment?.payment_method || "CASH"}
+              <span class="payment-badge ${
+  o.payment?.payment_method === "GCASH"
+    ? "payment-gcash"
+    : "payment-cash"
+}">
+  ${o.payment?.payment_method || "CASH"}
+</span>
            </small>
         </td>
         <td></td>

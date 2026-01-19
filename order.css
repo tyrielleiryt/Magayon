@@ -932,3 +932,132 @@ body.sales-only .checkout {
   opacity: 1;
   transform: translateX(-50%) translateY(-6px);
 }
+
+/* ================= SALES REPORT MODAL ================= */
+
+#salesModal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#salesModal .modal-box {
+  width: 92%;
+  max-width: 1000px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+/* Header */
+#salesModal .modal-header {
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+  color: #fff;
+}
+
+/* Scrollable body */
+#salesModal .modal-body {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Table */
+#salesModal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+#salesModal thead th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  z-index: 2;
+  padding: 10px;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+#salesModal tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Transaction header row */
+#salesModal tr[style*="font-weight"] {
+  background: #f8fafc !important;
+  border-top: 2px solid #cbd5f5;
+}
+
+/* Product rows */
+#salesModal tbody tr:not([style*="font-weight"]) td {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+/* Payment method badge */
+.payment-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.payment-cash {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.payment-gcash {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Summary box */
+#sumGross {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-top: 2px solid #e5e7eb;
+  font-size: 1rem;
+}
+
+#sumGross div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+#sumGross strong {
+  font-size: 1.05rem;
+}
+
+/* Highlight totals */
+#sumGross div:first-child {
+  font-weight: 700;
+  border-bottom: 1px dashed #cbd5f5;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+}
+
+/* Close button */
+#salesModal .modal-actions {
+  padding: 10px;
+  display: flex;
+  justify-content: flex-end;
+  background: #f1f5f9;
+}
+
+#salesModal .modal-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
