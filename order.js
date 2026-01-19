@@ -29,6 +29,7 @@ function autoDetectDenseMode() {
 }
 
 let POS_CLOSED = false;
+let chatBox = null;
 
 function exitSalesOnlyMode() {
   POS_CLOSED = false;
@@ -287,6 +288,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
 enableWakeLock();
+
+  /* ================= CHAT INIT ================= */
+
+   chatBox = document.getElementById("chatBox");
+  const chatToggle = document.getElementById("chatToggle");
+
+  if (chatBox && chatToggle) {
+    initChatUI();
+
+    chatToggle.addEventListener("click", () => {
+      chatBox.classList.toggle("hidden");
+
+      // 🔥 load messages immediately when opened
+      if (!chatBox.classList.contains("hidden")) {
+        loadPOSChat();
+        document.getElementById("chatInput")?.focus();
+      }
+    });
+
+    // 👇 FIRST LOAD so it’s never empty
+    loadPOSChat();
+  }
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js");
@@ -1258,17 +1281,55 @@ function updateNetStatus() {
   }
 }
 
-const chatBox = document.getElementById("chatBox");
+let lastChatHash = "";
+let chatLoading = false;
 
-initChatUI();
+function loadPOSChat() {
+  if (chatLoading) return;
+  chatLoading = true;
 
-const chatToggle = document.getElementById("chatToggle");
+  const loc = localStorage.getItem("userLocation");
+  if (!loc) return;
 
-chatToggle.onclick = () => {
-  chatBox.classList.toggle("hidden");
-};
+  const callbackName = "posChatCallback_" + Date.now();
+  const script = document.createElement("script");
+
+  window[callbackName] = messages => {
+    chatLoading = false;
+    delete window[callbackName];
+    script.remove();
+
+    const hash = JSON.stringify(messages);
+    if (hash !== lastChatHash) {
+      lastChatHash = hash;
+      renderChatMessages(messages);
+    }
+  };
+
+  script.src =
+    `${API_URL}?type=chatMessages` +
+    `&location=${loc}` +
+    `&callback=${callbackName}`;
+
+  script.onerror = () => {
+    chatLoading = false;
+    delete window[callbackName];
+    script.remove();
+    console.warn("⚠️ POS chat JSONP failed");
+  };
+
+  document.body.appendChild(script);
+}
+
+// 🔁 SINGLE poll
+setInterval(() => {
+  if (!chatBox?.classList.contains("hidden")) {
+    loadPOSChat();
+  }
+}, 3000);
 
 function initChatUI() {
+    if (!chatBox) return; // 🛑 safety guard
   chatBox.innerHTML = `
     <div style="padding:10px;font-weight:bold;border-bottom:1px solid #ddd">
       Admin Chat
@@ -1288,13 +1349,15 @@ function initChatUI() {
   document.getElementById("chatSendBtn").onclick = sendChat;
 
   document.getElementById("chatInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") sendChat();
+      if (e.key === "Enter") {
+    e.preventDefault();
+    sendChat();
+  }
   });
 }
 
 function renderChatMessages(messages = []) {
   const box = document.getElementById("chatMessages");
-  const input = document.getElementById("chatInput");
   if (!box) return;
 
   // Are we near bottom?
@@ -1320,6 +1383,11 @@ function sendChat() {
   const msg = input.value.trim();
   if (!msg) return;
 
+  renderChatMessages([
+  ...(JSON.parse(lastChatHash || "[]")),
+  { sender_role: "CASHIER", message: msg }
+]);
+
   fetch(API_URL, {
     method: "POST",
     body: new URLSearchParams({
@@ -1334,14 +1402,6 @@ function sendChat() {
   input.value = "";
 }
 
-setInterval(async () => {
-  const loc = localStorage.getItem("userLocation");
-  if (!loc) return;
-
-  const res = await fetch(`${API_URL}?type=chatMessages&location=${loc}`);
-  const data = await res.json();
-  renderChatMessages(data);
-}, 3000);
 
 window.addEventListener("online", updateNetStatus);
 window.addEventListener("offline", updateNetStatus);
