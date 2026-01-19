@@ -1317,6 +1317,7 @@ function sendChat() {
 
   input.value = "";
 }
+window.sendChat = sendChat;
 
 setInterval(async () => {
   const loc = localStorage.getItem("userLocation");
