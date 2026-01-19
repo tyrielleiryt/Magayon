@@ -367,11 +367,11 @@ async function loadAllData() {
   ]);
 
   // 🔒 INVENTORY GATE
-  if (inventoryResponse.status !== "OPEN") {
-    POS_CLOSED = true;
-    enterSalesOnlyMode();
-    return;
-  }
+if (inventoryResponse.status !== "OPEN") {
+  POS_CLOSED = true;
+  enterSalesOnlyMode();
+}
+// continue loading products anyway
 
   const inventoryRows = inventoryResponse.items || [];
 
@@ -454,7 +454,7 @@ renderProducts(); // 🔥 update grid, LOW badges, disabled states
    INVENTORY CHECK
 ========================================================= */
 function canSell(product, qty = 1) {
-   // ✅ allow selling if inventory not loaded yet
+// 🚫 block selling if inventory not loaded yet
   if (!Object.keys(inventory).length) return false;
   
   const recipe = recipes[product.product_id];
@@ -732,7 +732,12 @@ if (!navigator.onLine) {
     ref_id: ref,
     staff_id: STAFF_ID,
     location: LOCATION,
-    items: cartItems,
+items: cartItems.map(i => ({
+  product_id: i.product_id,
+  qty: i.qty,
+  price: i.price,
+  total: i.qty * i.price
+})),
     payment: window.__lastPayment, // ✅ ADD THIS
     time: Date.now()
   });
@@ -757,6 +762,11 @@ updateSyncCounter(); // optional safety refresh
     if (!data.success) {
       throw new Error(data.error || "Checkout failed");
     }
+
+    // ✅ HARD REFRESH inventory from server after successful checkout
+if (navigator.onLine) {
+  refreshInventoryOnly({ silent: true });
+}
 
     delete window.__lastPayment;
   } catch (err) {
@@ -1247,6 +1257,75 @@ function updateNetStatus() {
     el.className = "net offline";
   }
 }
+
+const chatBox = document.getElementById("chatBox");
+const chatToggle = document.getElementById("chatToggle");
+
+chatToggle.onclick = () => {
+  chatBox.classList.toggle("hidden");
+};
+
+function renderChat(messages) {
+  chatBox.innerHTML = `
+    <div style="padding:10px;font-weight:bold;border-bottom:1px solid #ddd">
+      Admin Chat
+    </div>
+
+    <div id="chatMessages" style="flex:1;overflow-y:auto;padding:10px">
+      ${messages.map(m => `
+        <div style="
+          margin-bottom:6px;
+          text-align:${m.sender_role === "CASHIER" ? "right" : "left"};
+        ">
+          <span style="
+            display:inline-block;
+            padding:6px 10px;
+            border-radius:12px;
+            background:${m.sender_role === "CASHIER" ? "#2563eb" : "#e5e7eb"};
+            color:${m.sender_role === "CASHIER" ? "#fff" : "#000"};
+          ">
+            ${m.message}
+          </span>
+        </div>
+      `).join("")}
+    </div>
+
+    <div style="display:flex;border-top:1px solid #ddd">
+      <input id="chatInput" style="flex:1;padding:8px;border:none" placeholder="Type message…" />
+      <button onclick="sendChat()" style="padding:8px 12px">Send</button>
+    </div>
+  `;
+}
+
+
+
+function sendChat() {
+  const input = document.getElementById("chatInput");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "sendChatMessage",
+      sender_role: "CASHIER",
+      sender_id: localStorage.getItem("staff_id"),
+      location: localStorage.getItem("userLocation"),
+      message: msg
+    })
+  });
+
+  input.value = "";
+}
+
+setInterval(async () => {
+  const loc = localStorage.getItem("userLocation");
+  if (!loc) return;
+
+  const res = await fetch(`${API_URL}?type=chatMessages&location=${loc}`);
+  const data = await res.json();
+  renderChat(data);
+}, 3000);
 
 window.addEventListener("online", updateNetStatus);
 window.addEventListener("offline", updateNetStatus);
