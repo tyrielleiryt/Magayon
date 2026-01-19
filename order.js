@@ -129,6 +129,8 @@ function closePinModal() {
   document.getElementById("pinModal")?.classList.add("hidden");
 }
 
+
+
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout") {
     showPinModal();
@@ -375,6 +377,7 @@ document.addEventListener("keydown", e => {
 
     updateSyncCounter(); // 👈 ADD THIS
     chatBox?.classList.add("hidden");
+
 });
 
 /* =========================================================

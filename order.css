@@ -1240,11 +1240,26 @@ body.sales-only .checkout {
   cursor: pointer;
 }
 
+/* 🔥 GLOBAL hidden utility */
+.hidden {
+  display: none !important;
+}
+
+/* 🔥 POS chat box layout */
 #chatBox {
   display: flex;
   flex-direction: column;
 }
 
+/* ================= CHAT VISIBILITY FIX ================= */
+
+/* universal hidden */
 .hidden {
-  display: none;
+  display: none !important;
+}
+
+/* POS chat box base layout */
+#chatBox {
+  display: flex;
+  flex-direction: column;
 }
