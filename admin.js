@@ -130,6 +130,8 @@ clearView();
   };
 });
 
+
+
 /* ================= SCROLL HELPER (EXPORTED) ================= */
 export function bindDataBoxScroll(container) {
   if (!container) return;
@@ -149,19 +151,31 @@ function ensureModal() {
 }
 ensureModal();
 
-/* ================= ADMIN CHAT BOX ================= */
+/* ================= ADMIN CHAT ================= */
 
 const ADMIN_LOCATION = localStorage.getItem("adminLocation") || "ALL";
+let lastAdminChatHash = "";
 
 async function loadAdminChat() {
   try {
     const res = await fetch(
-      `${API_URL}?type=chatMessages&location=${ADMIN_LOCATION}`
+      `${API_URL}?type=chatMessages&location=${ADMIN_LOCATION}`,
+      { cache: "no-store" }
     );
+
+    if (!res.ok) throw new Error("Network response failed");
+
     const messages = await res.json();
-    renderAdminChat(messages);
+    const hash = JSON.stringify(messages);
+
+    if (hash !== lastAdminChatHash) {
+      lastAdminChatHash = hash;
+      renderAdminChat(messages);
+    }
+
   } catch (err) {
-    console.warn("Admin chat load failed", err);
+    console.warn("⚠️ Admin chat fetch failed:", err.message);
+    // ❌ DO NOT clear UI
   }
 }
 
@@ -206,13 +220,17 @@ function sendAdminChat() {
       location: ADMIN_LOCATION,
       message: msg
     })
+  }).catch(err => {
+    console.warn("⚠️ Admin send failed:", err.message);
   });
 
   input.value = "";
 }
 
-// 🔁 Poll every 3 seconds
+loadAdminChat();
+
+// 🔁 SINGLE poll (ONLY ONE)
 setInterval(loadAdminChat, 3000);
 
-// 🔓 expose to HTML
+// 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;

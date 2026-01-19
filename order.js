@@ -1259,36 +1259,23 @@ function updateNetStatus() {
 }
 
 const chatBox = document.getElementById("chatBox");
+
+initChatUI();
+
 const chatToggle = document.getElementById("chatToggle");
 
 chatToggle.onclick = () => {
   chatBox.classList.toggle("hidden");
 };
 
-function renderChat(messages) {
+function initChatUI() {
   chatBox.innerHTML = `
     <div style="padding:10px;font-weight:bold;border-bottom:1px solid #ddd">
       Admin Chat
     </div>
 
-    <div id="chatMessages" style="flex:1;overflow-y:auto;padding:10px">
-      ${messages.map(m => `
-        <div style="
-          margin-bottom:6px;
-          text-align:${m.sender_role === "CASHIER" ? "right" : "left"};
-        ">
-          <span style="
-            display:inline-block;
-            padding:6px 10px;
-            border-radius:12px;
-            background:${m.sender_role === "CASHIER" ? "#2563eb" : "#e5e7eb"};
-            color:${m.sender_role === "CASHIER" ? "#fff" : "#000"};
-          ">
-            ${m.message}
-          </span>
-        </div>
-      `).join("")}
-    </div>
+    <div id="chatMessages"
+         style="flex:1;overflow-y:auto;padding:10px"></div>
 
     <div style="display:flex;border-top:1px solid #ddd">
       <input id="chatInput"
@@ -1298,10 +1285,35 @@ function renderChat(messages) {
     </div>
   `;
 
-const btn = document.getElementById("chatSendBtn");
-if (btn) {
-  btn.onclick = sendChat; // replaces any previous handler
+  document.getElementById("chatSendBtn").onclick = sendChat;
+
+  document.getElementById("chatInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendChat();
+  });
 }
+
+function renderChatMessages(messages = []) {
+  const box = document.getElementById("chatMessages");
+  if (!box) return;
+
+  box.innerHTML = messages.map(m => `
+    <div style="
+      margin-bottom:6px;
+      text-align:${m.sender_role === "CASHIER" ? "right" : "left"};
+    ">
+      <span style="
+        display:inline-block;
+        padding:6px 10px;
+        border-radius:12px;
+        background:${m.sender_role === "CASHIER" ? "#2563eb" : "#e5e7eb"};
+        color:${m.sender_role === "CASHIER" ? "#fff" : "#000"};
+      ">
+        ${m.message}
+      </span>
+    </div>
+  `).join("");
+
+  box.scrollTop = box.scrollHeight;
 }
 
 function sendChat() {
@@ -1329,7 +1341,7 @@ setInterval(async () => {
 
   const res = await fetch(`${API_URL}?type=chatMessages&location=${loc}`);
   const data = await res.json();
-  renderChat(data);
+  renderChatMessages(data);
 }, 3000);
 
 window.addEventListener("online", updateNetStatus);
