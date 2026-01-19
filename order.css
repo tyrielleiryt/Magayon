@@ -1239,3 +1239,12 @@ body.sales-only .checkout {
   box-shadow: 0 8px 20px rgba(0,0,0,.25);
   cursor: pointer;
 }
+
+#chatBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none;
+}
