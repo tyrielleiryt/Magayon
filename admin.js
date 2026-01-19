@@ -5,6 +5,11 @@ if (localStorage.getItem("isLoggedIn") !== "true") {
   window.location.replace("index.html");
 }
 
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
+window.API_URL = API_URL; // optional, but helpful for debugging
+
 /* ================= LOADER HELPERS ================= */
 export function showLoader(text = "Loading data…") {
   const loader = document.getElementById("globalLoader");
@@ -144,7 +149,70 @@ function ensureModal() {
 }
 ensureModal();
 
-/* ================= LOAD DEFAULT VIEW ================= */
-document
-  .querySelector('.nav-btn[data-view="dashboard"]')
-  ?.click();
+/* ================= ADMIN CHAT BOX ================= */
+
+const ADMIN_LOCATION = localStorage.getItem("adminLocation") || "ALL";
+
+async function loadAdminChat() {
+  try {
+    const res = await fetch(
+      `${API_URL}?type=chatMessages&location=${ADMIN_LOCATION}`
+    );
+    const messages = await res.json();
+    renderAdminChat(messages);
+  } catch (err) {
+    console.warn("Admin chat load failed", err);
+  }
+}
+
+function renderAdminChat(messages = []) {
+  const box = document.getElementById("adminChatMessages");
+  if (!box) return;
+
+  box.innerHTML = messages.map(m => `
+    <div style="
+      margin-bottom:8px;
+      text-align:${m.sender_role === "ADMIN" ? "right" : "left"};
+    ">
+      <span style="
+        display:inline-block;
+        padding:6px 10px;
+        border-radius:12px;
+        max-width:80%;
+        background:${m.sender_role === "ADMIN" ? "#2563eb" : "#e5e7eb"};
+        color:${m.sender_role === "ADMIN" ? "#fff" : "#000"};
+      ">
+        ${m.message}
+      </span>
+    </div>
+  `).join("");
+
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendAdminChat() {
+  const input = document.getElementById("adminChatInput");
+  if (!input) return;
+
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "sendChatMessage",
+      sender_role: "ADMIN",
+      sender_id: "ADMIN",
+      location: ADMIN_LOCATION,
+      message: msg
+    })
+  });
+
+  input.value = "";
+}
+
+// 🔁 Poll every 3 seconds
+setInterval(loadAdminChat, 3000);
+
+// 🔓 expose to HTML
+window.sendAdminChat = sendAdminChat;

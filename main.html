@@ -104,6 +104,47 @@
   </div>
 </div>
 
+<!-- ================= ADMIN CHAT ================= -->
+<div id="adminChatBox" style="
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:360px;
+  height:480px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 15px 40px rgba(0,0,0,.3);
+  display:flex;
+  flex-direction:column;
+  z-index:9999;
+">
+
+  <div style="
+    padding:12px;
+    font-weight:700;
+    background:#1e40af;
+    color:#fff;
+    border-radius:14px 14px 0 0;
+  ">
+    💬 Cashier Chat
+  </div>
+
+  <div id="adminChatMessages"
+       style="flex:1;overflow-y:auto;padding:10px;background:#f8fafc">
+  </div>
+
+  <div style="display:flex;border-top:1px solid #ddd">
+    <input id="adminChatInput"
+           placeholder="Type reply…"
+           style="flex:1;padding:10px;border:none" />
+    <button onclick="sendAdminChat()"
+            style="padding:10px 14px">
+      Send
+    </button>
+  </div>
+
+</div>
+
 <script src="admin-close-day.js"></script>
 <script type="module" src="admin.js"></script>
 
