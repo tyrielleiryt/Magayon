@@ -351,3 +351,31 @@ body.modal-open {
   padding: 6px;
   margin: 8px 0;
 }
+
+.chat-msg {
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.chat-msg.me {
+  margin-left: auto;
+  background: #2563eb;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-msg.other {
+  margin-right: auto;
+  background: #e5e7eb;
+  color: #000;
+  border-bottom-left-radius: 4px;
+}
+
+.hidden {
+  display: none !important;
+}

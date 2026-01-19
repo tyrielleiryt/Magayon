@@ -1294,26 +1294,25 @@ function initChatUI() {
 
 function renderChatMessages(messages = []) {
   const box = document.getElementById("chatMessages");
+  const input = document.getElementById("chatInput");
   if (!box) return;
 
+  // Are we near bottom?
+  const atBottom =
+    box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+
   box.innerHTML = messages.map(m => `
-    <div style="
-      margin-bottom:6px;
-      text-align:${m.sender_role === "CASHIER" ? "right" : "left"};
-    ">
-      <span style="
-        display:inline-block;
-        padding:6px 10px;
-        border-radius:12px;
-        background:${m.sender_role === "CASHIER" ? "#2563eb" : "#e5e7eb"};
-        color:${m.sender_role === "CASHIER" ? "#fff" : "#000"};
-      ">
-        ${m.message}
-      </span>
+    <div class="chat-msg ${
+      m.sender_role === "CASHIER" ? "me" : "other"
+    }">
+      ${m.message}
     </div>
   `).join("");
 
-  box.scrollTop = box.scrollHeight;
+  // Auto-scroll ONLY if user was at bottom
+  if (atBottom) {
+    box.scrollTop = box.scrollHeight;
+  }
 }
 
 function sendChat() {

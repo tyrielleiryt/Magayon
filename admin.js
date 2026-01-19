@@ -43,6 +43,19 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
+document.getElementById("adminChatToggle")?.addEventListener("click", () => {
+  document
+    .getElementById("adminChatBox")
+    ?.classList.toggle("hidden");
+});
+
+document.getElementById("adminChatInput")?.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // ⛔ stop newline
+    sendAdminChat();    // ✅ send message
+  }
+});
+
 /* ================= LOGOUT ================= */
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   if (!confirm("Are you sure you want to logout?")) return;
@@ -190,6 +203,8 @@ function loadAdminChat() {
 
   document.body.appendChild(script);
 }
+
+
 
 function renderAdminChat(messages = []) {
   const box = document.getElementById("adminChatMessages");
