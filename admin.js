@@ -155,28 +155,40 @@ ensureModal();
 
 const ADMIN_LOCATION = localStorage.getItem("adminLocation") || "ALL";
 let lastAdminChatHash = "";
+let adminChatLoading = false;
 
-async function loadAdminChat() {
-  try {
-    const res = await fetch(
-      `${API_URL}?type=chatMessages&location=${ADMIN_LOCATION}`,
-      { cache: "no-store" }
-    );
+function loadAdminChat() {
+  if (adminChatLoading) return;
+  adminChatLoading = true;
 
-    if (!res.ok) throw new Error("Network response failed");
+  const callbackName = "adminChatCallback_" + Date.now();
+  const script = document.createElement("script");
 
-    const messages = await res.json();
+  window[callbackName] = messages => {
+    adminChatLoading = false;
+    delete window[callbackName];
+    script.remove();
+
     const hash = JSON.stringify(messages);
-
     if (hash !== lastAdminChatHash) {
       lastAdminChatHash = hash;
       renderAdminChat(messages);
     }
+  };
 
-  } catch (err) {
-    console.warn("⚠️ Admin chat fetch failed:", err.message);
-    // ❌ DO NOT clear UI
-  }
+  script.src =
+    `${API_URL}?type=chatMessages` +
+    `&location=${ADMIN_LOCATION}` +
+    `&callback=${callbackName}`;
+
+  script.onerror = () => {
+    adminChatLoading = false;
+    delete window[callbackName];
+    script.remove();
+    console.warn("⚠️ Admin chat JSONP failed");
+  };
+
+  document.body.appendChild(script);
 }
 
 function renderAdminChat(messages = []) {
