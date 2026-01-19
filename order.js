@@ -1291,13 +1291,18 @@ function renderChat(messages) {
     </div>
 
     <div style="display:flex;border-top:1px solid #ddd">
-      <input id="chatInput" style="flex:1;padding:8px;border:none" placeholder="Type message…" />
-      <button onclick="sendChat()" style="padding:8px 12px">Send</button>
+      <input id="chatInput"
+             style="flex:1;padding:8px;border:none"
+             placeholder="Type message…" />
+      <button id="chatSendBtn" style="padding:8px 12px">Send</button>
     </div>
   `;
+
+const btn = document.getElementById("chatSendBtn");
+if (btn) {
+  btn.onclick = sendChat; // replaces any previous handler
 }
-
-
+}
 
 function sendChat() {
   const input = document.getElementById("chatInput");
@@ -1317,7 +1322,6 @@ function sendChat() {
 
   input.value = "";
 }
-window.sendChat = sendChat;
 
 setInterval(async () => {
   const loc = localStorage.getItem("userLocation");
