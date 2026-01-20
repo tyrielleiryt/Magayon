@@ -1185,3 +1185,16 @@ body.sales-only .checkout {
   flex: 1;
   padding: 6px 8px;
 }
+
+.pos-chat-messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.pos-chat-input {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid #eee;
+}

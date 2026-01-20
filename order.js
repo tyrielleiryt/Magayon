@@ -295,7 +295,7 @@ enableWakeLock();
   /* ================= CHAT INIT ================= */
 
    chatBox = document.getElementById("chatBox");
-  const chatToggle = document.getElementById("chatToggle");
+  const chatToggle = document.getElementById("posChatToggle");
 
   if (chatBox && chatToggle) {
     initChatUI();
@@ -308,15 +308,18 @@ chatToggle.addEventListener("click", () => {
 
   chatBox.classList.toggle("hidden");
 
-      // 🔥 load messages immediately when opened
-      if (!chatBox.classList.contains("hidden")) {
-        loadPOSChat();
-        document.getElementById("chatInput")?.focus();
-      }
-    });
+  // ✅ CLEAR unread badge when opening chat
+  if (!chatBox.classList.contains("hidden")) {
+    const badge = document.getElementById("chatUnreadBadge");
+    if (badge) {
+      badge.textContent = "";
+      badge.classList.add("hidden");
+    }
 
-    // 👇 FIRST LOAD so it’s never empty
     loadPOSChat();
+    document.getElementById("chatInput")?.focus();
+  }
+});
   }
 
 if ("serviceWorker" in navigator) {
@@ -1291,6 +1294,15 @@ function updateNetStatus() {
   }
 }
 
+function incrementUnread() {
+  const badge = document.getElementById("chatUnreadBadge");
+  if (!badge) return;
+
+  const n = Number(badge.textContent || 0) + 1;
+  badge.textContent = n;
+  badge.classList.remove("hidden");
+}
+
 let lastChatHash = "";
 let chatLoading = false;
 
@@ -1310,11 +1322,17 @@ function loadPOSChat() {
     delete window[callbackName];
     script.remove();
 
-    const hash = JSON.stringify(messages);
-    if (hash !== lastChatHash) {
-      lastChatHash = hash;
-      renderChatMessages(messages);
+  const hash = JSON.stringify(messages);
+
+  if (hash !== lastChatHash) {
+    // 🔔 only notify if chat is closed
+    if (chatBox.classList.contains("hidden")) {
+      incrementUnread();
     }
+
+    lastChatHash = hash;
+    renderChatMessages(messages);
+  }
   };
 
   script.src =
@@ -1412,22 +1430,6 @@ fetch(API_URL, {
 
   input.value = "";
 }
-
-function notifyNewChatMessage() {
-  const chatBox = document.getElementById("chatBox");
-  const unreadBadge = document.getElementById("chatUnreadBadge");
-
-  if (chatBox.classList.contains("hidden")) {
-    unreadBadge.textContent =
-      unreadBadge.textContent
-        ? Number(unreadBadge.textContent) + 1
-        : 1;
-
-    unreadBadge.classList.remove("hidden");
-  }
-}
-notifyNewChatMessage();
-
 
 window.addEventListener("online", updateNetStatus);
 window.addEventListener("offline", updateNetStatus);
