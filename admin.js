@@ -166,7 +166,7 @@ ensureModal();
 
 /* ================= ADMIN CHAT ================= */
 
-const ADMIN_LOCATION = localStorage.getItem("adminLocation") || "ALL";
+const ADMIN_LOCATION = "ALL";
 let lastAdminChatHash = "";
 let adminChatLoading = false;
 
@@ -185,7 +185,7 @@ function loadAdminChat() {
     const hash = JSON.stringify(messages);
     if (hash !== lastAdminChatHash) {
       lastAdminChatHash = hash;
-      renderAdminChat(messages);
+  renderAdminChat(messages);
     }
   };
 
@@ -265,6 +265,16 @@ function sendAdminChat() {
 
   input.value = "";
 }
+
+document.getElementById("adminChatToggle")?.addEventListener("click", () => {
+  const box = document.getElementById("adminChatBox");
+  box?.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    loadAdminChat();
+    document.getElementById("adminChatInput")?.focus();
+  }
+});
 
 loadAdminChat();
 
