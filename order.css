@@ -1144,11 +1144,11 @@ body.sales-only .checkout {
   padding: 2px 6px;
 }
 
-/* ================= POS CHAT BOX ================= */
+/* ================= POS CHAT ================= */
 
 .pos-chat-box {
   position: absolute;
-  top: 60px;              /* below top bar */
+  top: 60px;
   right: 16px;
   width: 320px;
   max-height: 420px;
@@ -1165,31 +1165,15 @@ body.sales-only .checkout {
   background: #2563eb;
   color: white;
   font-weight: bold;
-  border-radius: 12px 12px 0 0;
-}
-
-.chat-messages {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-.chat-input {
-  display: flex;
-  gap: 6px;
-  padding: 8px;
-  border-top: 1px solid #eee;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 6px 8px;
 }
 
 .pos-chat-messages {
   flex: 1;
   padding: 10px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .pos-chat-input {
@@ -1197,4 +1181,27 @@ body.sales-only .checkout {
   gap: 6px;
   padding: 8px;
   border-top: 1px solid #eee;
+}
+
+/* Message bubbles */
+.chat-msg {
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  word-wrap: break-word;
+}
+
+.chat-msg.me {
+  align-self: flex-end;
+  background: #2563eb;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-msg.other {
+  align-self: flex-start;
+  background: #e5e7eb;
+  color: #000;
+  border-bottom-left-radius: 4px;
 }
