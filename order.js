@@ -1413,6 +1413,21 @@ fetch(API_URL, {
   input.value = "";
 }
 
+function notifyNewChatMessage() {
+  const chatBox = document.getElementById("chatBox");
+  const unreadBadge = document.getElementById("chatUnreadBadge");
+
+  if (chatBox.classList.contains("hidden")) {
+    unreadBadge.textContent =
+      unreadBadge.textContent
+        ? Number(unreadBadge.textContent) + 1
+        : 1;
+
+    unreadBadge.classList.remove("hidden");
+  }
+}
+notifyNewChatMessage();
+
 
 window.addEventListener("online", updateNetStatus);
 window.addEventListener("offline", updateNetStatus);

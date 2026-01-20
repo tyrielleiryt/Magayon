@@ -24,6 +24,18 @@
   <div class="top-bar">
     <div class="pos-title">POS</div>
     <span id="netStatus" class="net online">ONLINE</span>
+    <div class="pos-top-actions">
+  <button id="syncBtn" class="top-btn">🔄 Sync</button>
+
+  <button
+    id="posChatToggle"
+    class="top-btn chat-toggle"
+    aria-label="Open support chat"
+  >
+    💬 Chat
+    <span id="chatUnreadBadge" class="chat-badge hidden">1</span>
+  </button>
+</div>
     <div id="syncStatus" style="
   margin-left:auto;
   font-size:13px;
@@ -263,34 +275,14 @@
 
 <div id="inventoryToast"></div>
 
-<button id="chatToggle" style="
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  width:54px;
-  height:54px;
-  border-radius:50%;
-  background:#2563eb;
-  color:#fff;
-  font-size:22px;
-  border:none;
-  z-index:9998;
-">
-💬
-</button>
+<div id="chatBox" class="hidden pos-chat-box">
+  <div class="chat-header">Admin Chat</div>
+  <div id="chatMessages" class="chat-messages"></div>
 
-<div id="chatBox" class="hidden" style="
-  position:fixed;
-  bottom:90px;
-  right:20px;
-  width:320px;
-  max-height:420px;
-  background:#fff;
-  border-radius:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25);
-  flex-direction:column;
-  z-index:9999;
-">
+  <div class="chat-input">
+    <input id="chatInput" placeholder="Type a message…" />
+    <button id="sendChatBtn">Send</button>
+  </div>
 </div>
 
   <!-- ================= SCRIPT ================= -->
