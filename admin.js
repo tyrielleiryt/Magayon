@@ -43,12 +43,6 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60000);
 
-document.getElementById("adminChatToggle")?.addEventListener("click", () => {
-  document
-    .getElementById("adminChatBox")
-    ?.classList.toggle("hidden");
-});
-
 document.getElementById("adminChatInput")?.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault(); // ⛔ stop newline
