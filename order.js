@@ -9,12 +9,10 @@ const API_URL =
 
   window.API_URL = API_URL; // 👈 ADD THIS
 
-  let POS_LOCKED = true; // 🔒 default locked
   let PIN_ACTION = "unlock"; // 🔑 unlock | logout
 const MANAGER_PIN = "1234"; // 🔑 change this
 const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
 let SYNC_IN_PROGRESS = false;
-let relockTimer = null;
 
 // Auto-detect very small usable screens
 function autoDetectDenseMode() {
@@ -132,47 +130,8 @@ function closePinModal() {
 
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && POS_LOCKED && PIN_ACTION !== "logout") {
-    showPinModal();
-  }
+  console.log("ℹ️ Fullscreen changed (ignored on tablet)");
 });
-
-function unlockPOS() {
-  const input = document.getElementById("pinInput");
-  const pin = input?.value.trim();
-
-  if (pin !== MANAGER_PIN) {
-    alert("❌ Invalid PIN");
-    input.value = "";
-    input.focus();
-    return;
-  }
-
-   // 🔑 PIN OK
-  document.getElementById("pinModal")?.classList.add("hidden");
-
-   if (PIN_ACTION === "logout") {
-    performLogout();
-    return;
-  }
-
-  // 🔓 UNLOCK
-  POS_LOCKED = false;
-  closePinModal();
-  startRelockTimer();
-}
-
-function startRelockTimer() {
-  clearTimeout(relockTimer);
-
-  relockTimer = setTimeout(() => {
-    POS_LOCKED = true;
-
-// ❌ no auto fullscreen here
-
-
-  }, 5 * 60 * 1000); // 5 minutes
-}
 
 const LOCATION = localStorage.getItem("userLocation");
 const STAFF_ID = localStorage.getItem("staff_id");
@@ -184,6 +143,7 @@ if (!LOCATION || !STAFF_ID) {
   alert("Unauthorized POS access");
   window.location.replace("index.html");
 }
+
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
@@ -261,14 +221,16 @@ let wakeLock = null;
 
 async function enableWakeLock() {
   try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
-      console.log("🔒 Wake Lock enabled");
+    if (!("wakeLock" in navigator)) return;
+    if (wakeLock) return; // ⛔ already active
 
-      wakeLock.addEventListener("release", () => {
-        console.log("🔓 Wake Lock released");
-      });
-    }
+    wakeLock = await navigator.wakeLock.request("screen");
+    console.log("🔒 Wake Lock enabled");
+
+    wakeLock.addEventListener("release", () => {
+      console.log("🔓 Wake Lock released");
+      wakeLock = null;
+    });
   } catch (err) {
     console.warn("Wake Lock failed:", err.message);
   }
@@ -363,16 +325,6 @@ if ("serviceWorker" in navigator) {
     renderCart();
     renderProducts();
   });
-
-document.addEventListener("keydown", e => {
-  if (!POS_LOCKED) return;
-
-  // Block ESC, F11
-  if (e.key === "Escape" || e.key === "F11") {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-});
 
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
@@ -1435,11 +1387,12 @@ window.addEventListener("online", updateNetStatus);
 window.addEventListener("offline", updateNetStatus);
 updateNetStatus();
 
-document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible") {
+    await new Promise(r => setTimeout(r, 500));
     enableWakeLock();
   }
-});
+});;
 
 
 
@@ -1492,8 +1445,6 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
 });
 
 window.addEventListener("online", syncPendingOrders);
-
-window.unlockPOS = unlockPOS;
 
 // 🔓 expose keypad + modal functions to HTML
 window.keypadInput = keypadInput;
