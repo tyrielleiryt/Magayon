@@ -205,10 +205,36 @@ function renderTable() {
 function openAddItemModal() {
   openModal(`
     <div class="modal-header">➕ Add Inventory Item</div>
-    <label>Item Name</label><input>
-    <label>Description</label><textarea></textarea>
+
+    <label>Item Name</label>
+    <input id="inv_item_name" required />
+
+    <label>Description</label>
+    <textarea id="inv_description"></textarea>
+
+    <label>Quantity per Serving</label>
+    <input id="inv_qty" type="number" min="0" />
+
+    <label>Unit</label>
+    <input id="inv_unit" placeholder="g, pc, cup, etc" />
+
+    <label>Capital</label>
+    <input id="inv_capital" type="number" min="0" />
+
+    <label>Selling Price</label>
+    <input id="inv_price" type="number" min="0" />
+
+    <label>Reorder Level</label>
+    <input id="inv_reorder" type="number" min="0" />
+
+    <label>
+      <input id="inv_active" type="checkbox" checked />
+      Active
+    </label>
+
     <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveInventoryItem()">Save</button>
     </div>
   `);
 }
@@ -218,4 +244,48 @@ function openEditItemModal() {
 }
 function openDeleteItemModal() {
   if (!selected) return;
+}
+
+async function saveInventoryItem() {
+  const payload = {
+    item_name: document.getElementById("inv_item_name").value.trim(),
+    description: document.getElementById("inv_description").value.trim(),
+    quantity_per_serving: Number(document.getElementById("inv_qty").value || 0),
+    unit: document.getElementById("inv_unit").value.trim(),
+    capital: Number(document.getElementById("inv_capital").value || 0),
+    selling_price: Number(document.getElementById("inv_price").value || 0),
+    reorder_level: Number(document.getElementById("inv_reorder").value || 0),
+    active: document.getElementById("inv_active").checked
+  };
+
+  if (!payload.item_name) {
+    alert("Item name is required");
+    return;
+  }
+
+  try {
+    showLoader("Saving inventory item…");
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "addInventoryItem",
+        data: JSON.stringify(payload)
+      })
+    });
+
+    const result = await res.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to save");
+    }
+
+    closeModal();
+    await loadInventoryItems(); // 🔁 refresh table
+
+  } catch (err) {
+    alert("❌ " + err.message);
+  } finally {
+    hideLoader();
+  }
 }
