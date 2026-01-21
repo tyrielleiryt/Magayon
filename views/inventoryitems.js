@@ -73,8 +73,8 @@ function renderTableLayout() {
               <th>Description</th>
               <th>Qty / Serving</th>
               <th>Capital</th>
-              <th>Selling Price</th>
               <th>Unit</th>
+              <th>Selling Price</th>
             </tr>
           </thead>
           <tbody id="inventoryTableBody"></tbody>
@@ -244,48 +244,4 @@ function openEditItemModal() {
 }
 function openDeleteItemModal() {
   if (!selected) return;
-}
-
-async function saveInventoryItem() {
-  const payload = {
-    item_name: document.getElementById("inv_item_name").value.trim(),
-    description: document.getElementById("inv_description").value.trim(),
-    quantity_per_serving: Number(document.getElementById("inv_qty").value || 0),
-    unit: document.getElementById("inv_unit").value.trim(),
-    capital: Number(document.getElementById("inv_capital").value || 0),
-    selling_price: Number(document.getElementById("inv_price").value || 0),
-    reorder_level: Number(document.getElementById("inv_reorder").value || 0),
-    active: document.getElementById("inv_active").checked
-  };
-
-  if (!payload.item_name) {
-    alert("Item name is required");
-    return;
-  }
-
-  try {
-    showLoader("Saving inventory item…");
-
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "addInventoryItem",
-        data: JSON.stringify(payload)
-      })
-    });
-
-    const result = await res.json();
-
-    if (!result.success) {
-      throw new Error(result.error || "Failed to save");
-    }
-
-    closeModal();
-    await loadInventoryItems(); // 🔁 refresh table
-
-  } catch (err) {
-    alert("❌ " + err.message);
-  } finally {
-    hideLoader();
-  }
 }
