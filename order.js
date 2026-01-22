@@ -30,6 +30,30 @@ let POS_CLOSED = false;
 let chatBox = null;
 let POS_CHAT_ENABLED = true; // 🔒 admin can disable POS chat
 
+  if (!localStorage.getItem("staff_id")) {
+    localStorage.setItem("staff_id", "kiosk");
+    localStorage.setItem("userLocation", "DEFAULT_LOC");
+    localStorage.setItem("userName", "POS Kiosk");
+    localStorage.setItem("userPosition", "cashier");
+  }
+
+
+function getStaffId() {
+  return localStorage.getItem("staff_id") || "kiosk";
+}
+
+function getLocation() {
+  return localStorage.getItem("userLocation") || "DEFAULT_LOC";
+}
+
+Object.defineProperty(window, "STAFF_ID", {
+  get: () => getStaffId()
+});
+
+Object.defineProperty(window, "LOCATION", {
+  get: () => getLocation()
+});
+
 function exitSalesOnlyMode() {
   POS_CLOSED = false;
 
@@ -68,6 +92,17 @@ function enterSalesOnlyMode() {
 
   // Show banner
   showSalesOnlyBanner();
+}
+
+function ensurePOSSession() {
+  if (!localStorage.getItem("staff_id")) {
+    console.warn("Healing POS session");
+
+    localStorage.setItem("staff_id", "kiosk");
+    localStorage.setItem("userLocation", "DEFAULT_LOC");
+    localStorage.setItem("userName", "POS Kiosk");
+    localStorage.setItem("userPosition", "cashier");
+  }
 }
 
 function applyInventoryGate(inventoryRows) {
@@ -133,17 +168,9 @@ document.addEventListener("fullscreenchange", () => {
   console.log("ℹ️ Fullscreen changed (ignored on tablet)");
 });
 
-const LOCATION = localStorage.getItem("userLocation");
-const STAFF_ID = localStorage.getItem("staff_id");
+
 const CASHIER_NAME = localStorage.getItem("userName") || "";
 const CASHIER_POSITION = localStorage.getItem("userPosition") || "";
-
-/* ================= ACCESS GUARD ================= */
-if (!LOCATION || !STAFF_ID) {
-  alert("Unauthorized POS access");
-  window.location.replace("index.html");
-}
-
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
@@ -213,7 +240,6 @@ const itemName =
   alert("🧪 Recipe & Inventory\n\n" + lines.join("\n"));
 };
 
-
 /* =========================================================
    WAKE LOCK (TABLET ANTI-SLEEP)
 ========================================================= */
@@ -242,6 +268,8 @@ function disableWakeLock() {
     wakeLock = null;
   }
 }
+
+
 
 /* =========================================================
    INIT
@@ -285,7 +313,7 @@ chatToggle.addEventListener("click", () => {
   }
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js");
+  //navigator.serviceWorker.register("./service-worker.js");
 }
 
   showLoader("Loading POS data…");
