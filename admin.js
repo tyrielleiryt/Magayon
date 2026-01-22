@@ -270,10 +270,15 @@ document.getElementById("adminChatToggle")?.addEventListener("click", () => {
   }
 });
 
-loadAdminChat();
+//loadAdminChat();
 
 // 🔁 SINGLE poll (ONLY ONE)
-setInterval(loadAdminChat, 3000);
+setInterval(() => {
+  const box = document.getElementById("adminChatBox");
+  if (box && !box.classList.contains("hidden")) {
+    loadAdminChat();
+  }
+}, 3000);
 
 // 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;
