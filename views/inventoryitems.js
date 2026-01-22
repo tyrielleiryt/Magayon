@@ -44,9 +44,6 @@ function renderActionBar() {
   actionBar.innerHTML = `
     <input id="inventorySearch" placeholder="Search inventory..." />
 
-    <span id="selectedLabel" style="margin-left:12px;color:#888;font-size:13px">
-      No item selected
-    </span>
 
     <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
     <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
@@ -138,9 +135,6 @@ function clearSelection() {
   selected = null;
   document.getElementById("editItemBtn").disabled = true;
   document.getElementById("deleteItemBtn").disabled = true;
-
-  const label = document.getElementById("selectedLabel");
-  if (label) label.textContent = "No item selected";
 }
 
 /* ================= RENDER TABLE ================= */
@@ -195,9 +189,6 @@ selected = item;
 
 document.getElementById("editItemBtn").disabled = false;
 document.getElementById("deleteItemBtn").disabled = false;
-
-document.getElementById("selectedLabel").textContent =
-  "Selected: " + item.item_name;
 };
 
     tbody.appendChild(tr);
