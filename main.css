@@ -353,3 +353,11 @@ html, body {
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(0,0,0,.12);
 }
+
+#adminChatBox {
+  display: flex;
+}
+
+.hidden {
+  display: none !important;
+}
