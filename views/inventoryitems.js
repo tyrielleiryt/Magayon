@@ -278,6 +278,24 @@ function openEditItemModal() {
   `);
 }
 
+function openDeleteItemModal() {
+  if (!selected) return;
+
+  openModal(`
+    <div class="modal-header">🗑️ Delete Inventory Item</div>
+
+    <p style="padding:10px 0">
+      Are you sure you want to delete:<br>
+      <strong>${selected.item_name}</strong>?
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" onclick="deleteInventoryItem()">Delete</button>
+    </div>
+  `);
+}
+
 async function updateInventoryItem() {
   if (!selected) return;
 
@@ -292,6 +310,33 @@ async function updateInventoryItem() {
     reorder_level: document.getElementById("inv_reorder").value,
     active: document.getElementById("inv_active").checked
   };
+
+  async function deleteInventoryItem() {
+  if (!selected) return;
+
+  showLoader("Deleting item...");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "deleteInventoryItem",
+        item_id: selected.item_id
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    closeModal();
+    await loadInventoryItems();
+
+  } catch (err) {
+    alert("❌ Delete failed: " + err.message);
+  } finally {
+    hideLoader();
+  }
+}
 
   showLoader("Updating item...");
 
@@ -318,3 +363,4 @@ async function updateInventoryItem() {
   }
 }
 
+window.openDeleteItemModal = openDeleteItemModal;
