@@ -324,96 +324,32 @@ html, body {
   gap: 10px;
 }
 
-/* ================= POS CHAT BOX ================= */
-
-#chatBox {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 360px;
-  height: 480px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 15px 40px rgba(0,0,0,.3);
-  display: flex;
-  flex-direction: column;
-  z-index: 9999;
-  overflow: hidden;
-}
-
-/* Header */
-.chat-header {
-  padding: 12px;
-  font-weight: 700;
-  background: #1e40af;
-  color: #fff;
-}
-
-/* Messages */
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Message bubbles */
-.chat-msg {
-  max-width: 75%;
-  padding: 8px 12px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.4;
-  word-wrap: break-word;
-}
-
-/* Cashier (me) */
-.chat-msg.me {
-  align-self: flex-end;
-  background: #2563eb;
-  color: white;
-  border-bottom-right-radius: 4px;
-}
-
-/* Admin (other) */
-.chat-msg.other {
-  align-self: flex-start;
-  background: #e5e7eb;
-  color: #111;
-  border-bottom-left-radius: 4px;
-}
-
-/* Input area */
-.chat-input {
-  display: flex;
-  border-top: 1px solid #ddd;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  outline: none;
-  font-size: 14px;
-}
-
-.chat-input button {
-  padding: 0 16px;
-  border: none;
-  background: #1e40af;
-  color: white;
-  font-weight: 600;
+/* Inventory table row UX */
+.category-table tbody tr {
   cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.chat-input button:active {
-  opacity: .8;
+.category-table tbody tr:hover {
+  background: rgba(243, 200, 75, 0.12);
 }
 
-/* Hide helper */
-.hidden {
-  display: none !important;
+.category-table tbody tr.selected {
+  background: linear-gradient(90deg, rgba(243,200,75,.28), rgba(243,200,75,.12));
+  box-shadow: inset 4px 0 0 #f3c84b;
+  font-weight: 600;
+}
+
+.category-action-btn {
+  transition: all 0.15s ease;
+}
+
+.category-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.category-action-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,.12);
 }

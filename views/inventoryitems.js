@@ -43,6 +43,11 @@ function renderActionBar() {
 
   actionBar.innerHTML = `
     <input id="inventorySearch" placeholder="Search inventory..." />
+
+    <span id="selectedLabel" style="margin-left:12px;color:#888;font-size:13px">
+      No item selected
+    </span>
+
     <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
     <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
     <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
@@ -133,6 +138,9 @@ function clearSelection() {
   selected = null;
   document.getElementById("editItemBtn").disabled = true;
   document.getElementById("deleteItemBtn").disabled = true;
+
+  const label = document.getElementById("selectedLabel");
+  if (label) label.textContent = "No item selected";
 }
 
 /* ================= RENDER TABLE ================= */
@@ -175,14 +183,22 @@ function renderTable() {
 <td>${item.selling_price}</td>
     `;
 
-    tr.onclick = () => {
-      document.querySelectorAll("#inventoryTableBody tr")
-        .forEach(r => r.classList.remove("selected"));
-      tr.classList.add("selected");
-      selected = item;
-      document.getElementById("editItemBtn").disabled = false;
-      document.getElementById("deleteItemBtn").disabled = false;
-    };
+tr.onclick = () => {
+  document.querySelectorAll("#inventoryTableBody tr")
+    .forEach(r => r.classList.remove("selected"));
+
+  tr.classList.add("selected");
+  tr.style.transform = "scale(0.995)";
+  setTimeout(() => tr.style.transform = "", 80);
+
+selected = item;
+
+document.getElementById("editItemBtn").disabled = false;
+document.getElementById("deleteItemBtn").disabled = false;
+
+document.getElementById("selectedLabel").textContent =
+  "Selected: " + item.item_name;
+};
 
     tbody.appendChild(tr);
   });
@@ -311,7 +327,34 @@ async function updateInventoryItem() {
     active: document.getElementById("inv_active").checked
   };
 
-  async function deleteInventoryItem() {
+
+
+  showLoader("Updating item...");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "updateInventoryItem",
+        data: JSON.stringify(payload)
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    closeModal();
+    await loadInventoryItems();
+
+  } catch (err) {
+    alert("❌ Update failed: " + err.message);
+  } finally {
+    hideLoader();
+  }
+}
+
+async function deleteInventoryItem() {
   if (!selected) return;
 
   showLoader("Deleting item...");
@@ -338,29 +381,6 @@ async function updateInventoryItem() {
   }
 }
 
-  showLoader("Updating item...");
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "updateInventoryItem",
-        data: JSON.stringify(payload)
-      })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.error);
-
-    closeModal();
-    await loadInventoryItems();
-
-  } catch (err) {
-    alert("❌ Update failed: " + err.message);
-  } finally {
-    hideLoader();
-  }
-}
+window.deleteInventoryItem = deleteInventoryItem;
 
 window.openDeleteItemModal = openDeleteItemModal;
