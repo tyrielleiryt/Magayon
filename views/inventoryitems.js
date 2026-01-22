@@ -303,6 +303,48 @@ function openDeleteItemModal() {
   `);
 }
 
+async function saveInventoryItem() {
+  const payload = {
+    item_name: document.getElementById("inv_item_name").value.trim(),
+    description: document.getElementById("inv_description").value.trim(),
+    quantity_per_serving: document.getElementById("inv_qty").value,
+    unit: document.getElementById("inv_unit").value,
+    capital: document.getElementById("inv_capital").value,
+    selling_price: document.getElementById("inv_price").value,
+    reorder_level: document.getElementById("inv_reorder").value,
+    active: document.getElementById("inv_active").checked
+  };
+
+  if (!payload.item_name) {
+    alert("❌ Item name is required");
+    return;
+  }
+
+  showLoader("Saving item...");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "addInventoryItem",
+        data: JSON.stringify(payload)
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    closeModal();
+    await loadInventoryItems();
+
+  } catch (err) {
+    alert("❌ Save failed: " + err.message);
+  } finally {
+    hideLoader();
+  }
+}
+
 async function updateInventoryItem() {
   if (!selected) return;
 
@@ -373,5 +415,5 @@ async function deleteInventoryItem() {
 }
 
 window.deleteInventoryItem = deleteInventoryItem;
-
+window.saveInventoryItem = saveInventoryItem;
 window.openDeleteItemModal = openDeleteItemModal;
