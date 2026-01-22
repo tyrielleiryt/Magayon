@@ -361,3 +361,22 @@ html, body {
 .hidden {
   display: none !important;
 }
+
+/* ================= DAILY INVENTORY SCROLL LOCK ================= */
+
+.content {
+  height: calc(100vh - 56px);
+}
+
+.content-box {
+  max-height: 100%;
+}
+
+.data-box {
+  height: 100%;
+}
+
+.data-scroll {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
