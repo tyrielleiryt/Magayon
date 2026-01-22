@@ -170,9 +170,9 @@ function renderTable() {
       <td>${item.item_name}</td>
       <td>${item.description || ""}</td>
       <td>${item.quantity_per_serving}</td>
-      <td>${item.capital}</td>
-      <td>${item.selling_price}</td>
-      <td>${item.unit}</td>
+<td>${item.capital}</td>
+<td>${item.unit}</td>
+<td>${item.selling_price}</td>
     `;
 
     tr.onclick = () => {
@@ -240,8 +240,81 @@ function openAddItemModal() {
 }
 
 function openEditItemModal() {
-  if (!selected) return;
+    if (!selected) return;
+  
+  openModal(`
+    <div class="modal-header">✏️ Edit Inventory Item</div>
+
+    <label>Item Name</label>
+    <input id="inv_item_name" value="${selected.item_name}" required />
+
+    <label>Description</label>
+    <textarea id="inv_description">${selected.description || ""}</textarea>
+
+    <label>Quantity per Serving</label>
+    <input id="inv_qty" type="number" value="${selected.quantity_per_serving}" />
+
+    <label>Unit</label>
+    <input id="inv_unit" value="${selected.unit}" />
+
+    <label>Capital</label>
+    <input id="inv_capital" type="number" value="${selected.capital}" />
+
+    <label>Selling Price</label>
+    <input id="inv_price" type="number" value="${selected.selling_price}" />
+
+    <label>Reorder Level</label>
+    <input id="inv_reorder" type="number" value="${selected.reorder_level}" />
+
+    <label>
+      <input id="inv_active" type="checkbox" ${selected.active ? "checked" : ""} />
+      Active
+    </label>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="updateInventoryItem()">Save Changes</button>
+    </div>
+  `);
 }
-function openDeleteItemModal() {
+
+async function updateInventoryItem() {
   if (!selected) return;
+
+  const payload = {
+    item_id: selected.item_id,
+    item_name: document.getElementById("inv_item_name").value.trim(),
+    description: document.getElementById("inv_description").value.trim(),
+    quantity_per_serving: document.getElementById("inv_qty").value,
+    unit: document.getElementById("inv_unit").value,
+    capital: document.getElementById("inv_capital").value,
+    selling_price: document.getElementById("inv_price").value,
+    reorder_level: document.getElementById("inv_reorder").value,
+    active: document.getElementById("inv_active").checked
+  };
+
+  showLoader("Updating item...");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "updateInventoryItem",
+        data: JSON.stringify(payload)
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    closeModal();
+    await loadInventoryItems();
+
+  } catch (err) {
+    alert("❌ Update failed: " + err.message);
+  } finally {
+    hideLoader();
+  }
 }
+
