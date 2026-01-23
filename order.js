@@ -759,7 +759,7 @@ function loadPOSProductSaleTracker() {
   const date = getPHDate();
   const location = LOCATION;
 
-  const panel = document.querySelector(".right-panel");
+ const panel = document.getElementById("rightPanel");
 
   if (!panel) {
     console.error("❌ .right-panel container not found");
