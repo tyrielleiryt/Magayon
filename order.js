@@ -275,12 +275,17 @@ function disableWakeLock() {
    INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
+  
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
   document.getElementById("cashierLocation").textContent = LOCATION;
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
+  document.getElementById("productTrackerBtn")
+  ?.addEventListener("click", loadPOSProductSaleTracker);
 enableWakeLock();
+
+
 
   /* ================= CHAT INIT ================= */
 
@@ -335,6 +340,9 @@ if ("serviceWorker" in navigator) {
   ?.addEventListener("click", () => {
     refreshInventoryOnly();
   });
+
+
+  
 
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
   showPinModal("logout");
@@ -413,6 +421,71 @@ if (inventoryResponse.status !== "OPEN") {
 console.log("DEBUG RECIPES:", recipes);
 console.log("DEBUG LOCATION:", LOCATION);
 
+}
+
+async function loadProductSales(date, location) {
+  const res = await fetch(
+    `${API_URL}?type=productSalesTracker&date=${date}&location=${location}`
+  );
+  const data = await res.json();
+
+  const tbody = document.getElementById("productSalesBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4">No sales</td></tr>`;
+    return;
+  }
+
+  data.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td><b>${p.product_code || "-"}</b></td>
+        <td>${p.product_name}</td>
+        <td><strong>${p.qty_sold}</strong></td>
+        <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+}
+
+/* =========================================================
+   loadProductSales
+========================================================= */
+
+async function loadInventoryReconciliation(date, location) {
+  const res = await fetch(
+    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}`
+  );
+  const data = await res.json();
+
+  const tbody = document.getElementById("inventoryReconBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4">No inventory</td></tr>`;
+    return;
+  }
+
+  data.forEach(i => {
+    let rowClass = "";
+
+    if (i.remaining < 0) rowClass = "danger-row";
+    else if (i.remaining <= 5) rowClass = "warning-row";
+
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td>${i.item_name}</td>
+        <td>${i.added}</td>
+        <td>${i.consumed}</td>
+        <td><strong>${i.remaining}</strong></td>
+      </tr>
+    `;
+  });
 }
 
 /* =========================================================
@@ -687,7 +760,7 @@ function loadPOSProductSaleTracker() {
   const location =
     localStorage.getItem("userLocation") || "";
 
-  document.getElementById("contentBox").innerHTML = `
+  document.getElementById("rightPanel").innerHTML = `
     <div class="tracker-vertical">
 
       <div class="tracker-card">
@@ -1470,8 +1543,6 @@ document.addEventListener("visibilitychange", async () => {
     enableWakeLock();
   }
 });;
-
-
 
 document.getElementById("salesBtn")?.addEventListener("click", async () => {
   const tbody = document.getElementById("salesBody");
