@@ -69,6 +69,7 @@ document.getElementById("contentBox").innerHTML = `
         <table class="category-table">
           <thead>
             <tr>
+              <th>Code</th>
               <th>Product</th>
               <th>Qty Sold</th>
               <th>Sum Total</th>
@@ -285,6 +286,7 @@ async function loadProductSales(date, location) {
   data.forEach(p => {
     tbody.innerHTML += `
       <tr>
+        <td><b>${p.product_code || "-"}</b></td>
         <td>${p.product_name}</td>
         <td><strong>${p.qty_sold}</strong></td>
         <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
