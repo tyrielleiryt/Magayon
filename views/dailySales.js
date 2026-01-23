@@ -60,11 +60,12 @@ function loadProductSaleTracker() {
     return;
   }
 
-  document.getElementById("contentBox").innerHTML = `
-    <div class="tracker-grid">
+document.getElementById("contentBox").innerHTML = `
+  <div class="tracker-vertical">
 
-      <div class="tracker-card">
-        <h3>📦 Product Sale Tracker</h3>
+    <div class="tracker-card">
+      <h3>📦 Product Sale Tracker</h3>
+      <div class="table-scroll">
         <table class="category-table">
           <thead>
             <tr>
@@ -76,9 +77,11 @@ function loadProductSaleTracker() {
           <tbody id="productSalesBody"></tbody>
         </table>
       </div>
+    </div>
 
-      <div class="tracker-card">
-        <h3>📊 Inventory Reconciliation</h3>
+    <div class="tracker-card">
+      <h3>📊 Inventory Reconciliation</h3>
+      <div class="table-scroll">
         <table class="category-table">
           <thead>
             <tr>
@@ -91,11 +94,12 @@ function loadProductSaleTracker() {
           <tbody id="inventoryReconBody"></tbody>
         </table>
       </div>
-
     </div>
-  `;
 
-  bindDataBoxScroll(document.querySelector(".tracker-grid"));
+  </div>
+`;
+
+  bindDataBoxScroll(document.querySelector(".tracker-vertical"));
 
   loadProductSales(date, location);
   loadInventoryReconciliation(date, location);
