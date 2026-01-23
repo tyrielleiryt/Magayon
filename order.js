@@ -1022,6 +1022,14 @@ function closeProductTracker() {
   document.getElementById("productTrackerModal")?.classList.add("hidden");
 }
 
+window.closeProductTracker = closeProductTracker;
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeProductTracker();
+  }
+});
+
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(err => {
