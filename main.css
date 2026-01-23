@@ -380,3 +380,40 @@ html, body {
   max-height: calc(100vh - 260px);
   overflow-y: auto;
 }
+
+.tracker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  height: 100%;
+}
+
+.tracker-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tracker-card h3 {
+  margin: 0 0 10px;
+}
+
+.tracker-card table {
+  flex: 1;
+}
+
+/* Smart highlights */
+.danger-row {
+  background: #ffe5e5;
+  color: #b00020;
+  font-weight: bold;
+}
+
+.warning-row {
+  background: #fff7d6;
+  color: #8a6d00;
+  font-weight: bold;
+}

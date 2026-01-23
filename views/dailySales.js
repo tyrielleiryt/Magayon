@@ -37,8 +37,68 @@ function renderActionBar() {
     <button class="category-action-btn" id="loadSalesBtn">
       Load Report
     </button>
+    <button id="productTrackerBtn" class="primary">
+  📊 Product Sale Tracker
+</button>
   `;
   document.getElementById("loadSalesBtn").onclick = loadSales;
+  document.getElementById("productTrackerBtn").onclick =
+  loadProductSaleTracker;
+}
+
+/* ================= Product Sales ================= */
+
+function loadProductSaleTracker() {
+  const date = document.getElementById("salesDate")?.value;
+  const location =
+  document.getElementById("salesLocation").value ||
+  localStorage.getItem("userLocation") ||
+  "";
+
+  if (!date) {
+    alert("Please select a date first");
+    return;
+  }
+
+  document.getElementById("contentBox").innerHTML = `
+    <div class="tracker-grid">
+
+      <div class="tracker-card">
+        <h3>📦 Product Sale Tracker</h3>
+        <table class="category-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty Sold</th>
+              <th>Sum Total</th>
+            </tr>
+          </thead>
+          <tbody id="productSalesBody"></tbody>
+        </table>
+      </div>
+
+      <div class="tracker-card">
+        <h3>📊 Inventory Reconciliation</h3>
+        <table class="category-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Added</th>
+              <th>Consumed</th>
+              <th>Remaining</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryReconBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  `;
+
+  bindDataBoxScroll(document.querySelector(".tracker-grid"));
+
+  loadProductSales(date, location);
+  loadInventoryReconciliation(date, location);
 }
 
 /* ================= LAYOUT ================= */
@@ -201,5 +261,61 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true
+  });
+}
+
+async function loadProductSales(date, location) {
+  const res = await fetch(
+    `${API_URL}?type=productSalesTracker&date=${date}&location=${location}`
+  );
+  const data = await res.json();
+
+  const tbody = document.getElementById("productSalesBody");
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="2">No sales</td></tr>`;
+    return;
+  }
+
+  data.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.product_name}</td>
+        <td><strong>${p.qty_sold}</strong></td>
+        <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+}
+
+async function loadInventoryReconciliation(date, location) {
+  const res = await fetch(
+    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}`
+  );
+  const data = await res.json();
+
+  const tbody = document.getElementById("inventoryReconBody");
+  tbody.innerHTML = "";
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4">No inventory</td></tr>`;
+    return;
+  }
+
+  data.forEach(i => {
+    let rowClass = "";
+
+    if (i.remaining < 0) rowClass = "danger-row";
+    else if (i.remaining <= 5) rowClass = "warning-row";
+
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td>${i.item_name}</td>
+        <td>${i.added}</td>
+        <td>${i.consumed}</td>
+        <td><strong>${i.remaining}</strong></td>
+      </tr>
+    `;
   });
 }
