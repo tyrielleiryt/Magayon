@@ -756,11 +756,18 @@ function renderCart() {
 }
 
 function loadPOSProductSaleTracker() {
-  const date = new Date().toISOString().slice(0, 10);
-  const location =
-    localStorage.getItem("userLocation") || "";
+  const date = getPHDate();
+  const location = LOCATION;
 
-  document.getElementById("rightPanel").innerHTML = `
+  const panel = document.querySelector(".right-panel");
+
+  if (!panel) {
+    console.error("❌ .right-panel container not found");
+    alert("POS layout error: right panel not found");
+    return;
+  }
+
+  panel.innerHTML = `
     <div class="tracker-vertical">
 
       <div class="tracker-card">
