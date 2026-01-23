@@ -759,53 +759,14 @@ function loadPOSProductSaleTracker() {
   const date = getPHDate();
   const location = LOCATION;
 
- const panel = document.getElementById("rightPanel");
+  const modal = document.getElementById("productTrackerModal");
 
-  if (!panel) {
-    console.error("❌ .right-panel container not found");
-    alert("POS layout error: right panel not found");
+  if (!modal) {
+    alert("Product tracker modal not found");
     return;
   }
 
-  panel.innerHTML = `
-    <div class="tracker-vertical">
-
-      <div class="tracker-card">
-        <h3>📦 Product Sale Tracker (Today)</h3>
-        <div class="table-scroll">
-          <table class="category-table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Product</th>
-                <th>Qty Sold</th>
-                <th>Sum Total</th>
-              </tr>
-            </thead>
-            <tbody id="productSalesBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="tracker-card">
-        <h3>📊 Inventory Reconciliation (Today)</h3>
-        <div class="table-scroll">
-          <table class="category-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Added</th>
-                <th>Consumed</th>
-                <th>Remaining</th>
-              </tr>
-            </thead>
-            <tbody id="inventoryReconBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  `;
+  modal.classList.remove("hidden");
 
   loadProductSales(date, location);
   loadInventoryReconciliation(date, location);
@@ -950,6 +911,7 @@ function closePaymentModal() {
   pendingPayment = null;
 }
 
+
 document.getElementById("paymentMethod")?.addEventListener("change", e => {
   const method = e.target.value;
 
@@ -1054,6 +1016,10 @@ function updatePaidDisplay() {
     btn.classList.remove("enabled");
   }
   
+}
+
+function closeProductTracker() {
+  document.getElementById("productTrackerModal")?.classList.add("hidden");
 }
 
 function toggleFullscreen() {

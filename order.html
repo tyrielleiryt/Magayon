@@ -286,6 +286,46 @@
   </div>
 </div>
 
+<div id="productTrackerModal" class="modal hidden">
+  <div class="modal-content sales-modal">
+
+    <h2>📊 Product Sale Tracker (Today)</h2>
+
+    <div class="sales-table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Product</th>
+            <th>Qty Sold</th>
+            <th>Sum Total</th>
+          </tr>
+        </thead>
+        <tbody id="productSalesBody"></tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top:15px;">📦 Inventory Reconciliation</h2>
+
+    <div class="sales-table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Added</th>
+            <th>Consumed</th>
+            <th>Remaining</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryReconBody"></tbody>
+      </table>
+    </div>
+
+    <button onclick="closeProductTracker()">Close</button>
+
+  </div>
+</div>
+
   <!-- ================= SCRIPT ================= -->
   <script type="module" src="order.js"></script>
 </body>
