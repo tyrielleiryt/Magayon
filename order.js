@@ -682,6 +682,55 @@ function renderCart() {
   sumEl.textContent = sum.toFixed(2);
 }
 
+function loadPOSProductSaleTracker() {
+  const date = new Date().toISOString().slice(0, 10);
+  const location =
+    localStorage.getItem("userLocation") || "";
+
+  document.getElementById("contentBox").innerHTML = `
+    <div class="tracker-vertical">
+
+      <div class="tracker-card">
+        <h3>📦 Product Sale Tracker (Today)</h3>
+        <div class="table-scroll">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Product</th>
+                <th>Qty Sold</th>
+                <th>Sum Total</th>
+              </tr>
+            </thead>
+            <tbody id="productSalesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tracker-card">
+        <h3>📊 Inventory Reconciliation (Today)</h3>
+        <div class="table-scroll">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Added</th>
+                <th>Consumed</th>
+                <th>Remaining</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryReconBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  loadProductSales(date, location);
+  loadInventoryReconciliation(date, location);
+}
+
 /* =========================================================
    CHECKOUT
 ========================================================= */
