@@ -417,3 +417,4 @@ async function deleteInventoryItem() {
 window.deleteInventoryItem = deleteInventoryItem;
 window.saveInventoryItem = saveInventoryItem;
 window.openDeleteItemModal = openDeleteItemModal;
+window.updateInventoryItem = updateInventoryItem;
