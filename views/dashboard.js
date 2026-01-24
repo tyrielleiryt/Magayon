@@ -16,9 +16,22 @@ export default async function loadDashboardView() {
   ]);
 }
 
+/* ================= SAFE JSON FETCH ================= */
+async function safeFetchJSON(url) {
+  const res = await fetch(url);
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("API returned non-JSON:", text);
+    throw new Error("Invalid JSON response");
+  }
+}
+
 /* ================= LAYOUT ================= */
 function renderLayout() {
-  document.getElementById("actionBar").innerHTML = ``;
+  document.getElementById("actionBar").innerHTML = "";
 
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
@@ -80,13 +93,13 @@ function renderLayout() {
 /* ================= TOP SELLERS ================= */
 async function loadTopSellers(date) {
   try {
-    const res = await fetch(`${API_URL}?type=topSellers&date=${date}`);
-    const data = await res.json();
+    const url = `${API_URL}?type=topSellers&date=${date}`;
+    const data = await safeFetchJSON(url);
 
     const tbody = document.getElementById("topSellersBody");
     tbody.innerHTML = "";
 
-    if (!data.length) {
+    if (!Array.isArray(data) || !data.length) {
       tbody.innerHTML = `<tr><td colspan="4">No sales</td></tr>`;
       return;
     }
@@ -97,7 +110,7 @@ async function loadTopSellers(date) {
           <td>${i + 1}</td>
           <td>${p.product_name}</td>
           <td>${p.qty_sold}</td>
-          <td>₱${Number(p.total_sales).toFixed(2)}</td>
+          <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
         </tr>
       `;
     });
@@ -109,12 +122,17 @@ async function loadTopSellers(date) {
 /* ================= DAILY ANALYTICS ================= */
 async function loadDailyAnalytics(date) {
   try {
-    const res = await fetch(`${API_URL}?type=dailySalesAnalytics&date=${date}`);
-    const data = await res.json();
+    const url = `${API_URL}?type=dailySalesAnalytics&date=${date}`;
+    const data = await safeFetchJSON(url);
 
-    document.getElementById("metricGross").textContent = `₱${Number(data.gross || 0).toFixed(2)}`;
-    document.getElementById("metricOrders").textContent = data.orders || 0;
-    document.getElementById("metricAvg").textContent = `₱${Number(data.average || 0).toFixed(2)}`;
+    document.getElementById("metricGross").textContent =
+      `₱${Number(data?.gross || 0).toFixed(2)}`;
+
+    document.getElementById("metricOrders").textContent =
+      data?.orders || 0;
+
+    document.getElementById("metricAvg").textContent =
+      `₱${Number(data?.average || 0).toFixed(2)}`;
   } catch (err) {
     console.error("Analytics failed", err);
   }
@@ -123,13 +141,13 @@ async function loadDailyAnalytics(date) {
 /* ================= LOW STOCK ================= */
 async function loadLowStockAlerts(date) {
   try {
-    const res = await fetch(`${API_URL}?type=lowStockAlerts&date=${date}`);
-    const data = await res.json();
+    const url = `${API_URL}?type=lowStockAlerts&date=${date}`;
+    const data = await safeFetchJSON(url);
 
     const tbody = document.getElementById("lowStockBody");
     tbody.innerHTML = "";
 
-    if (!data.length) {
+    if (!Array.isArray(data) || !data.length) {
       tbody.innerHTML = `<tr><td colspan="2">All stocks healthy</td></tr>`;
       return;
     }
