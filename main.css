@@ -564,3 +564,19 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+.value-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.trend {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.trend.up { color: #16a34a; }    /* green */
+.trend.down { color: #dc2626; }  /* red */
+.trend.flat { color: #64748b; }  /* gray */

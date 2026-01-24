@@ -31,6 +31,22 @@ async function safeFetchJSON(url) {
   }
 }
 
+/* ================= Add Trend Logic Function ================= */
+function applyTrend(el, today, yesterday) {
+  el.className = "trend";
+
+  if (today > yesterday) {
+    el.textContent = "⬆";
+    el.classList.add("up");
+  } else if (today < yesterday) {
+    el.textContent = "⬇";
+    el.classList.add("down");
+  } else {
+    el.textContent = "➖";
+    el.classList.add("flat");
+  }
+}
+
 /* ================= LAYOUT ================= */
 function renderLayout() {
   document.getElementById("actionBar").innerHTML = "";
@@ -64,18 +80,27 @@ function renderLayout() {
           <h3>📈 Daily Performance</h3>
           <div class="analytics-grid">
             <div class="analytics-box">
-              <div class="label">Gross Sales</div>
-              <div class="value" id="metricGross">₱0</div>
-            </div>
-            <div class="analytics-box">
-              <div class="label">Transactions</div>
-              <div class="value" id="metricOrders">0</div>
-            </div>
-            <div class="analytics-box">
-              <div class="label">Avg Order</div>
-              <div class="value" id="metricAvg">₱0</div>
-            </div>
-          </div>
+  <div class="label">Gross Sales</div>
+  <div class="value-row">
+    <div class="value" id="metricGross">₱0</div>
+    <div class="trend" id="trendGross">—</div>
+  </div>
+</div>
+<div class="analytics-box">
+  <div class="label">Transactions</div>
+  <div class="value-row">
+    <div class="value" id="metricOrders">0</div>
+    <div class="trend" id="trendOrders">—</div>
+  </div>
+</div>
+
+<div class="analytics-box">
+  <div class="label">Avg Order</div>
+  <div class="value-row">
+    <div class="value" id="metricAvg">₱0</div>
+    <div class="trend" id="trendAvg">—</div>
+  </div>
+</div>
         </div>
 
         <!-- Low Stock -->
@@ -131,17 +156,41 @@ async function loadTopSellers(date) {
 /* ================= DAILY ANALYTICS ================= */
 async function loadDailyAnalytics(date) {
   try {
-    const url = `${API_URL}?type=dailySalesAnalytics&date=${date}`;
-    const data = await safeFetchJSON(url);
+    const todayURL = `${API_URL}?type=dailySalesAnalytics&date=${date}`;
+
+    const yesterday = new Date(date);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yDate = yesterday.toISOString().slice(0, 10);
+
+    const yesterdayURL = `${API_URL}?type=dailySalesAnalytics&date=${yDate}`;
+
+    const [todayData, yesterdayData] = await Promise.all([
+      safeFetchJSON(todayURL),
+      safeFetchJSON(yesterdayURL)
+    ]);
+
+    const grossToday = Number(todayData?.gross || 0);
+    const grossYesterday = Number(yesterdayData?.gross || 0);
+
+    const ordersToday = Number(todayData?.orders || 0);
+    const ordersYesterday = Number(yesterdayData?.orders || 0);
+
+    const avgToday = Number(todayData?.average || 0);
+    const avgYesterday = Number(yesterdayData?.average || 0);
 
     document.getElementById("metricGross").textContent =
-      `₱${Number(data?.gross || 0).toFixed(2)}`;
+      `₱${grossToday.toFixed(2)}`;
 
     document.getElementById("metricOrders").textContent =
-      data?.orders || 0;
+      ordersToday;
 
     document.getElementById("metricAvg").textContent =
-      `₱${Number(data?.average || 0).toFixed(2)}`;
+      `₱${avgToday.toFixed(2)}`;
+
+    applyTrend(document.getElementById("trendGross"), grossToday, grossYesterday);
+    applyTrend(document.getElementById("trendOrders"), ordersToday, ordersYesterday);
+    applyTrend(document.getElementById("trendAvg"), avgToday, avgYesterday);
+
   } catch (err) {
     console.error("Analytics failed", err);
   }
