@@ -41,21 +41,25 @@ function renderLayout() {
 
       <div class="dashboard-grid">
 
+        <!-- Top Sellers -->
         <div class="dashboard-card">
           <h3>🏆 Top 5 Best Sellers</h3>
-          <table class="category-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Sales</th>
-              </tr>
-            </thead>
-            <tbody id="topSellersBody"></tbody>
-          </table>
+          <div class="dashboard-table-wrap">
+            <table class="category-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Sales</th>
+                </tr>
+              </thead>
+              <tbody id="topSellersBody"></tbody>
+            </table>
+          </div>
         </div>
 
+        <!-- Analytics -->
         <div class="dashboard-card">
           <h3>📈 Daily Performance</h3>
           <div class="analytics-grid">
@@ -74,17 +78,20 @@ function renderLayout() {
           </div>
         </div>
 
+        <!-- Low Stock -->
         <div class="dashboard-card danger">
           <h3>⚠️ Low Stock Warnings</h3>
-          <table class="category-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Remaining</th>
-              </tr>
-            </thead>
-            <tbody id="lowStockBody"></tbody>
-          </table>
+          <div class="dashboard-table-wrap">
+            <table class="category-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Remaining</th>
+                </tr>
+              </thead>
+              <tbody id="lowStockBody"></tbody>
+            </table>
+          </div>
         </div>
 
       </div>

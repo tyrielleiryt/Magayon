@@ -471,6 +471,7 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+    max-height: 300px; 
 }
 
 .dashboard-card h3 {
@@ -508,17 +509,27 @@ html, body {
   text-overflow: ellipsis;
 }
 
+/* Allow wrapping instead of overflow */
+.dashboard-card td,
+.dashboard-card th {
+  white-space: normal;      /* 🔥 allow wrapping */
+  word-break: break-word;  /* 🔥 break long words */
+  font-size: 13px;
+  padding: 6px;
+}
+
 /* Analytics */
 .analytics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+    height: 100%;
 }
 
 .analytics-box {
   background: #f8fafc;
   border-radius: 12px;
-  padding: 14px;
+  padding: 10px;
   text-align: center;
 }
 
@@ -537,6 +548,9 @@ html, body {
 .dashboard-card.danger {
   background: #fff5f5;
   border: 1px solid #fecaca;
+  max-height: 200px;
+  overflow-y: auto;
+  display: block;
 }
 
 .dashboard-card.danger td {
