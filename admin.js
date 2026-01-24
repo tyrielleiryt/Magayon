@@ -67,6 +67,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 /* ================= IMPORT VIEWS ================= */
+import loadCapitalCalculatorView from "./views/capital-calculator.js";
 import loadCategoriesView from "./views/categories.js";
 import loadInventoryItemsView from "./views/inventoryitems.js";
 import loadDailyInventoryView from "./views/dailyinventory.js";
@@ -75,6 +76,7 @@ import loadDailySalesView from "./views/dailySales.js";
 import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
 import loadDashboardView from "./views/dashboard.js";
+
 
 function clearView() {
   document.getElementById("actionBar")?.replaceChildren();
@@ -98,6 +100,10 @@ clearView();
 
     try {
       switch (btn.dataset.view) {
+        case "capitalCalculator":
+        await loadCapitalCalculatorView();
+        break;
+        
         case "categories":
           await loadCategoriesView();
           break;

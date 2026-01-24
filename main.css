@@ -584,6 +584,21 @@ html, body {
   height: 100%;
 }
 
+.recipe-btn {
+  border: none;
+  background: #2f3457;
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.recipe-btn:hover {
+  opacity: 0.85;
+}
+
 .trend.up { color: #16a34a; }    /* green */
 .trend.down { color: #dc2626; }  /* red */
 .trend.flat { color: #64748b; }  /* gray */
