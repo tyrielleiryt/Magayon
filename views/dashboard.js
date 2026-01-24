@@ -57,70 +57,76 @@ function renderLayout() {
 
       <div class="dashboard-grid">
 
-        <!-- Top Sellers -->
-        <div class="dashboard-card">
-          <h3>🏆 Top 5 Best Sellers</h3>
-          <div class="dashboard-table-wrap">
-            <table class="category-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Product</th>
-                  <th>Qty</th>
-                  <th>Sales</th>
-                </tr>
-              </thead>
-              <tbody id="topSellersBody"></tbody>
-            </table>
+  <!-- Left: Top Sellers -->
+  <div class="dashboard-card">
+    <h3>🏆 Top 5 Best Sellers</h3>
+    <div class="dashboard-table-wrap">
+      <table class="category-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Sales</th>
+          </tr>
+        </thead>
+        <tbody id="topSellersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="dashboard-right-column">
+
+    <!-- Daily Performance -->
+    <div class="dashboard-card">
+      <h3>📈 Daily Performance</h3>
+      <div class="analytics-grid">
+        <div class="analytics-box">
+          <div class="label">Gross Sales</div>
+          <div class="value-row">
+            <div class="value" id="metricGross">₱0</div>
+            <div class="trend" id="trendGross">—</div>
           </div>
         </div>
 
-        <!-- Analytics -->
-        <div class="dashboard-card">
-          <h3>📈 Daily Performance</h3>
-          <div class="analytics-grid">
-            <div class="analytics-box">
-  <div class="label">Gross Sales</div>
-  <div class="value-row">
-    <div class="value" id="metricGross">₱0</div>
-    <div class="trend" id="trendGross">—</div>
-  </div>
-</div>
-<div class="analytics-box">
-  <div class="label">Transactions</div>
-  <div class="value-row">
-    <div class="value" id="metricOrders">0</div>
-    <div class="trend" id="trendOrders">—</div>
-  </div>
-</div>
-
-<div class="analytics-box">
-  <div class="label">Avg Order</div>
-  <div class="value-row">
-    <div class="value" id="metricAvg">₱0</div>
-    <div class="trend" id="trendAvg">—</div>
-  </div>
-</div>
-        </div>
-
-        <!-- Low Stock -->
-        <div class="dashboard-card danger">
-          <h3>⚠️ Low Stock Warnings</h3>
-          <div class="dashboard-table-wrap">
-            <table class="category-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Remaining</th>
-                </tr>
-              </thead>
-              <tbody id="lowStockBody"></tbody>
-            </table>
+        <div class="analytics-box">
+          <div class="label">Transactions</div>
+          <div class="value-row">
+            <div class="value" id="metricOrders">0</div>
+            <div class="trend" id="trendOrders">—</div>
           </div>
         </div>
 
+        <div class="analytics-box">
+          <div class="label">Avg Order</div>
+          <div class="value-row">
+            <div class="value" id="metricAvg">₱0</div>
+            <div class="trend" id="trendAvg">—</div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Low Stock -->
+    <div class="dashboard-card danger">
+      <h3>⚠️ Low Stock Warnings</h3>
+      <div class="dashboard-table-wrap">
+        <table class="category-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Remaining</th>
+            </tr>
+          </thead>
+          <tbody id="lowStockBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
   `;
 }
 
