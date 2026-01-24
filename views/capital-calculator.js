@@ -27,55 +27,67 @@ function renderLayout() {
   document.getElementById("actionBar").innerHTML = "";
 
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box">
-      <h2>💰 Capital Calculator</h2>
+  <div class="data-box">
+    <h2>💰 Capital Calculator</h2>
 
-      <div class="capital-summary-grid">
+    <div class="capital-layout">
 
-  <div class="summary-box">
-    <label><strong>Capital Fund</strong></label>
-    <input id="capitalFundInput" type="number" value="10000">
-  </div>
+      <!-- LEFT MAIN PANEL -->
+      <div class="capital-main">
 
-  <div class="summary-box">
-    <label><strong>Total Capital Needed</strong></label>
-    <div id="totalCapital">₱0</div>
-  </div>
+        <div class="capital-summary-grid">
 
-  <div class="summary-box">
-    <label><strong>Projected Income</strong></label>
-    <div id="totalIncome">₱0</div>
-  </div>
+          <div class="summary-box">
+            <label><strong>Capital Fund</strong></label>
+            <input id="capitalFundInput" type="number" value="10000">
+          </div>
 
-  <div class="summary-box profit">
-    <label><strong>Projected Profit</strong></label>
-    <div id="totalProfit">₱0</div>
-  </div>
+          <div class="summary-box">
+            <label><strong>Total Capital Needed</strong></label>
+            <div id="totalCapital">₱0</div>
+          </div>
 
-  <div class="summary-box inventory">
-    <label><strong>📦 Required Inventory</strong></label>
-    <div id="inventorySummaryList" class="inventory-summary-list"></div>
-  </div>
+          <div class="summary-box">
+            <label><strong>Projected Income</strong></label>
+            <div id="totalIncome">₱0</div>
+          </div>
 
-</div>
+          <div class="summary-box profit">
+            <label><strong>Projected Profit</strong></label>
+            <div id="totalProfit">₱0</div>
+          </div>
 
-      <div class="data-scroll">
-        <table class="category-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Product</th>
-              <th>Price</th>
-              <th>Qty</th>
-              <th>Capital</th>
-              <th>Income</th>
-            </tr>
-          </thead>
-          <tbody id="capitalBody"></tbody>
-        </table>
+        </div>
+
+        <div class="data-scroll">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Capital</th>
+                <th>Income</th>
+              </tr>
+            </thead>
+            <tbody id="capitalBody"></tbody>
+          </table>
+        </div>
+
       </div>
+
+      <!-- RIGHT INVENTORY PANEL -->
+      <div class="capital-inventory-panel">
+        <div class="inventory-panel-header">
+          📦 Required Inventory
+        </div>
+        <div id="inventorySummaryList" class="inventory-summary-list"></div>
+      </div>
+
     </div>
-  `;
+  </div>
+`;
 
   document.getElementById("capitalFundInput").oninput = updateTotals;
 }
