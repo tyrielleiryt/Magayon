@@ -282,3 +282,4 @@ setInterval(() => {
 
 // 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;
+document.querySelector('[data-view="dashboard"]')?.click();

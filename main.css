@@ -440,3 +440,44 @@ html, body {
   max-height: 360px;
   border-radius: 6px;
 }
+
+.dashboard-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+  gap:14px;
+}
+
+.dashboard-card {
+  background:#fff;
+  padding:14px;
+  border-radius:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+
+.dashboard-card.danger {
+  border:1px solid #fecaca;
+  background:#fff5f5;
+}
+
+.analytics-grid {
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:10px;
+}
+
+.analytics-box {
+  background:#f1f5f9;
+  padding:12px;
+  border-radius:10px;
+  text-align:center;
+}
+
+.analytics-box .label {
+  font-size:12px;
+  color:#64748b;
+}
+
+.analytics-box .value {
+  font-size:22px;
+  font-weight:700;
+}
