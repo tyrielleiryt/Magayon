@@ -1,6 +1,8 @@
 import { bindDataBoxScroll } from "../admin.js";
 
-const API_URL = window.API_URL;
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+
 
 /* ================= ENTRY ================= */
 export default async function loadDashboardView() {
