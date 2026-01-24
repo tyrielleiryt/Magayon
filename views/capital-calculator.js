@@ -30,27 +30,34 @@ function renderLayout() {
     <div class="data-box">
       <h2>💰 Capital Calculator</h2>
 
-      <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-        <div>
-          <label><strong>Capital Fund</strong></label><br>
-          <input id="capitalFundInput" type="number" value="10000" style="padding:8px;border-radius:6px;width:160px">
-        </div>
+      <div class="capital-summary-grid">
 
-        <div>
-          <label><strong>Total Capital Needed</strong></label><br>
-          <div id="totalCapital" style="font-size:18px;font-weight:700">₱0</div>
-        </div>
+  <div class="summary-box">
+    <label><strong>Capital Fund</strong></label>
+    <input id="capitalFundInput" type="number" value="10000">
+  </div>
 
-        <div>
-          <label><strong>Projected Income</strong></label><br>
-          <div id="totalIncome" style="font-size:18px;font-weight:700">₱0</div>
-        </div>
+  <div class="summary-box">
+    <label><strong>Total Capital Needed</strong></label>
+    <div id="totalCapital">₱0</div>
+  </div>
 
-        <div>
-          <label><strong>Projected Profit</strong></label><br>
-          <div id="totalProfit" style="font-size:18px;font-weight:700">₱0</div>
-        </div>
-      </div>
+  <div class="summary-box">
+    <label><strong>Projected Income</strong></label>
+    <div id="totalIncome">₱0</div>
+  </div>
+
+  <div class="summary-box profit">
+    <label><strong>Projected Profit</strong></label>
+    <div id="totalProfit">₱0</div>
+  </div>
+
+  <div class="summary-box inventory">
+    <label><strong>📦 Required Inventory</strong></label>
+    <div id="inventorySummaryList" class="inventory-summary-list"></div>
+  </div>
+
+</div>
 
       <div class="data-scroll">
         <table class="category-table">
@@ -149,6 +156,49 @@ function updateQty(product, delta, qtySpan) {
   updateTotals();
 }
 
+function updateInventorySummary() {
+  const summary = {};
+
+  products.forEach(p => {
+    const qty = qtyMap[p.product_id] || 0;
+    if (!qty) return;
+
+    const recipe = recipesMap[p.product_id] || [];
+
+    recipe.forEach(r => {
+      if (!summary[r.item_id]) {
+        summary[r.item_id] = {
+          name: r.item_name || "",
+          total: 0,
+          unit: r.unit || ""
+        };
+      }
+
+      summary[r.item_id].total += qty * Number(r.qty_used);
+    });
+  });
+
+  renderInventorySummary(summary);
+}
+
+function renderInventorySummary(summary) {
+  const box = document.getElementById("inventorySummaryList");
+  if (!box) return;
+
+  const items = Object.values(summary);
+
+  if (!items.length) {
+    box.innerHTML = `<div class="muted">No items required</div>`;
+    return;
+  }
+
+  box.innerHTML = items.map(i => `
+    <div>
+      <strong>${i.name}</strong>: ${i.total}
+    </div>
+  `).join("");
+}
+
 /* ================= TOTALS ================= */
 function updateTotals() {
   let totalCapital = 0;
@@ -162,7 +212,17 @@ function updateTotals() {
 
   const profit = totalIncome - totalCapital;
 
+  const fund = Number(document.getElementById("capitalFundInput").value || 0);
+
+if (totalCapital > fund) {
+  document.getElementById("totalCapital").style.color = "#dc2626";
+} else {
+  document.getElementById("totalCapital").style.color = "#16a34a";
+}
+
   document.getElementById("totalCapital").textContent = `₱${totalCapital.toFixed(2)}`;
   document.getElementById("totalIncome").textContent = `₱${totalIncome.toFixed(2)}`;
   document.getElementById("totalProfit").textContent = `₱${profit.toFixed(2)}`;
+
+  updateInventorySummary();
 }
