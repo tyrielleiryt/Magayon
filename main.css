@@ -455,7 +455,7 @@ html, body {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1.4fr;
   gap: 18px;
   margin-top: 14px;
   height: 100%;
@@ -575,6 +575,13 @@ html, body {
 .trend {
   font-size: 18px;
   font-weight: bold;
+}
+
+.dashboard-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
 }
 
 .trend.up { color: #16a34a; }    /* green */
