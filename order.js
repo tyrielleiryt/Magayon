@@ -478,13 +478,17 @@ async function loadInventoryReconciliation(date, location) {
     else if (i.remaining <= 5) rowClass = "warning-row";
 
     tbody.innerHTML += `
-      <tr class="${rowClass}">
-        <td>${i.item_name}</td>
-        <td>${i.added}</td>
-        <td>${i.consumed}</td>
-        <td><strong>${i.remaining}</strong></td>
-      </tr>
-    `;
+  <tr class="${rowClass}">
+    <td>${i.item_name}</td>
+    <td>${i.added}</td>
+    <td>${i.consumed}</td>
+    <td><strong>${i.remaining}</strong></td>
+    <td>
+      <strong>${Number(i.quantity_left || 0).toFixed(2)}</strong>
+      <small>${i.unit || ""}</small>
+    </td>
+  </tr>
+`;
   });
 }
 
