@@ -457,7 +457,7 @@ async function loadProductSales(date, location) {
 
 async function loadInventoryReconciliation(date, location) {
   const res = await fetch(
-    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}`
+    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}&_=${Date.now()}`
   );
   const data = await res.json();
 
