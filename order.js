@@ -484,8 +484,7 @@ async function loadInventoryReconciliation(date, location) {
     <td>${i.consumed}</td>
     <td><strong>${i.remaining}</strong></td>
     <td>
-      <strong>${Number(i.quantity_left || 0).toFixed(2)}</strong>
-      <small>${i.unit || ""}</small>
+      <strong>${i.quantity_left_display || "0"}</strong>
     </td>
   </tr>
 `;
