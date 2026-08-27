@@ -1,4 +1,6 @@
-function openCloseDayModal(date, location) {
+import { API_URL } from "./firebase-config.js";
+
+export function openCloseDayModal(date, location) {
   document.getElementById("closeDayDate").textContent = date;
   document.getElementById("closeDayLocation").textContent = location;
 
@@ -13,7 +15,7 @@ function openCloseDayModal(date, location) {
   loadInventorySummary(date, location);
 }
 
-async function loadInventorySummary(date, location) {
+export async function loadInventorySummary(date, location) {
   const listEl = document.getElementById("inventorySummaryList");
   const countEl = document.getElementById("inventorySummaryCount");
 

@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// Firestore Security Rules for the `users` collection (login accounts:
+// email, role, active, staff_id, location, can_pos).
+//
+// NOT deployed automatically — paste this into:
+//   Firebase Console -> Firestore Database -> Rules -> Publish
+// (or deploy via `firebase deploy --only firestore:rules` if you use the CLI)
+//
+// Why this matters: right now, without rules like these, a signed-in user
+// could write to their own /users/{uid} doc directly from the browser
+// console and change their own `role` to "it_admin" or "active" to true.
+// auth-guard.js trusts whatever is in that document, so client-side rules
+// are the only thing actually stopping self-promotion.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveITAdmin() {
+      return isSignedIn() && myProfile().role == 'it_admin' && myProfile().active == true;
+    }
+
+    match /users/{userId} {
+      // You can always read your own profile (needed to log in at all).
+      // IT admins can read everyone's profile (needed for an accounts screen).
+      allow read: if isSignedIn() && (request.auth.uid == userId || isActiveITAdmin());
+
+      // Only an active IT admin can create accounts or edit someone else's
+      // role/active/location/can_pos — and nobody, including an IT admin,
+      // can edit their OWN doc through the app (prevents self-promotion and
+      // accidental self-lockout via the UI; do that one by hand in console).
+      allow create, update, delete: if isActiveITAdmin() && request.auth.uid != userId;
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

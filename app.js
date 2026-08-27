@@ -1,29 +1,12 @@
-import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-import {
-  getAuth,
-  signInWithEmailAndPassword
-} from
+import { signInWithEmailAndPassword } from
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import {
-  getFirestore,
-  doc,
-  getDoc
-} from
+import { doc, getDoc } from
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ================= FIREBASE CONFIG ================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
-  authDomain: "magayon.firebaseapp.com",
-  projectId: "magayon"
-};
+import { auth, db } from "./firebase-config.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const KNOWN_ROLES = ["cashier", "admin", "it_admin"];
 
 /* ================= ELEMENTS ================= */
 const loginBtn = document.getElementById("loginBtn");
@@ -64,11 +47,15 @@ async function handleLogin() {
       throw new Error("Account is inactive.");
     }
 
+    if (!KNOWN_ROLES.includes(user.role)) {
+      throw new Error("Unrecognized role. Contact your IT admin.");
+    }
+
     if (user.role === "cashier" && user.can_pos !== "true") {
       throw new Error("Not authorized for POS.");
     }
 
-    /* ✅ SESSION */
+    /* ✅ SESSION (cache only — every protected page re-verifies via auth-guard.js) */
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("staff_id", user.staff_id);
     localStorage.setItem("userEmail", user.email);
@@ -79,7 +66,7 @@ async function handleLogin() {
 
     /* 🚦 ROUTE */
     window.location.replace(
-      user.role === "admin" ? "main.html" : "order.html"
+      user.role === "admin" || user.role === "it_admin" ? "main.html" : "order.html"
     );
 
   } catch (err) {

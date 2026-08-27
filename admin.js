@@ -1,14 +1,16 @@
 
 
-/* ================= AUTH GUARD ================= */
-if (localStorage.getItem("isLoggedIn") !== "true") {
-  window.location.replace("index.html");
-}
+import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
+import { API_URL } from "./firebase-config.js";
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+window.API_URL = API_URL; // kept for admin-close-day.js
 
-window.API_URL = API_URL; // optional, but helpful for debugging
+/* ================= AUTH GUARD =================
+   Re-verifies against Firebase Auth + the user's Firestore profile on every
+   load. Replaces the old `localStorage.isLoggedIn === "true"` check, which
+   anyone could set by hand in devtools with no real login at all — or which
+   any logged-in cashier could reach since it never checked role. */
+const currentUser = await requireRole([ROLES.ADMIN, ROLES.IT_ADMIN]);
 
 /* ================= LOADER HELPERS ================= */
 export function showLoader(text = "Loading data…") {
@@ -56,14 +58,45 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 
   const staffId = localStorage.getItem("staff_id");
   if (staffId) {
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
     new Image().src = `${API_URL}?action=endShift&staff_id=${staffId}`;
   }
 
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.replace("index.html");
+  logout(); // signs out of Firebase too (the old handler only cleared localStorage)
+});
+
+/* ================= CLOSE DAY MODAL (static chrome — wired once here) =================
+   The trigger button (closeDayBtn) is rendered per-visit by views/dailyinventory.js,
+   but this modal itself lives once in main.html, so its own controls are wired here. */
+document.getElementById("confirmCloseDayCheckbox")?.addEventListener("change", e => {
+  const btn = document.getElementById("confirmCloseDayBtn");
+  if (btn) btn.disabled = !e.target.checked;
+});
+
+document.getElementById("cancelCloseDayBtn")?.addEventListener("click", () => {
+  document.getElementById("closeDayModal")?.classList.add("hidden");
+});
+
+document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async () => {
+  const date = document.getElementById("closeDayDate")?.textContent;
+  const location = document.getElementById("closeDayLocation")?.textContent;
+  const btn = document.getElementById("confirmCloseDayBtn");
+  btn.disabled = true;
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({ action: "closeInventoryDay", date, location })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Unknown error");
+
+    alert("✅ Inventory successfully closed.");
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+    btn.disabled = false;
+  }
 });
 
 /* ================= IMPORT VIEWS ================= */
@@ -250,7 +283,7 @@ function sendAdminChat() {
   const msg = input.value.trim();
   if (!msg) return;
 
-  fetch(API_URL, {
+  authFetch(API_URL, {
     method: "POST",
     body: new URLSearchParams({
       action: "sendChatMessage",

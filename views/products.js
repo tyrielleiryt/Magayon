@@ -1,8 +1,8 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import { API_URL } from "../firebase-config.js";
+import { authFetch } from "../auth-guard.js";
 
 window.closeModal = closeModal;
 
@@ -378,7 +378,7 @@ function saveProduct() {
   }));
 
 
-  fetch(API_URL, {
+  authFetch(API_URL, {
   method: "POST",
   headers: {
     "Content-Type": "application/x-www-form-urlencoded"
@@ -422,7 +422,7 @@ function deleteProduct() {
 
   showLoader("Deleting product…");
 
-  fetch(API_URL, {
+  authFetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
@@ -449,7 +449,7 @@ function toggleProductStatus(product) {
 
   showLoader("Updating product status…");
 
-  fetch(API_URL, {
+  authFetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"

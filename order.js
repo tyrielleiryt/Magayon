@@ -2,15 +2,11 @@
 /* =========================================================
    CONFIG
 ========================================================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import { API_URL } from "./firebase-config.js";
+import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
 
+window.API_URL = API_URL; // kept for any legacy code expecting a global
 
-
-  window.API_URL = API_URL; // 👈 ADD THIS
-
-  let PIN_ACTION = "unlock"; // 🔑 unlock | logout
-const MANAGER_PIN = "1234"; // 🔑 change this
 const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
 let SYNC_IN_PROGRESS = false;
 
@@ -29,14 +25,6 @@ function autoDetectDenseMode() {
 let POS_CLOSED = false;
 let chatBox = null;
 let POS_CHAT_ENABLED = true; // 🔒 admin can disable POS chat
-
-  if (!localStorage.getItem("staff_id")) {
-    localStorage.setItem("staff_id", "kiosk");
-    localStorage.setItem("userLocation", "DEFAULT_LOC");
-    localStorage.setItem("userName", "POS Kiosk");
-    localStorage.setItem("userPosition", "cashier");
-  }
-
 
 function getStaffId() {
   return localStorage.getItem("staff_id") || "kiosk";
@@ -140,32 +128,7 @@ function getPHDate() {
   return ph.toISOString().slice(0, 10);
 }
 
-function showPinModal(action = "unlock") {
-  PIN_ACTION = action;
-
-  document.querySelector("#pinModal h2").textContent =
-  action === "logout"
-    ? "🔒 Manager Logout"
-    : "🔒 Manager Unlock";
-
-  const modal = document.getElementById("pinModal");
-  const input = document.getElementById("pinInput");
-
-  if (!modal || !input) return;
-
-  input.value = "";
-  modal.classList.remove("hidden");
-  input.focus();
-}
-
-function closePinModal() {
-  document.getElementById("pinModal")?.classList.add("hidden");
-}
-
-
-
 document.addEventListener("fullscreenchange", () => {
-  console.log("ℹ️ Fullscreen changed (ignored on tablet)");
 });
 
 
@@ -275,6 +238,10 @@ function disableWakeLock() {
    INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
+  // Real login/role check — replaces the removed no-login "kiosk" fallback.
+  // Redirects to index.html and never resolves if not signed in / inactive.
+  await requireRole([ROLES.CASHIER, ROLES.ADMIN, ROLES.IT_ADMIN]);
+
   
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
@@ -318,7 +285,11 @@ chatToggle.addEventListener("click", () => {
   }
 
 if ("serviceWorker" in navigator) {
-  //navigator.serviceWorker.register("./service-worker.js");
+  // Was commented out — meaning offline mode never actually activated,
+  // on top of the broken precache list fixed in service-worker.js.
+  navigator.serviceWorker
+    .register("./service-worker.js")
+    .catch(err => console.warn("Service worker registration failed:", err));
 }
 
   showLoader("Loading POS data…");
@@ -345,8 +316,9 @@ if ("serviceWorker" in navigator) {
   
 
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
-  showPinModal("logout");
-});
+    if (!confirm("Log out?")) return;
+    logout();
+  });
 
   document.querySelector(".checkout")?.addEventListener("click", () => {
   if (!cart.length) {
@@ -416,10 +388,6 @@ if (inventoryResponse.status !== "OPEN") {
   localStorage.setItem("categories", JSON.stringify(categories));
   localStorage.setItem("products", JSON.stringify(products));
   localStorage.setItem("recipes", JSON.stringify(recipes));
-
-  console.log("DEBUG INVENTORY:", inventory);
-console.log("DEBUG RECIPES:", recipes);
-console.log("DEBUG LOCATION:", LOCATION);
 
 }
 
@@ -858,7 +826,7 @@ updateSyncCounter(); // optional safety refresh
   return;
 }
 
-    const res = await fetch(API_URL, {
+    const res = await authFetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -1160,6 +1128,12 @@ async function syncPendingOrders() {
     return;
   }
 
+  // Drop each order from the queue as soon as IT succeeds, not after the
+  // whole batch finishes — otherwise one failure partway through re-sends
+  // every order that already went through on the next sync, duplicating
+  // sales that were already recorded.
+  const remaining = [...pending];
+
   for (const o of pending) {
     try {
       const body = new URLSearchParams({
@@ -1171,11 +1145,14 @@ async function syncPendingOrders() {
         payment: JSON.stringify(o.payment || {}) // ✅ ADD
       });
 
-      await fetch(API_URL, {
+      await authFetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body
       });
+
+      remaining.shift();
+      setPendingOrders(remaining);
 
     } catch (err) {
       console.warn("Sync failed for order:", o.ref_id);
@@ -1184,7 +1161,6 @@ async function syncPendingOrders() {
     }
   }
 
-  setPendingOrders([]);
   SYNC_IN_PROGRESS = false;
   updateSyncCounter();
   console.log("✅ Offline orders synced");
@@ -1503,7 +1479,7 @@ function sendChat() {
   const msg = input.value.trim();
   if (!msg) return;
 
-fetch(API_URL, {
+authFetch(API_URL, {
   method: "POST",
   body: new URLSearchParams({
     action: "sendChatMessage",

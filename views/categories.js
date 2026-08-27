@@ -1,8 +1,7 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import { API_URL } from "../firebase-config.js";
 
 /* =========================================================
    LOADER HELPERS (STEP 4)

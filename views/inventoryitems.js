@@ -2,8 +2,8 @@ import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 /* ================= API ================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import { API_URL } from "../firebase-config.js";
+import { authFetch } from "../auth-guard.js";
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
@@ -323,7 +323,7 @@ async function saveInventoryItem() {
   showLoader("Saving item...");
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await authFetch(API_URL, {
       method: "POST",
       body: new URLSearchParams({
         action: "addInventoryItem",
@@ -365,7 +365,7 @@ async function updateInventoryItem() {
   showLoader("Updating item...");
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await authFetch(API_URL, {
       method: "POST",
       body: new URLSearchParams({
         action: "updateInventoryItem",
@@ -393,7 +393,7 @@ async function deleteInventoryItem() {
   showLoader("Deleting item...");
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await authFetch(API_URL, {
       method: "POST",
       body: new URLSearchParams({
         action: "deleteInventoryItem",

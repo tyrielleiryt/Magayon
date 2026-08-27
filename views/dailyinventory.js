@@ -4,8 +4,9 @@ import { openModal, closeModal } from "./modal.js";
 /* =========================================================
    CONFIG
 ========================================================= */
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbzk9NGHZz6kXPTABYSr81KleSYI_9--ej6ccgiSqFvDWXaR9M8ZWf1EgzdMRVgReuh8/exec";
+import { API_URL } from "../firebase-config.js";
+import { openCloseDayModal } from "../admin-close-day.js";
+import { authFetch } from "../auth-guard.js";
 
 const STAFF_ID = localStorage.getItem("staff_id");
 const CREATED_BY =
@@ -94,8 +95,17 @@ function renderActionBar() {
     renderTable();
   };
 
-  el("startDayBtn").onclick = startInventoryDay; // ✅ THIS WAS MISSING
-  
+  el("startDayBtn").onclick = startInventoryDay;
+
+  el("closeDayBtn").onclick = () => {
+    const date = getPHDate();
+    const location = localStorage.getItem("userLocation");
+    if (!location) {
+      alert("❌ Location missing. Please reload or reselect location.");
+      return;
+    }
+    openCloseDayModal(date, location);
+  };
 }
 
 /* =================  Start Inventory ================= */
@@ -116,7 +126,7 @@ if (!location) {
   showLoader("Starting inventory day…");
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await authFetch(API_URL, {
       method: "POST",
       body: new URLSearchParams({
         action: "manualStartInventoryDay",
@@ -367,7 +377,7 @@ window.saveInventoryForDay = function (date, location) {
 
   showLoader("Saving inventory…");
 
-  fetch(
+  authFetch(
     `${API_URL}?action=addDailyInventory` +
     `&date=${encodeURIComponent(date)}` +
     `&location=${encodeURIComponent(location)}` +
