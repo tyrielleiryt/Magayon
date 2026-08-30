@@ -323,6 +323,32 @@ html, body {
   gap: 10px;
 }
 
+/* Static modals not built through modal.js (e.g. #closeDayModal) — without
+   this, they only had "modal hidden" classes and no positioning at all,
+   so removing "hidden" left them rendering as plain block content at the
+   bottom of the page instead of a visible overlay. */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 480px;
+  max-width: 92vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
 /* Inventory table row UX */
 .category-table tbody tr {
   cursor: pointer;
