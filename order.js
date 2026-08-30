@@ -7,7 +7,7 @@ import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
 
 window.API_URL = API_URL; // kept for any legacy code expecting a global
 
-const LOW_STOCK_THRESHOLD = 5; // 👈 adjust per business
+const LOW_STOCK_THRESHOLD = 5; // fallback only, for items with no reorder_level set
 let SYNC_IN_PROGRESS = false;
 
 // Auto-detect very small usable screens
@@ -32,6 +32,11 @@ function getStaffId() {
 
 function getLocation() {
   return localStorage.getItem("userLocation") || "DEFAULT_LOC";
+}
+
+function getLowStockThreshold(itemId) {
+  const level = inventoryReorderLevels[itemId];
+  return level === undefined ? LOW_STOCK_THRESHOLD : level;
 }
 
 Object.defineProperty(window, "STAFF_ID", {
@@ -172,6 +177,7 @@ let categories = [];
 let recipes = {};        // product_id → recipe[]
 let inventory = {};      // item_id → remaining
 let inventoryNames = {};  // item_id → item_name ✅ ADD THIS
+let inventoryReorderLevels = {}; // item_id → reorder_level (per-item low-stock threshold)
 let cart = [];
 let activeCategoryId = null;
 
@@ -195,7 +201,7 @@ const itemName =
 
     let status = "✅ OK";
     if (available === 0) status = "❌ OUT";
-    else if (available <= LOW_STOCK_THRESHOLD) status = "⚠️ LOW";
+    else if (available <= getLowStockThreshold(r.item_id)) status = "⚠️ LOW";
 
     return `• ${itemName}: ${available} left (uses ${needed}) ${status}`;
   });
@@ -353,14 +359,23 @@ async function loadAllData() {
     categoriesData,
     productsData,
     recipesData,
-    inventoryResponse
+    inventoryResponse,
+    inventoryItemsData
   ] = await Promise.all([
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
     fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
-      .then(r => r.json())
+      .then(r => r.json()),
+    fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
   ]);
+
+  inventoryReorderLevels = {};
+  (Array.isArray(inventoryItemsData) ? inventoryItemsData : []).forEach(i => {
+    if (i.reorder_level !== undefined && i.reorder_level !== "") {
+      inventoryReorderLevels[i.item_id] = Number(i.reorder_level);
+    }
+  });
 
   // 🔒 INVENTORY GATE
 if (inventoryResponse.status !== "OPEN") {
@@ -562,7 +577,7 @@ function getLowStockItems(product, qty = 1) {
         item_name: r.item_name || r.item_id
       };
     })
-    .filter(r => r.available - r.needed <= LOW_STOCK_THRESHOLD);
+    .filter(r => r.available - r.needed <= getLowStockThreshold(r.item_id));
 }
 
 function createCategoryBtn(name, id, active = false) {

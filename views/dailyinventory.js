@@ -110,30 +110,153 @@ function renderActionBar() {
 
 /* =================  Start Inventory ================= */
 
-async function startInventoryDay() {
-  if (!confirm("Start today's inventory?")) return;
+function startInventoryDay() {
+  const location = localStorage.getItem("userLocation");
+  if (!location) {
+    alert("❌ Location missing. Please reload or reselect location.");
+    return;
+  }
 
-  const date = getPHDate();
-const location = localStorage.getItem("userLocation");
-if (!location) {
-  alert("❌ Location missing. Please reload or reselect location.");
-  return;
+  openModal(`
+    <div class="modal-header">🌅 Start Inventory Day</div>
+
+    <p style="padding:8px 0">How should today's stock start?</p>
+
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input type="radio" name="startMode" value="EMPTY" checked>
+      Start empty — I'll add all stock fresh
+    </label>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input type="radio" name="startMode" value="CARRY_OVER">
+      Carry over yesterday's remaining stock
+    </label>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="continueStartInventoryDay()">Continue</button>
+    </div>
+  `);
 }
 
-  const adminUser =
-    localStorage.getItem("admin_email") || "ADMIN";
+/* Picking EMPTY starts the day immediately. Picking CARRY_OVER first shows
+   a review screen so the admin can adjust or zero out individual items
+   instead of blindly carrying over everything that's left. */
+window.continueStartInventoryDay = async function () {
+  const mode =
+    document.querySelector('input[name="startMode"]:checked')?.value ||
+    "EMPTY";
 
+  if (mode === "EMPTY") {
+    submitStartInventoryDay("EMPTY", null);
+    return;
+  }
+
+  const location = localStorage.getItem("userLocation");
+  showLoader("Loading yesterday's remaining stock…");
+
+  try {
+    const [days, masterItems] = await Promise.all([
+      fetch(`${API_URL}?type=dailyInventory`).then(r => r.json()),
+      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
+    ]);
+
+    const unitMap = {};
+    (Array.isArray(masterItems) ? masterItems : []).forEach(i => {
+      unitMap[i.item_id] = i.unit || "";
+    });
+
+    const prevDay = (Array.isArray(days) ? days : [])
+      .filter(d => d.location === location && String(d.status).toUpperCase() === "CLOSED")
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+    if (!prevDay) {
+      alert("No previous closed inventory day found for this location — starting empty instead.");
+      submitStartInventoryDay("EMPTY", null);
+      return;
+    }
+
+    const itemsData = await fetch(
+      `${API_URL}?type=dailyInventoryItems` +
+      `&date=${encodeURIComponent(prevDay.date)}&location=${encodeURIComponent(location)}`
+    ).then(r => r.json());
+
+    const prevItems = (itemsData.items || []).filter(i => Number(i.remaining) > 0);
+
+    if (!prevItems.length) {
+      alert("Nothing was left over from the last closed day — starting empty instead.");
+      submitStartInventoryDay("EMPTY", null);
+      return;
+    }
+
+    openModal(`
+      <div class="modal-header">
+        📦 Carry Over Stock — from ${new Date(prevDay.date).toLocaleDateString()}
+      </div>
+      <p style="padding:4px 0;color:#666">
+        Adjust or zero out anything you don't want carried over.
+      </p>
+
+      <div style="max-height:340px;overflow:auto;margin-top:8px">
+        ${prevItems.map(i => {
+          const unit = unitMap[i.item_id] || "";
+          const remaining = Number(i.remaining) || 0;
+          return `
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+            <div style="flex:1">
+              ${i.item_name}${unit ? ` <span style="color:#888">(${unit})</span>` : ""}
+              <div style="font-size:12px;color:#888">Remaining: ${remaining}</div>
+            </div>
+            <input type="number" min="0"
+              data-carry-id="${i.item_id}"
+              value="${remaining}"
+              style="width:90px">
+          </div>
+        `;
+        }).join("")}
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-back" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" onclick="confirmCarryOverStart()">Start Day</button>
+      </div>
+    `, true);
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to load previous day's stock");
+  } finally {
+    hideLoader();
+  }
+};
+
+window.confirmCarryOverStart = function () {
+  const items = [];
+  document.querySelectorAll("[data-carry-id]").forEach(input => {
+    const qty = Number(input.value) || 0;
+    if (qty > 0) {
+      items.push({ item_id: input.dataset.carryId, qty });
+    }
+  });
+
+  submitStartInventoryDay("CARRY_OVER", items);
+};
+
+async function submitStartInventoryDay(mode, items) {
+  const date = getPHDate();
+  const location = localStorage.getItem("userLocation");
+
+  closeModal();
   showLoader("Starting inventory day…");
 
   try {
+    const body = { action: "startNewInventoryDay", date, location, mode };
+    if (items && items.length) {
+      body.items = JSON.stringify(items);
+    }
+
     const res = await authFetch(API_URL, {
       method: "POST",
-      body: new URLSearchParams({
-        action: "manualStartInventoryDay",
-        date,
-        location,
-        adminUser
-      })
+      body: new URLSearchParams(body)
     });
 
     const data = await res.json();
@@ -143,7 +266,11 @@ if (!location) {
       return;
     }
 
-    alert("✅ Inventory day started");
+    alert(
+      mode === "CARRY_OVER"
+        ? "✅ Inventory day started with carried-over stock"
+        : "✅ Inventory day started"
+    );
     loadDailyInventory(); // refresh table
 
   } catch (err) {
@@ -222,13 +349,27 @@ window.viewDailyInventory = async function (date, location, status) {
   showLoader("Loading inventory…");
 
   try {
-    const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems` +
-      `&date=${encodeURIComponent(date)}` +
-      `&location=${encodeURIComponent(location)}`
-    );
+    const [res, itemsRes] = await Promise.all([
+      fetch(
+        `${API_URL}?type=dailyInventoryItems` +
+        `&date=${encodeURIComponent(date)}` +
+        `&location=${encodeURIComponent(location)}`
+      ),
+      fetch(`${API_URL}?type=inventoryItems`)
+    ]);
 
 const data = await res.json();
+const masterItems = await itemsRes.json();
+
+// item_id → conversion info, so we can show a quantity-equivalent
+// alongside the raw Total Added / Remaining numbers.
+const conversionMap = {};
+(Array.isArray(masterItems) ? masterItems : []).forEach(i => {
+  conversionMap[i.item_id] = {
+    unit: i.unit || "",
+    perServing: Number(i.quantity_per_serving) || 0
+  };
+});
 
 // 🛑 NO ACTIVE INVENTORY
 if (data.status === "NO_ACTIVE_INVENTORY") {
@@ -276,13 +417,25 @@ openModal(
                    No data
                  </td>
                </tr>`
-            : items.map(i => `
+            : items.map(i => {
+                const added = Number(i.qty_added) || 0;
+                const remaining = Number(i.remaining) || 0;
+                const conv = conversionMap[i.item_id];
+                const addedEquiv = conv && conv.perServing
+                  ? `<br><small style="color:#888">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+                  : "";
+                const remainingEquiv = conv && conv.perServing
+                  ? `<br><small style="color:#888">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+                  : "";
+
+                return `
                 <tr>
                   <td>${i.item_name}</td>
-                  <td>${Number(i.qty_added) || 0}</td>
-                  <td>${Number(i.remaining) || 0}</td>
+                  <td>${added}${addedEquiv}</td>
+                  <td>${remaining}${remainingEquiv}</td>
                 </tr>
-              `).join("")
+              `;
+              }).join("")
         }
       </tbody>
     </table>
@@ -319,9 +472,21 @@ window.openAddInventoryForDay = async function (date, location) {
   showLoader("Loading data…");
 
   try {
-    [inventoryItems] = await Promise.all([
-      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
+    const [items, dailyData] = await Promise.all([
+      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
+      fetch(
+        `${API_URL}?type=dailyInventoryItems` +
+        `&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}`
+      ).then(r => r.json())
     ]);
+
+    inventoryItems = items;
+
+    // item_id → remaining, so staff can see current stock while topping it up
+    const remainingMap = {};
+    (dailyData.items || []).forEach(r => {
+      remainingMap[r.item_id] = Number(r.remaining) || 0;
+    });
 
     openModal(
       `
@@ -330,15 +495,30 @@ window.openAddInventoryForDay = async function (date, location) {
       </div>
 
       <div style="max-height:320px;overflow:auto;margin-top:12px">
-        ${inventoryItems.map(i => `
-          <div style="display:flex;gap:10px;margin-bottom:6px">
-            <div style="flex:1">${i.item_name}</div>
+        ${inventoryItems.map(i => {
+          const unit = i.unit || "";
+          const perServing = Number(i.quantity_per_serving) || 0;
+          const remaining = remainingMap[i.item_id] ?? 0;
+
+          return `
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+            <div style="flex:1">
+              ${i.item_name}${unit ? ` <span style="color:#888">(${unit})</span>` : ""}
+              <div style="font-size:12px;color:#888">
+                Currently: ${remaining}${unit ? " " + unit : ""}
+              </div>
+            </div>
             <input type="number" min="0"
               data-id="${i.item_id}"
+              data-yield="${perServing}"
+              data-unit="${unit}"
+              class="add-inventory-qty"
               style="width:90px"
               placeholder="Qty">
+            <div class="add-inventory-yield" style="width:140px;font-size:12px;color:#555">—</div>
           </div>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
 
       <div class="modal-actions">
@@ -351,6 +531,8 @@ window.openAddInventoryForDay = async function (date, location) {
       `,
       true
     );
+
+    bindAddInventoryYieldInputs();
   } catch (err) {
     console.error(err);
     alert("Failed to load inventory");
@@ -358,6 +540,30 @@ window.openAddInventoryForDay = async function (date, location) {
     hideLoader();
   }
 };
+
+/* ================= LIVE TOTAL CALC =================
+   quantity_per_serving = how much of the base unit one count of this
+   item represents (e.g. Pancit Bato = 60g each), so the quantity typed
+   × quantity_per_serving = the total base-unit amount being added. */
+function bindAddInventoryYieldInputs() {
+  document.querySelectorAll(".add-inventory-qty").forEach(input => {
+    const yieldEl = input.nextElementSibling;
+    const perServing = Number(input.dataset.yield) || 0;
+    const unit = input.dataset.unit || "";
+
+    input.addEventListener("input", () => {
+      const qty = Number(input.value) || 0;
+
+      if (!perServing || !qty) {
+        yieldEl.textContent = "—";
+        return;
+      }
+
+      const total = qty * perServing;
+      yieldEl.textContent = `= ${total.toLocaleString()}${unit} Total Added`;
+    });
+  });
+}
 
 window.saveInventoryForDay = function (date, location) {
   const inputs = document.querySelectorAll("[data-id]");
