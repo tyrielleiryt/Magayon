@@ -117,41 +117,15 @@ function startInventoryDay() {
     return;
   }
 
-  openModal(`
-    <div class="modal-header">🌅 Start Inventory Day</div>
-
-    <p style="padding:8px 0">How should today's stock start?</p>
-
-    <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input type="radio" name="startMode" value="EMPTY" checked>
-      Start empty — I'll add all stock fresh
-    </label>
-    <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input type="radio" name="startMode" value="CARRY_OVER">
-      Carry over yesterday's remaining stock
-    </label>
-
-    <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" onclick="continueStartInventoryDay()">Continue</button>
-    </div>
-  `);
+  loadCarryOverReview(location);
 }
 
-/* Picking EMPTY starts the day immediately. Picking CARRY_OVER first shows
-   a review screen so the admin can adjust or zero out individual items
-   instead of blindly carrying over everything that's left. */
-window.continueStartInventoryDay = async function () {
-  const mode =
-    document.querySelector('input[name="startMode"]:checked')?.value ||
-    "EMPTY";
-
-  if (mode === "EMPTY") {
-    submitStartInventoryDay("EMPTY", null);
-    return;
-  }
-
-  const location = localStorage.getItem("userLocation");
+/* Always shows yesterday's remaining stock (if any) so the admin picks
+   exactly how much of each item to carry into today, item by item —
+   set an item to 0 to leave it out entirely. If there's no previous
+   closed day, or nothing was left over, there's nothing to review, so
+   the day just starts empty. */
+async function loadCarryOverReview(location) {
   showLoader("Loading yesterday's remaining stock…");
 
   try {
@@ -170,8 +144,7 @@ window.continueStartInventoryDay = async function () {
       .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
     if (!prevDay) {
-      alert("No previous closed inventory day found for this location — starting empty instead.");
-      submitStartInventoryDay("EMPTY", null);
+      submitStartInventoryDay(null);
       return;
     }
 
@@ -183,17 +156,16 @@ window.continueStartInventoryDay = async function () {
     const prevItems = (itemsData.items || []).filter(i => Number(i.remaining) > 0);
 
     if (!prevItems.length) {
-      alert("Nothing was left over from the last closed day — starting empty instead.");
-      submitStartInventoryDay("EMPTY", null);
+      submitStartInventoryDay(null);
       return;
     }
 
     openModal(`
       <div class="modal-header">
-        📦 Carry Over Stock — from ${new Date(prevDay.date).toLocaleDateString()}
+        🌅 Start Inventory Day — stock remaining from ${new Date(prevDay.date).toLocaleDateString()}
       </div>
       <p style="padding:4px 0;color:#666">
-        Adjust or zero out anything you don't want carried over.
+        Choose how much of yesterday's remaining stock to carry over. Set an item to 0 to leave it out.
       </p>
 
       <div style="max-height:340px;overflow:auto;margin-top:8px">
@@ -223,11 +195,11 @@ window.continueStartInventoryDay = async function () {
 
   } catch (err) {
     console.error(err);
-    alert("❌ Failed to load previous day's stock");
+    alert("❌ Failed to load yesterday's stock");
   } finally {
     hideLoader();
   }
-};
+}
 
 window.confirmCarryOverStart = function () {
   const items = [];
@@ -238,10 +210,10 @@ window.confirmCarryOverStart = function () {
     }
   });
 
-  submitStartInventoryDay("CARRY_OVER", items);
+  submitStartInventoryDay(items);
 };
 
-async function submitStartInventoryDay(mode, items) {
+async function submitStartInventoryDay(items) {
   const date = getPHDate();
   const location = localStorage.getItem("userLocation");
 
@@ -249,7 +221,9 @@ async function submitStartInventoryDay(mode, items) {
   showLoader("Starting inventory day…");
 
   try {
-    const body = { action: "startNewInventoryDay", date, location, mode };
+    // mode is just the fallback when no items are picked — the actual
+    // per-item carry amounts (or the absence of any) come from `items`.
+    const body = { action: "startNewInventoryDay", date, location, mode: "EMPTY" };
     if (items && items.length) {
       body.items = JSON.stringify(items);
     }
@@ -267,8 +241,8 @@ async function submitStartInventoryDay(mode, items) {
     }
 
     alert(
-      mode === "CARRY_OVER"
-        ? "✅ Inventory day started with carried-over stock"
+      items && items.length
+        ? "✅ Inventory day started with selected stock carried over"
         : "✅ Inventory day started"
     );
     loadDailyInventory(); // refresh table
