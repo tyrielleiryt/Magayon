@@ -178,6 +178,11 @@ async function loadCarryOverReview(location) {
               ${i.item_name}${unit ? ` <span style="color:#888">(${unit})</span>` : ""}
               <div style="font-size:12px;color:#888">Remaining: ${remaining}</div>
             </div>
+            <button type="button" class="btn-back"
+              onclick="this.nextElementSibling.value = 0"
+              style="padding:4px 10px;font-size:12px;white-space:nowrap">
+              NONE
+            </button>
             <input type="number" min="0"
               data-carry-id="${i.item_id}"
               value="${remaining}"
@@ -188,6 +193,7 @@ async function loadCarryOverReview(location) {
       </div>
 
       <div class="modal-actions">
+        <button class="btn-back" onclick="zeroAllCarryOver()">NO CARRY OVER</button>
         <button class="btn-back" onclick="closeModal()">Cancel</button>
         <button class="btn-primary" onclick="confirmCarryOverStart()">Start Day</button>
       </div>
@@ -200,6 +206,12 @@ async function loadCarryOverReview(location) {
     hideLoader();
   }
 }
+
+window.zeroAllCarryOver = function () {
+  document.querySelectorAll("[data-carry-id]").forEach(input => {
+    input.value = 0;
+  });
+};
 
 window.confirmCarryOverStart = function () {
   const items = [];
