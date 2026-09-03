@@ -76,3 +76,15 @@ async function handleLogin() {
 
 /* ================= EVENTS ================= */
 loginBtn.addEventListener("click", handleLogin);
+
+// Enter submits from either field, matching a normal login form even
+// though these inputs aren't wrapped in a <form> (the button is
+// type="button" on purpose, to avoid a real page-reloading submit).
+[emailInput, passwordInput].forEach(input => {
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleLogin();
+    }
+  });
+});
