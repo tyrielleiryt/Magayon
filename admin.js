@@ -308,19 +308,50 @@ function loadAdminChat() {
   document.body.appendChild(script);
 }
 
-let currentReplyLocation = "ALL"; // default
+// Which location an outgoing admin message goes to. Populated with real
+// locations below — never "ALL", since that's a read-only aggregate for
+// the admin's own view, not a real cashier anyone is watching. Auto-
+// follows the most recent cashier message so replying "just works" by
+// default, but stops following the moment the admin manually picks a
+// location, so a deliberate choice never gets silently overridden.
+let adminChatLocationsLoaded = false;
+let adminPickedLocationManually = false;
+
+async function ensureAdminChatLocations() {
+  if (adminChatLocationsLoaded) return;
+  const select = document.getElementById("adminChatLocationSelect");
+  if (!select) return;
+
+  try {
+    const locations = await getCached("locations");
+    select.innerHTML = locations
+      .map(l => `<option value="${l.location_id}">${l.location_name}</option>`)
+      .join("");
+    adminChatLocationsLoaded = true;
+
+    select.addEventListener("change", () => {
+      adminPickedLocationManually = true;
+    });
+  } catch (err) {
+    console.warn("Failed to load locations for admin chat:", err);
+  }
+}
 
 function renderAdminChat(messages = []) {
   const box = document.getElementById("adminChatMessages");
   if (!box) return;
 
-  // ✅ FIND LAST CASHIER MESSAGE AND SET REPLY LOCATION
-  const lastCashier = [...messages]
-    .reverse()
-    .find(m => m.sender_role === "CASHIER");
+  // Follow the last cashier to message in, unless the admin has since
+  // picked a location themselves.
+  const select = document.getElementById("adminChatLocationSelect");
+  if (select && !adminPickedLocationManually) {
+    const lastCashier = [...messages]
+      .reverse()
+      .find(m => m.sender_role === "CASHIER");
 
-  if (lastCashier?.location) {
-    currentReplyLocation = lastCashier.location;
+    if (lastCashier?.location) {
+      select.value = lastCashier.location;
+    }
   }
 
   box.innerHTML = messages.map(m => `
@@ -349,10 +380,17 @@ function renderAdminChat(messages = []) {
 
 function sendAdminChat() {
   const input = document.getElementById("adminChatInput");
+  const select = document.getElementById("adminChatLocationSelect");
   if (!input) return;
 
   const msg = input.value.trim();
   if (!msg) return;
+
+  const location = select?.value;
+  if (!location) {
+    alert("No location selected to reply to yet.");
+    return;
+  }
 
   authFetch(API_URL, {
     method: "POST",
@@ -360,21 +398,23 @@ function sendAdminChat() {
       action: "sendChatMessage",
       sender_role: "ADMIN",
       sender_id: "ADMIN",
-      location: currentReplyLocation, // ✅ NOT "ALL"
+      location,
       message: msg
     })
-  }).catch(err => {
-    console.warn("⚠️ Admin send failed:", err.message);
-  });
+  }).then(() => loadAdminChat())
+    .catch(err => {
+      console.warn("⚠️ Admin send failed:", err.message);
+    });
 
   input.value = "";
 }
 
-document.getElementById("adminChatToggle")?.addEventListener("click", () => {
+document.getElementById("adminChatToggle")?.addEventListener("click", async () => {
   const box = document.getElementById("adminChatBox");
   box?.classList.toggle("hidden");
 
   if (!box.classList.contains("hidden")) {
+    await ensureAdminChatLocations();
     loadAdminChat();
     document.getElementById("adminChatInput")?.focus();
   }

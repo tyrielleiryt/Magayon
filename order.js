@@ -1437,11 +1437,12 @@ function loadPOSChat() {
   document.body.appendChild(script);
 }
 
-// 🔁 SINGLE poll
+// 🔁 SINGLE poll — keeps polling even while the chat box is closed, so
+// the unread badge (which loadPOSChat() only sets when the box is
+// hidden) actually has a chance to fire instead of never running.
 setInterval(() => {
   if (!POS_CHAT_ENABLED) return;
   if (!chatBox) return;
-  if (chatBox.classList.contains("hidden")) return;
 
   loadPOSChat();
 }, 3000);
@@ -1449,8 +1450,8 @@ setInterval(() => {
 function initChatUI() {
     if (!chatBox) return; // 🛑 safety guard
 chatBox.innerHTML = `
-  <div class="pos-chat-header">
-    💬 Admin Chat
+  <div class="chat-header">
+    Admin Chat
   </div>
 
   <div id="chatMessages" class="pos-chat-messages"></div>
