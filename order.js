@@ -884,6 +884,15 @@ document.getElementById("changeAmount").textContent = "₱0.00";
 
   document.getElementById("gcashRef").value = "";
 
+  // Reset to Cash each time the modal opens — otherwise a previous
+  // GCash selection would silently carry over and mis-tag the next
+  // (actually cash) sale.
+  const methodSelect = document.getElementById("paymentMethod");
+  if (methodSelect) methodSelect.value = "CASH";
+  document.getElementById("methodBadge").textContent = "CASH";
+  document.getElementById("gcashRefRow")?.classList.add("hidden");
+  document.getElementById("gcashQrRow")?.classList.add("hidden");
+
   // 🔴 Disable confirm initially
   const btn = document.getElementById("confirmPaymentBtn");
   btn.classList.remove("enabled");
@@ -905,9 +914,10 @@ document.getElementById("paymentMethod")?.addEventListener("change", e => {
   const badge = document.getElementById("methodBadge");
   if (badge) badge.textContent = method;
 
-  // show / hide GCash reference
-  document.getElementById("gcashRefRow")
-    ?.classList.toggle("hidden", method !== "GCASH");
+  // show / hide GCash reference + QR code
+  const isGCash = method === "GCASH";
+  document.getElementById("gcashRefRow")?.classList.toggle("hidden", !isGCash);
+  document.getElementById("gcashQrRow")?.classList.toggle("hidden", !isGCash);
 });
 
 function confirmPayment() {
