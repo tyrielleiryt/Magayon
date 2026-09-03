@@ -27,6 +27,8 @@ export default async function loadDailySalesView() {
 
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById("salesDate").value = today;
+  document.getElementById("salesLocation").value =
+    localStorage.getItem("userLocation") || "";
 
   // SAFE preload (locations only)
   await loadLocations();
@@ -40,73 +42,201 @@ function renderActionBar() {
     <button class="category-action-btn" id="loadSalesBtn">
       Load Report
     </button>
-    <button id="productTrackerBtn" class="primary">
-  📊 Product Sale Tracker
+    <button id="dailySalesReportBtn" class="primary">
+  📋 DAILY SALES REPORT
 </button>
   `;
   document.getElementById("loadSalesBtn").onclick = loadSales;
-  document.getElementById("productTrackerBtn").onclick =
-  loadProductSaleTracker;
+  document.getElementById("dailySalesReportBtn").onclick =
+  loadDailySalesReportFull;
 }
 
-/* ================= Product Sales ================= */
+/* ================= DAILY SALES REPORT (full format) =================
+   Mirrors the manual "Inventory Sheet" report: per-item beginning/ending
+   stock counts with their gram/liter yield equivalent, plus a petty
+   cash / total sales / GCash / expenses / cash-on-hand summary at the
+   bottom. Beginning/ending stock come from that day's
+   Daily_Inventory_Items (already connected to the Daily Inventory System
+   tab); petty cash fund and expenses are editable here and saved per
+   day; total sales and GCash payment are computed server-side from that
+   day's orders (void-adjusted). */
+let lastReportSummary = null;
 
-function loadProductSaleTracker() {
+function loadDailySalesReportFull() {
   const date = document.getElementById("salesDate")?.value;
   const location =
-  document.getElementById("salesLocation").value ||
-  localStorage.getItem("userLocation") ||
-  "";
+    document.getElementById("salesLocation").value ||
+    localStorage.getItem("userLocation") ||
+    "";
 
   if (!date) {
     alert("Please select a date first");
     return;
   }
+  if (!location) {
+    alert("Please enter a location");
+    return;
+  }
 
-document.getElementById("contentBox").innerHTML = `
-  <div class="tracker-vertical">
-
-    <div class="tracker-card">
-      <h3>📦 Product Sale Tracker</h3>
-      <div class="table-scroll">
-        <table class="category-table">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Product</th>
-              <th>Qty Sold</th>
-              <th>Sum Total</th>
-            </tr>
-          </thead>
-          <tbody id="productSalesBody"></tbody>
-        </table>
-      </div>
+  document.getElementById("contentBox").innerHTML = `
+    <div class="tracker-card" style="height:100%">
+      <h3>📋 Daily Sales Report — ${date}</h3>
+      <div style="text-align:center;color:#888;padding:24px">Loading…</div>
     </div>
+  `;
 
-    <div class="tracker-card">
-      <h3>📊 Inventory Reconciliation</h3>
-      <div class="table-scroll">
+  fetchDailySalesReportSummary(date, location);
+}
+
+function fetchDailySalesReportSummary(date, location) {
+  const callback = "handleDailySalesReportSummary";
+  delete window[callback];
+
+  window[callback] = function (data) {
+    renderDailySalesReportFull(data, date, location);
+  };
+
+  const old = document.getElementById("dsrJsonpScript");
+  if (old) old.remove();
+
+  const script = document.createElement("script");
+  script.id = "dsrJsonpScript";
+  script.src =
+    `${API_URL}?type=dailySalesReportSummary&date=${date}` +
+    `&location=${encodeURIComponent(location)}&callback=${callback}`;
+
+  document.body.appendChild(script);
+}
+
+function renderDailySalesReportFull(data, date, location) {
+  lastReportSummary = data;
+
+  if (!data || !data.success) {
+    document.getElementById("contentBox").innerHTML = `
+      <div class="tracker-card">
+        <h3>📋 Daily Sales Report — ${date}</h3>
+        <div style="text-align:center;color:#888;padding:24px">
+          ${data?.error || "No inventory day found for that date"}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const items = data.items || [];
+
+  document.getElementById("contentBox").innerHTML = `
+    <div class="tracker-card" style="height:100%">
+      <h3>📋 Daily Sales Report — ${date}</h3>
+
+      <div class="table-scroll" style="max-height:none;flex:1">
         <table class="category-table">
           <thead>
             <tr>
               <th>Item</th>
-              <th>Added</th>
-              <th>Consumed</th>
-              <th>Remaining</th>
+              <th>Beginning Stocks</th>
+              <th>Yield</th>
+              <th>Ending Stocks</th>
+              <th>Yield</th>
+              <th>Remarks</th>
             </tr>
           </thead>
-          <tbody id="inventoryReconBody"></tbody>
+          <tbody>
+            ${!items.length
+              ? `<tr><td colspan="6" style="text-align:center;color:#888">No inventory items for this day</td></tr>`
+              : items.map(i => `
+                <tr>
+                  <td>${i.item_name}</td>
+                  <td>${Number(i.beginning_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
+                  <td>${Number(i.beginning_yield).toLocaleString()}</td>
+                  <td>${Number(i.ending_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
+                  <td>${Number(i.ending_yield).toLocaleString()}</td>
+                  <td></td>
+                </tr>
+              `).join("")
+            }
+          </tbody>
         </table>
       </div>
+
+      <div style="margin-top:16px;border-top:2px solid #eee;padding-top:12px;max-width:360px;margin-left:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+          <label style="font-weight:600">PETTY CASH FUND</label>
+          <input id="dsrPettyCash" type="number" min="0" step="0.01"
+            value="${data.petty_cash_fund}" style="width:130px;text-align:right">
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <label style="font-weight:600">TOTAL SALES</label>
+          <span>₱${Number(data.total_sales).toFixed(2)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <label style="font-weight:600">GCASH PAYMENT</label>
+          <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+          <label style="font-weight:600">EXPENSES</label>
+          <input id="dsrExpenses" type="number" min="0" step="0.01"
+            value="${data.expenses}" style="width:130px;text-align:right">
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #eee;margin-top:6px">
+          <label style="font-weight:700">CASH ON HAND</label>
+          <span id="dsrCashOnHand" style="font-weight:700">₱${Number(data.cash_on_hand).toFixed(2)}</span>
+        </div>
+
+        <button id="dsrSaveBtn" class="category-action-btn" style="width:100%;margin-top:8px">
+          💾 Save Petty Cash / Expenses
+        </button>
+      </div>
     </div>
+  `;
 
-  </div>
-`;
+  bindDataBoxScroll(document.querySelector(".tracker-card"));
 
-  bindDataBoxScroll(document.querySelector(".tracker-vertical"));
+  document.getElementById("dsrPettyCash").oninput = recalcCashOnHand;
+  document.getElementById("dsrExpenses").oninput = recalcCashOnHand;
+  document.getElementById("dsrSaveBtn").onclick = () => saveDailyFinance(date, location);
+}
 
-  loadProductSales(date, location);
-  loadInventoryReconciliation(date, location);
+function recalcCashOnHand() {
+  if (!lastReportSummary) return;
+
+  const pettyCash = Number(document.getElementById("dsrPettyCash").value) || 0;
+  const expenses = Number(document.getElementById("dsrExpenses").value) || 0;
+  const totalSales = Number(lastReportSummary.total_sales) || 0;
+  const gcash = Number(lastReportSummary.gcash_payment) || 0;
+
+  const cashOnHand = (pettyCash + totalSales) - (gcash + expenses);
+  document.getElementById("dsrCashOnHand").textContent = `₱${cashOnHand.toFixed(2)}`;
+}
+
+async function saveDailyFinance(date, location) {
+  if (!lastReportSummary?.daily_id) return;
+
+  const pettyCash = Number(document.getElementById("dsrPettyCash").value) || 0;
+  const expenses = Number(document.getElementById("dsrExpenses").value) || 0;
+
+  showLoader("Saving…");
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "updateDailyFinance",
+        daily_id: lastReportSummary.daily_id,
+        petty_cash_fund: pettyCash,
+        expenses
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || "Save failed");
+
+    fetchDailySalesReportSummary(date, location);
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+  } finally {
+    hideLoader();
+  }
 }
 
 /* ================= LAYOUT ================= */
@@ -356,59 +486,3 @@ function formatDateTime(value) {
   });
 }
 
-async function loadProductSales(date, location) {
-  const res = await fetch(
-    `${API_URL}?type=productSalesTracker&date=${date}&location=${location}`
-  );
-  const data = await res.json();
-
-  const tbody = document.getElementById("productSalesBody");
-  tbody.innerHTML = "";
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="2">No sales</td></tr>`;
-    return;
-  }
-
-  data.forEach(p => {
-    tbody.innerHTML += `
-      <tr>
-        <td><b>${p.product_code || "-"}</b></td>
-        <td>${p.product_name}</td>
-        <td><strong>${p.qty_sold}</strong></td>
-        <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
-      </tr>
-    `;
-  });
-}
-
-async function loadInventoryReconciliation(date, location) {
-  const res = await fetch(
-    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}`
-  );
-  const data = await res.json();
-
-  const tbody = document.getElementById("inventoryReconBody");
-  tbody.innerHTML = "";
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No inventory</td></tr>`;
-    return;
-  }
-
-  data.forEach(i => {
-    let rowClass = "";
-
-    if (i.remaining < 0) rowClass = "danger-row";
-    else if (i.remaining <= 5) rowClass = "warning-row";
-
-    tbody.innerHTML += `
-      <tr class="${rowClass}">
-        <td>${i.item_name}</td>
-        <td>${i.added}</td>
-        <td>${i.consumed}</td>
-        <td><strong>${i.remaining}</strong></td>
-      </tr>
-    `;
-  });
-}
