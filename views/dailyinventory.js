@@ -273,7 +273,8 @@ async function loadDailyInventory() {
     const res = await fetch(`${API_URL}?type=dailyInventory`);
     const data = await res.json();
 
-    dailyInventory = Array.isArray(data) ? data : [];
+    dailyInventory = (Array.isArray(data) ? data : [])
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
     renderTable();
   } catch (err) {
     console.error(err);
