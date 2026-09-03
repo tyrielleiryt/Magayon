@@ -161,12 +161,12 @@ function renderDailySalesReportFull(data, date, location) {
 
       <div style="margin-top:16px;border-top:2px solid #eee;padding-top:12px;max-width:360px;margin-left:auto">
         <div style="display:flex;justify-content:space-between;padding:6px 0">
-          <label style="font-weight:600">PETTY CASH FUND</label>
-          <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0">
           <label style="font-weight:600">TOTAL SALES</label>
           <span>₱${Number(data.total_sales).toFixed(2)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <label style="font-weight:600">PETTY CASH FUND</label>
+          <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:6px 0">
           <label style="font-weight:600">GCASH PAYMENT</label>
