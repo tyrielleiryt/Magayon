@@ -1,9 +1,13 @@
 import { bindDataBoxScroll, getCached } from "../admin.js";
+import { openModal, closeModal } from "./modal.js";
 
 import { API_URL } from "../firebase-config.js";
+import { authFetch } from "../auth-guard.js";
 
 /* ================= STATE ================= */
 let locationMap = {};  // location_id → location_name
+let lastOrders = [];   // last-loaded report, so voiding an item can refresh in place
+let lastDate = "";      // tracks whether a report has been loaded yet
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -160,6 +164,8 @@ function loadSales() {
     return;
   }
 
+  lastDate = date;
+
   showLoader("Loading sales report…");
 
   const callback = "handleDailySalesReport";
@@ -188,6 +194,8 @@ function loadSales() {
 
 /* ================= RENDER ================= */
 function renderTable(orders) {
+  lastOrders = orders;
+
   const tbody = document.getElementById("salesBody");
   tbody.innerHTML = "";
 
@@ -205,16 +213,15 @@ function renderTable(orders) {
   }
 
   orders.forEach((o, i) => {
-    const transactionTotal = (o.items || []).reduce(
-      (sum, item) => sum + (Number(item.total) || 0),
-      0
-    );
-
+    // Authoritative total comes from the order record itself — it's
+    // already adjusted server-side whenever an item on it is voided.
+    const transactionTotal = Number(o.total) || 0;
     grandTotal += transactionTotal;
 
-    // TRANSACTION HEADER
+    // TRANSACTION HEADER — click to manage/void its items
     tbody.insertAdjacentHTML("beforeend", `
-      <tr style="background:#f4f4f4;font-weight:600">
+      <tr style="background:#f4f4f4;font-weight:600;cursor:pointer"
+        onclick="openOrderItemsModal('${o.ref_id}')" title="Click to view/void items">
         <td>${i + 1}</td>
         <td>
           ${o.ref_id}<br>
@@ -229,12 +236,12 @@ function renderTable(orders) {
       </tr>
     `);
 
-    // ✅ PRODUCT ROWS (FIXED – OPTION B)
     (o.items || []).forEach(item => {
+      const voidedStyle = item.voided ? "opacity:0.5;text-decoration:line-through" : "";
       tbody.insertAdjacentHTML("beforeend", `
-        <tr>
+        <tr style="${voidedStyle}">
           <td></td>
-          <td>${item.product_name}</td>
+          <td>${item.product_name}${item.voided ? ` <span style="color:#dc2626;text-decoration:none;font-size:11px">(VOIDED${item.restored ? ", restocked" : ""})</span>` : ""}</td>
           <td>${item.qty || 0}</td>
           <td></td>
           <td>₱${Number(item.total || 0).toFixed(2)}</td>
@@ -245,6 +252,88 @@ function renderTable(orders) {
 
   updateTotals(grandTotal);
 }
+
+/* ================= VOID ORDER ITEM ================= */
+window.openOrderItemsModal = function (refId) {
+  const order = lastOrders.find(o => o.ref_id === refId);
+  if (!order) return;
+
+  const items = order.items || [];
+
+  openModal(`
+    <div class="modal-header">Order ${order.ref_id}</div>
+    <p style="padding:4px 0;color:#666">
+      ${formatDateTime(order.datetime)} — ${order.cashier || "-"}
+    </p>
+
+    <div style="max-height:340px;overflow:auto;margin-top:8px">
+      ${items.length ? items.map(item => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eee;${item.voided ? "opacity:0.5" : ""}">
+          <div style="${item.voided ? "text-decoration:line-through" : ""}">
+            ${item.qty || 0}x ${item.product_name}
+            ${item.voided ? `<div style="color:#dc2626;text-decoration:none;font-size:11px">VOIDED${item.restored ? " — stock restored" : ""}</div>` : ""}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span>₱${Number(item.total || 0).toFixed(2)}</span>
+            ${!item.voided ? `<button class="btn-back" style="font-size:12px;padding:4px 10px"
+              onclick="openVoidConfirm('${item.order_item_id}','${order.ref_id}')">Void</button>` : ""}
+          </div>
+        </div>
+      `).join("") : `<div style="color:#888;padding:12px 0">No items</div>`}
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Close</button>
+    </div>
+  `, true);
+};
+
+window.openVoidConfirm = function (orderItemId, refId) {
+  openModal(`
+    <div class="modal-header">Void Item</div>
+    <p style="padding:8px 0;color:#666">
+      Should the ingredients this item used be put back into today's remaining inventory?
+    </p>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+      <button class="btn-back" onclick="confirmVoidItem('${orderItemId}','${refId}', false)">Void, Don't Restore</button>
+      <button class="btn-primary" onclick="confirmVoidItem('${orderItemId}','${refId}', true)">Void &amp; Restore Stock</button>
+    </div>
+  `, true);
+};
+
+window.confirmVoidItem = async function (orderItemId, refId, restore) {
+  showLoader("Voiding item…");
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "voidOrderItem",
+        order_item_id: orderItemId,
+        ref_id: refId,
+        restore: restore ? "true" : "false"
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Void failed");
+
+    closeModal();
+    alert(
+      restore && !data.restored
+        ? "✅ Item voided. Stock wasn't restored — today's inventory day for that order is already closed."
+        : "✅ Item voided" + (data.restored ? " and stock restored." : ".")
+    );
+
+    if (lastDate) loadSales();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+  } finally {
+    hideLoader();
+  }
+};
 
 /* ================= TOTALS ================= */
 function updateTotals(total) {

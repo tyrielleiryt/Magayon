@@ -290,12 +290,11 @@ function renderLiveSalesFeed(orders) {
   }
 
   list.innerHTML = sorted.slice(0, LIVE_SALES_LIMIT).map(o => {
-    const total = (o.items || []).reduce(
-      (sum, item) => sum + (Number(item.total) || 0),
-      0
-    );
+    // Authoritative total — already adjusted server-side by any voids.
+    const total = Number(o.total) || 0;
 
     const contents = (o.items || [])
+      .filter(item => !item.voided)
       .map(item => `${item.qty || 0}x ${item.product_name}`)
       .join(", ");
 
