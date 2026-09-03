@@ -96,6 +96,14 @@ function renderLayout() {
     </div>
   </div>
 
+  <!-- Live Sales Feed -->
+  <div class="dashboard-card live-sales-card">
+    <h3><span class="live-dot"></span> Live Sales Feed</h3>
+    <div class="live-sales-list" id="liveSalesList">
+      <div style="text-align:center;color:#888;padding:12px">Loading…</div>
+    </div>
+  </div>
+
   <!-- Right column -->
   <div class="dashboard-right-column">
 
@@ -147,13 +155,6 @@ function renderLayout() {
 
   </div>
 
-</div>
-
-<div class="dashboard-card live-sales-card">
-  <h3><span class="live-dot"></span> Live Sales Feed</h3>
-  <div class="live-sales-list" id="liveSalesList">
-    <div style="text-align:center;color:#888;padding:12px">Loading…</div>
-  </div>
 </div>
   `;
 }

@@ -481,7 +481,7 @@ html, body {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr 1.4fr;
   gap: 18px;
   margin-top: 14px;
   height: 100%;
@@ -610,12 +610,7 @@ html, body {
   height: 100%;
 }
 
-/* Live Sales Feed */
-.live-sales-card {
-  margin-top: 18px;
-  max-height: 260px;
-}
-
+/* Live Sales Feed — sizes like any other .dashboard-card (matches Top Sellers) */
 .live-sales-card h3 {
   display: flex;
   align-items: center;
