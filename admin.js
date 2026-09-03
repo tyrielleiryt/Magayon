@@ -166,6 +166,7 @@ import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
 import loadDashboardView, { stopDashboardPolling } from "./views/dashboard.js";
 import loadPermissionsView from "./views/permissions.js";
+import loadPettyCashView from "./views/pettyCash.js";
 
 
 function clearView() {
@@ -221,6 +222,10 @@ clearView();
 
       case "dailySales":
         loadDailySalesView();
+        break;
+
+      case "pettyCash":
+        loadPettyCashView();
         break;
 
       case "locations":

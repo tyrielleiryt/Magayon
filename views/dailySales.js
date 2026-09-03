@@ -160,10 +160,9 @@ function renderDailySalesReportFull(data, date, location) {
       </div>
 
       <div style="margin-top:16px;border-top:2px solid #eee;padding-top:12px;max-width:360px;margin-left:auto">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
           <label style="font-weight:600">PETTY CASH FUND</label>
-          <input id="dsrPettyCash" type="number" min="0" step="0.01"
-            value="${data.petty_cash_fund}" style="width:130px;text-align:right">
+          <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:6px 0">
           <label style="font-weight:600">TOTAL SALES</label>
@@ -173,70 +172,24 @@ function renderDailySalesReportFull(data, date, location) {
           <label style="font-weight:600">GCASH PAYMENT</label>
           <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
           <label style="font-weight:600">EXPENSES</label>
-          <input id="dsrExpenses" type="number" min="0" step="0.01"
-            value="${data.expenses}" style="width:130px;text-align:right">
+          <span>₱${Number(data.expenses).toFixed(2)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #eee;margin-top:6px">
           <label style="font-weight:700">CASH ON HAND</label>
-          <span id="dsrCashOnHand" style="font-weight:700">₱${Number(data.cash_on_hand).toFixed(2)}</span>
+          <span style="font-weight:700">₱${Number(data.cash_on_hand).toFixed(2)}</span>
         </div>
 
-        <button id="dsrSaveBtn" class="category-action-btn" style="width:100%;margin-top:8px">
-          💾 Save Petty Cash / Expenses
-        </button>
+        <p style="color:#888;font-size:12px;margin-top:8px">
+          Petty Cash Fund and Expenses are managed on the
+          💵 Petty Cash Fund / Expenses tab.
+        </p>
       </div>
     </div>
   `;
 
   bindDataBoxScroll(document.querySelector(".tracker-card"));
-
-  document.getElementById("dsrPettyCash").oninput = recalcCashOnHand;
-  document.getElementById("dsrExpenses").oninput = recalcCashOnHand;
-  document.getElementById("dsrSaveBtn").onclick = () => saveDailyFinance(date, location);
-}
-
-function recalcCashOnHand() {
-  if (!lastReportSummary) return;
-
-  const pettyCash = Number(document.getElementById("dsrPettyCash").value) || 0;
-  const expenses = Number(document.getElementById("dsrExpenses").value) || 0;
-  const totalSales = Number(lastReportSummary.total_sales) || 0;
-  const gcash = Number(lastReportSummary.gcash_payment) || 0;
-
-  const cashOnHand = (pettyCash + totalSales) - (gcash + expenses);
-  document.getElementById("dsrCashOnHand").textContent = `₱${cashOnHand.toFixed(2)}`;
-}
-
-async function saveDailyFinance(date, location) {
-  if (!lastReportSummary?.daily_id) return;
-
-  const pettyCash = Number(document.getElementById("dsrPettyCash").value) || 0;
-  const expenses = Number(document.getElementById("dsrExpenses").value) || 0;
-
-  showLoader("Saving…");
-
-  try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "updateDailyFinance",
-        daily_id: lastReportSummary.daily_id,
-        petty_cash_fund: pettyCash,
-        expenses
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Save failed");
-
-    fetchDailySalesReportSummary(date, location);
-  } catch (err) {
-    console.error(err);
-    alert("❌ " + err.message);
-  } finally {
-    hideLoader();
-  }
 }
 
 /* ================= LAYOUT ================= */

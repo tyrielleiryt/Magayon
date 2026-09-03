@@ -29,7 +29,7 @@ export const FULL_ACCESS_ROLES = [ROLES.ADMIN, ROLES.IT_ADMIN, ROLES.OWNER];
 // Firestore at config/rolePermissions); this is only the fallback used
 // until that doc exists or doesn't mention a given role.
 export const DEFAULT_ROLE_PAGES = {
-  [ROLES.MANAGER]: ["dashboard", "dailySales", "dailyInventory", "inventory"]
+  [ROLES.MANAGER]: ["dashboard", "dailySales", "dailyInventory", "inventory", "pettyCash"]
   // Cashier isn't listed here — it never reaches the admin panel at all
   // (see admin.js's requireRole() call), so there's no page list to edit.
 };
