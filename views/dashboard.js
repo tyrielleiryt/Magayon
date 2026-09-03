@@ -174,14 +174,14 @@ async function loadTopSellers(date) {
     }
 
     data.slice(0, 5).forEach((p, i) => {
-      tbody.innerHTML += `
+      tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td>${i + 1}</td>
           <td>${p.product_name}</td>
           <td>${p.qty_sold}</td>
           <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
         </tr>
-      `;
+      `);
     });
   } catch (err) {
     console.error("Top sellers failed", err);
@@ -246,12 +246,12 @@ async function loadLowStockAlerts(date) {
     }
 
     data.forEach(i => {
-      tbody.innerHTML += `
+      tbody.insertAdjacentHTML("beforeend", `
         <tr class="danger-row">
           <td>${i.item_name}</td>
           <td>${i.remaining}</td>
         </tr>
-      `;
+      `);
     });
   } catch (err) {
     console.error("Low stock failed", err);

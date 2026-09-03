@@ -114,7 +114,7 @@ function renderTable() {
   filtered.forEach((d, i) => {
     const dayKey = new Date(d.date).toISOString().slice(0, 10);
 
-    tbody.innerHTML += `
+    tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${i + 1}</td>
         <td>${new Date(d.date).toLocaleDateString()}</td>
@@ -126,7 +126,7 @@ function renderTable() {
           </button>
         </td>
       </tr>
-    `;
+    `);
   });
 }
 

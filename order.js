@@ -423,14 +423,14 @@ async function loadProductSales(date, location) {
   }
 
   data.forEach(p => {
-    tbody.innerHTML += `
+    tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td><b>${p.product_code || "-"}</b></td>
         <td>${p.product_name}</td>
         <td><strong>${p.qty_sold}</strong></td>
         <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
       </tr>
-    `;
+    `);
   });
 }
 
@@ -460,7 +460,7 @@ async function loadInventoryReconciliation(date, location) {
     if (i.remaining < 0) rowClass = "danger-row";
     else if (i.remaining <= 5) rowClass = "warning-row";
 
-    tbody.innerHTML += `
+    tbody.insertAdjacentHTML("beforeend", `
   <tr class="${rowClass}">
     <td>${i.item_name}</td>
     <td>${i.added}</td>
@@ -470,7 +470,7 @@ async function loadInventoryReconciliation(date, location) {
       <strong>${i.quantity_left_display || "0"}</strong>
     </td>
   </tr>
-`;
+`);
   });
 }
 
@@ -722,12 +722,12 @@ function renderCart() {
     return;
   }
 
-  tbody.innerHTML = "";
   let sum = 0;
+  let rows = "";
 
   cart.forEach((i, idx) => {
     sum += i.total;
-    tbody.innerHTML += `
+    rows += `
       <tr>
         <td>${idx + 1}</td>
         <td>${i.product_name}</td>
@@ -738,6 +738,7 @@ function renderCart() {
     `;
   });
 
+  tbody.innerHTML = rows;
   sumEl.textContent = sum.toFixed(2);
 }
 
@@ -1123,13 +1124,13 @@ async function openStocks() {
     }
 
     rows.forEach(r => {
-      tbody.innerHTML += `
+      tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td>${r.item_name}</td>
           <td>${r.qty_added}</td>
           <td>${r.remaining}</td>
         </tr>
-      `;
+      `);
     });
 
     document.getElementById("stocksModal").classList.remove("hidden");

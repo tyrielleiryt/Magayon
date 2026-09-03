@@ -306,7 +306,7 @@ function renderTable() {
   }
 
   filtered.forEach((d, i) => {
-    tbody.innerHTML += `
+    tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${i + 1}</td>
         <td>${new Date(d.date).toLocaleDateString()}</td>
@@ -323,7 +323,7 @@ function renderTable() {
         <td>${d.location}</td>
         <td>${d.created_by || "-"}</td>
       </tr>
-    `;
+    `);
   });
 }
 
