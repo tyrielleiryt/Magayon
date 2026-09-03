@@ -139,7 +139,6 @@ export function requireRole(allowedRoles, { redirectTo = "order.html" } = {}) {
       localStorage.setItem("userName", profile.name || "");
       localStorage.setItem("userPosition", profile.role || "");
       localStorage.setItem("userLocation", profile.location || "");
-      localStorage.setItem("canPOS", String(profile.can_pos ?? ""));
 
       armIdleLogout();
       resolve(currentProfile);

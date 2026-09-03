@@ -52,10 +52,6 @@ async function handleLogin() {
       throw new Error("Unrecognized role. Contact your IT admin.");
     }
 
-    if (user.role === ROLES.CASHIER && user.can_pos !== true && user.can_pos !== "true") {
-      throw new Error("Not authorized for POS.");
-    }
-
     /* ✅ SESSION (cache only — every protected page re-verifies via auth-guard.js) */
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("staff_id", user.staff_id);
@@ -63,7 +59,6 @@ async function handleLogin() {
     localStorage.setItem("userName", user.name);
     localStorage.setItem("userPosition", user.role);
     localStorage.setItem("userLocation", user.location);
-    localStorage.setItem("canPOS", user.can_pos);
 
     /* 🚦 ROUTE — full-access roles and manager land on the admin panel
        (manager just sees fewer nav items there); cashier goes to POS. */

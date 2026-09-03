@@ -92,11 +92,10 @@ function renderTableLayout() {
               <th>Position</th>
               <th>Login Email</th>
               <th>Location</th>
-              <th>POS</th>
               <th>Status</th>
             </tr>
           </thead>
-          <tbody id="staffBody"><tr><td colspan="8" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          <tbody id="staffBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -115,7 +114,7 @@ function renderTable() {
   if (!staffList.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align:center;color:#888">
+        <td colspan="7" style="text-align:center;color:#888">
           No staff found
         </td>
       </tr>
@@ -135,7 +134,6 @@ function renderTable() {
       <td>${position ? position.label : (s.position || "-")}</td>
       <td>${s.email || "—"}</td>
       <td>${loc ? loc.location_name : ""}</td>
-      <td>${s.can_pos ? "✔" : "—"}</td>
       <td>${s.active ? "Active" : "Inactive"}</td>
     `;
 
@@ -194,11 +192,6 @@ function openStaffModal(staff = null) {
         p => `<option value="${p.value}" ${p.value === position ? "selected" : ""}>${p.label}</option>`
       ).join("")}
     </select>
-
-    <label>
-      <input type="checkbox" id="canPOS" ${staff?.can_pos ? "checked" : ""}>
-      Allow POS Access
-    </label>
 
     <div id="loginSection" style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"></div>
 
@@ -274,7 +267,6 @@ async function saveStaff(existing) {
 
   const position = document.getElementById("position").value;
   const locationId = document.getElementById("location").value;
-  const canPos = document.getElementById("canPOS").checked;
 
   const loginEmailEl = document.getElementById("loginEmail");
   const loginPasswordEl = document.getElementById("loginPassword");
@@ -301,8 +293,7 @@ async function saveStaff(existing) {
       last_name: lastName,
       first_name: firstName,
       position,
-      location_id: locationId,
-      can_pos: canPos
+      location_id: locationId
     };
     if (existing) payload.staff_id = existing.staff_id;
 
@@ -326,8 +317,7 @@ async function saveStaff(existing) {
         role: position,
         staffId,
         name,
-        location: locationId,
-        canPos
+        location: locationId
       });
 
       // Keep the roster's email column in sync with the new login.
@@ -359,7 +349,7 @@ async function saveStaff(existing) {
    evaluated against firestore.rules as the admin's own write — only an
    active IT admin is allowed to create another user's /users/{uid} doc.
 ========================================================= */
-async function createStaffLogin({ email, password, role, staffId, name, location, canPos }) {
+async function createStaffLogin({ email, password, role, staffId, name, location }) {
   const secondaryApp = initializeApp(firebaseConfig, "StaffCreate-" + Date.now());
 
   try {
@@ -374,7 +364,6 @@ async function createStaffLogin({ email, password, role, staffId, name, location
       name,
       staff_id: staffId,
       location: location || "",
-      can_pos: canPos,
       active: true,
       email
     });
