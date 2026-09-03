@@ -610,6 +610,73 @@ html, body {
   height: 100%;
 }
 
+/* Live Sales Feed */
+.live-sales-card {
+  margin-top: 18px;
+  max-height: 260px;
+}
+
+.live-sales-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: live-dot-pulse 1.8s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes live-dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.live-sales-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.live-sales-item {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 10px;
+  border-left: 3px solid #22c55e;
+}
+
+.live-sales-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.live-sales-contents {
+  font-size: 13px;
+  color: #1e293b;
+  margin: 4px 0;
+  word-break: break-word;
+}
+
+.live-sales-total {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16a34a;
+  text-align: right;
+}
+
 .recipe-btn {
   border: none;
   background: #2f3457;

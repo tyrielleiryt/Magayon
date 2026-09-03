@@ -133,10 +133,11 @@ import loadProductsView from "./views/products.js";
 import loadDailySalesView from "./views/dailySales.js";
 import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
-import loadDashboardView from "./views/dashboard.js";
+import loadDashboardView, { stopDashboardPolling } from "./views/dashboard.js";
 
 
 function clearView() {
+  stopDashboardPolling(); // stop the dashboard's live-sales polling when leaving it
   document.getElementById("actionBar")?.replaceChildren();
   document.getElementById("contentBox")?.replaceChildren();
 }

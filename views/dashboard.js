@@ -15,6 +15,28 @@ export default async function loadDashboardView() {
     loadDailyAnalytics(today),
     loadLowStockAlerts(today)
   ]);
+
+  startLiveSalesPolling(today);
+}
+
+/* ================= LIVE SALES FEED (POLLING) =================
+   Re-fetches today's sales report every few seconds and re-renders the
+   feed, latest sale on top. Polling stops when the dashboard is left
+   (see stopDashboardPolling, called from admin.js on view switch) so it
+   doesn't keep hitting the backend in the background. */
+const LIVE_SALES_POLL_MS = 15000;
+const LIVE_SALES_LIMIT = 8;
+let liveSalesTimer = null;
+
+function startLiveSalesPolling(date) {
+  stopDashboardPolling();
+  loadLiveSalesFeed(date);
+  liveSalesTimer = setInterval(() => loadLiveSalesFeed(date), LIVE_SALES_POLL_MS);
+}
+
+export function stopDashboardPolling() {
+  if (liveSalesTimer) clearInterval(liveSalesTimer);
+  liveSalesTimer = null;
 }
 
 /* ================= SAFE JSON FETCH ================= */
@@ -126,6 +148,13 @@ function renderLayout() {
   </div>
 
 </div>
+
+<div class="dashboard-card live-sales-card">
+  <h3><span class="live-dot"></span> Live Sales Feed</h3>
+  <div class="live-sales-list" id="liveSalesList">
+    <div style="text-align:center;color:#888;padding:12px">Loading…</div>
+  </div>
+</div>
   `;
 }
 
@@ -226,4 +255,64 @@ async function loadLowStockAlerts(date) {
   } catch (err) {
     console.error("Low stock failed", err);
   }
+}
+
+/* ================= LIVE SALES FEED ================= */
+function loadLiveSalesFeed(date) {
+  const callback = "handleLiveSalesFeed";
+  delete window[callback];
+
+  window[callback] = function (orders) {
+    renderLiveSalesFeed(Array.isArray(orders) ? orders : []);
+  };
+
+  const old = document.getElementById("liveSalesJsonpScript");
+  if (old) old.remove();
+
+  const script = document.createElement("script");
+  script.id = "liveSalesJsonpScript";
+  script.src = `${API_URL}?type=dailySalesReport&date=${date}&callback=${callback}`;
+  document.body.appendChild(script);
+}
+
+function renderLiveSalesFeed(orders) {
+  const list = document.getElementById("liveSalesList");
+  if (!list) return; // dashboard was navigated away from mid-poll
+
+  const sorted = [...orders].sort(
+    (a, b) => new Date(b.datetime) - new Date(a.datetime)
+  );
+
+  if (!sorted.length) {
+    list.innerHTML = `<div style="text-align:center;color:#888;padding:12px">No sales yet today</div>`;
+    return;
+  }
+
+  list.innerHTML = sorted.slice(0, LIVE_SALES_LIMIT).map(o => {
+    const total = (o.items || []).reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
+
+    const contents = (o.items || [])
+      .map(item => `${item.qty || 0}x ${item.product_name}`)
+      .join(", ");
+
+    return `
+      <div class="live-sales-item">
+        <div class="live-sales-item-top">
+          <span class="live-sales-cashier">👤 ${o.cashier || "-"}</span>
+          <span class="live-sales-time">${formatLiveTime(o.datetime)}</span>
+        </div>
+        <div class="live-sales-contents">${contents || "-"}</div>
+        <div class="live-sales-total">₱${total.toFixed(2)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function formatLiveTime(value) {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
