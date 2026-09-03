@@ -39,6 +39,15 @@ service cloud.firestore {
       allow create, update, delete: if isActiveITAdmin() && request.auth.uid != userId;
     }
 
+    // Editable admin-page access matrix for the manager role — admin.js
+    // reads this on every login to decide which nav buttons to show.
+    // Any signed-in user can read it (they need to, to know their own
+    // access); only an active IT admin can change it.
+    match /config/rolePermissions {
+      allow read: if isSignedIn();
+      allow write: if isActiveITAdmin();
+    }
+
     // Deny everything else by default.
     match /{document=**} {
       allow read, write: if false;

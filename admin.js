@@ -1,6 +1,6 @@
 
 
-import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
+import { ROLES, requireRole, logout, authFetch, getAllowedPages } from "./auth-guard.js";
 import { API_URL } from "./firebase-config.js";
 
 window.API_URL = API_URL; // kept for admin-close-day.js
@@ -10,7 +10,38 @@ window.API_URL = API_URL; // kept for admin-close-day.js
    load. Replaces the old `localStorage.isLoggedIn === "true"` check, which
    anyone could set by hand in devtools with no real login at all — or which
    any logged-in cashier could reach since it never checked role. */
-const currentUser = await requireRole([ROLES.ADMIN, ROLES.IT_ADMIN]);
+const currentUser = await requireRole([
+  ROLES.ADMIN,
+  ROLES.IT_ADMIN,
+  ROLES.OWNER,
+  ROLES.MANAGER
+]);
+
+/* ================= PAGE-LEVEL ACCESS CONTROL =================
+   Full-access roles (admin/it_admin/owner) see every nav item. Everyone
+   else only sees the pages their role is allowed — the default set, or
+   whatever an IT admin has configured on the Permissions page. This is
+   a UI convenience, not the real security boundary: every mutating
+   backend action is separately gated by role in Code.gs. */
+const allowedPages = await getAllowedPages(currentUser.role);
+
+if (allowedPages !== null) {
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    if (!allowedPages.includes(btn.dataset.view)) btn.remove();
+  });
+
+  // If the page that was active by default (dashboard) got removed above,
+  // mark the first remaining page active instead of leaving none selected.
+  // The actual navigation to it happens once click handlers are wired up
+  // further down (see "LAND ON THE ACTIVE PAGE").
+  if (!document.querySelector(".nav-btn.active")) {
+    document.querySelector(".nav-btn")?.classList.add("active");
+  }
+}
+
+document.querySelectorAll('.nav-btn[data-view="permissions"]').forEach(btn => {
+  if (currentUser.role !== ROLES.IT_ADMIN) btn.remove();
+});
 
 /* ================= LOADER HELPERS ================= */
 export function showLoader(text = "Loading data…") {
@@ -134,6 +165,7 @@ import loadDailySalesView from "./views/dailySales.js";
 import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
 import loadDashboardView, { stopDashboardPolling } from "./views/dashboard.js";
+import loadPermissionsView from "./views/permissions.js";
 
 
 function clearView() {
@@ -145,6 +177,13 @@ function clearView() {
 /* ================= SPA NAV (WITH LOADER) ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.onclick = async () => {
+    // Defense in depth: the button itself is already hidden for a
+    // page-restricted role (see the access-control block above), but
+    // block the view load too in case anything still triggers a click.
+    if (allowedPages !== null && !allowedPages.includes(btn.dataset.view)) {
+      return;
+    }
+
     // Active state
     document
       .querySelectorAll(".nav-btn")
@@ -190,6 +229,10 @@ clearView();
 
       case "staff":
         loadStaffView();
+        break;
+
+      case "permissions":
+        loadPermissionsView();
         break;
 
       case "dashboard":
@@ -344,4 +387,8 @@ setInterval(() => {
 
 // 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;
-document.querySelector('[data-view="dashboard"]')?.click();
+
+// Land on whichever page is marked active — dashboard for full-access
+// roles, or the first page a page-restricted role (e.g. manager) is
+// actually allowed, per the access-control block near the top of this file.
+document.querySelector(".nav-btn.active")?.click();

@@ -9,7 +9,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase
 // Firebase web API keys identify the project, they are not secrets — access
 // is controlled by Firebase Auth + Firestore Security Rules, not by hiding
 // this value. See firestore.rules for the actual access control.
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyAojoYbRWIPSEf3a-f5cfPbV-U97edveHg",
   authDomain: "magayon.firebaseapp.com",
   projectId: "magayon"

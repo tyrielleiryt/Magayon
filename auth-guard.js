@@ -13,9 +13,53 @@ import { auth, db } from "./firebase-config.js";
 
 export const ROLES = {
   CASHIER: "cashier",
-  ADMIN: "admin",        // store / shift manager
-  IT_ADMIN: "it_admin"   // manages staff accounts, roles and access
+  MANAGER: "manager",    // limited admin: dashboard, daily sales, daily inventory, inventory
+  ADMIN: "admin",        // legacy full-access role, kept equivalent to it_admin/owner
+  OWNER: "owner",        // full access, same as it_admin, minus account/permission management
+  IT_ADMIN: "it_admin"   // full access + manages staff accounts, roles and page permissions
 };
+
+// Roles that always see every admin page, regardless of the editable
+// permission matrix below. Never gate these behind Firestore config —
+// it_admin/owner/admin must never be able to lock themselves out.
+export const FULL_ACCESS_ROLES = [ROLES.ADMIN, ROLES.IT_ADMIN, ROLES.OWNER];
+
+// Default admin-page access for roles that are NOT full-access. An IT
+// admin can override these per role via the Permissions page (stored in
+// Firestore at config/rolePermissions); this is only the fallback used
+// until that doc exists or doesn't mention a given role.
+export const DEFAULT_ROLE_PAGES = {
+  [ROLES.MANAGER]: ["dashboard", "dailySales", "dailyInventory", "inventory"]
+  // Cashier isn't listed here — it never reaches the admin panel at all
+  // (see admin.js's requireRole() call), so there's no page list to edit.
+};
+
+export function hasFullAccess(role) {
+  return FULL_ACCESS_ROLES.includes(role);
+}
+
+/**
+ * Resolves which admin-panel pages a role can see: full-access roles get
+ * everything (returns null, meaning "no filtering needed"); everyone else
+ * gets the IT-admin-edited list from Firestore, falling back to
+ * DEFAULT_ROLE_PAGES when there's no override for that role yet.
+ */
+export async function getAllowedPages(role) {
+  if (hasFullAccess(role)) return null;
+
+  let overrides = null;
+  try {
+    const snap = await getDoc(doc(db, "config", "rolePermissions"));
+    if (snap.exists()) overrides = snap.data();
+  } catch (err) {
+    console.warn("Permission matrix lookup failed, using defaults:", err);
+  }
+
+  const fromOverride = overrides && overrides[role];
+  if (Array.isArray(fromOverride)) return fromOverride;
+
+  return DEFAULT_ROLE_PAGES[role] || [];
+}
 
 const LOGIN_PAGE = "index.html";
 const IDLE_LOGOUT_MS = 20 * 60 * 1000; // 20 min idle auto-logout

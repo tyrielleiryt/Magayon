@@ -5,8 +5,9 @@ import { doc, getDoc } from
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
+import { ROLES, hasFullAccess } from "./auth-guard.js";
 
-const KNOWN_ROLES = ["cashier", "admin", "it_admin"];
+const KNOWN_ROLES = [ROLES.CASHIER, ROLES.MANAGER, ROLES.ADMIN, ROLES.IT_ADMIN, ROLES.OWNER];
 
 /* ================= ELEMENTS ================= */
 const loginBtn = document.getElementById("loginBtn");
@@ -51,7 +52,7 @@ async function handleLogin() {
       throw new Error("Unrecognized role. Contact your IT admin.");
     }
 
-    if (user.role === "cashier" && user.can_pos !== "true") {
+    if (user.role === ROLES.CASHIER && user.can_pos !== true && user.can_pos !== "true") {
       throw new Error("Not authorized for POS.");
     }
 
@@ -64,9 +65,10 @@ async function handleLogin() {
     localStorage.setItem("userLocation", user.location);
     localStorage.setItem("canPOS", user.can_pos);
 
-    /* 🚦 ROUTE */
+    /* 🚦 ROUTE — full-access roles and manager land on the admin panel
+       (manager just sees fewer nav items there); cashier goes to POS. */
     window.location.replace(
-      user.role === "admin" || user.role === "it_admin" ? "main.html" : "order.html"
+      hasFullAccess(user.role) || user.role === ROLES.MANAGER ? "main.html" : "order.html"
     );
 
   } catch (err) {

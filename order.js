@@ -246,7 +246,7 @@ function disableWakeLock() {
 document.addEventListener("DOMContentLoaded", async () => {
   // Real login/role check — replaces the removed no-login "kiosk" fallback.
   // Redirects to index.html and never resolves if not signed in / inactive.
-  await requireRole([ROLES.CASHIER, ROLES.ADMIN, ROLES.IT_ADMIN]);
+  await requireRole([ROLES.CASHIER, ROLES.ADMIN, ROLES.IT_ADMIN, ROLES.OWNER]);
 
   
   document.getElementById("cashierName").textContent = CASHIER_NAME;
