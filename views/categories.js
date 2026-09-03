@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
@@ -33,13 +33,7 @@ let searchQuery = "";
 export default async function loadCategoriesView() {
   renderActionBar();
   renderTableLayout();
-
-  showLoader("Loading categories…");
-  try {
-    await loadCategories();
-  } finally {
-    hideLoader();
-  }
+  await loadCategories();
 }
 
 /* ================= ACTION BAR ================= */
@@ -79,7 +73,7 @@ function renderTableLayout() {
               <th>Description</th>
             </tr>
           </thead>
-          <tbody id="categoryTableBody"></tbody>
+          <tbody id="categoryTableBody"><tr><td colspan="3" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
       <div id="pagination"></div>
@@ -91,8 +85,7 @@ function renderTableLayout() {
 
 /* ================= LOAD ================= */
 async function loadCategories() {
-  const res = await fetch(API_URL + "?type=categories");
-  categories = await res.json();
+  categories = await getCached("categories");
 
   clearSelection();
   renderTable();
@@ -205,6 +198,7 @@ function openCategoryModal(c = null) {
       `&description=${encodeURIComponent(desc)}`;
 
     closeModal();
+    invalidateCache("categories");
     setTimeout(() => {
       loadCategories();
       hideLoader();
@@ -233,6 +227,7 @@ function openDeleteModal() {
       API_URL + `?action=deleteCategory&rowIndex=${selected.rowIndex}`;
 
     closeModal();
+    invalidateCache("categories");
     setTimeout(() => {
       loadCategories();
       hideLoader();

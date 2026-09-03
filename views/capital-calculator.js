@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached } from "../admin.js";
 
 import { API_URL } from "../firebase-config.js";
 
@@ -70,7 +70,7 @@ function renderLayout() {
                 <th>Income</th>
               </tr>
             </thead>
-            <tbody id="capitalBody"></tbody>
+            <tbody id="capitalBody"><tr><td colspan="6" style="text-align:center;color:#888">Loading…</td></tr></tbody>
           </table>
         </div>
 
@@ -97,7 +97,7 @@ async function loadProducts() {
 }
 
 async function loadInventory() {
-  const items = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+  const items = await getCached("inventoryItems");
   inventoryMap = {};
   items.forEach(i => inventoryMap[i.item_id] = Number(i.capital) || 0);
 }

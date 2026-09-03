@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 /* =========================================================
@@ -38,16 +38,23 @@ export default async function loadStaffView() {
   renderActionBar();
   renderTableLayout();
 
-  showLoader("Loading staff & locations…");
-
   try {
-    await loadLocations();
-    await loadStaff();
+    // Locations are cached (rarely change); staff is fetched fresh — in
+    // parallel, since neither needs the other to load.
+    const [locs, staff] = await Promise.all([
+      getCached("locations"),
+      fetch(API_URL + "?type=staff").then(r => r.json())
+    ]);
+
+    locations = locs;
+    staffList = staff;
+    selected = null;
+    editStaffBtn.disabled = true;
+    deleteStaffBtn.disabled = true;
+    renderTable();
   } catch (err) {
     console.error(err);
     alert("Failed to load staff data.");
-  } finally {
-    hideLoader();
   }
 }
 
@@ -87,7 +94,7 @@ function renderTableLayout() {
               <th>Status</th>
             </tr>
           </thead>
-          <tbody id="staffBody"></tbody>
+          <tbody id="staffBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -105,10 +112,6 @@ async function loadStaff() {
   editStaffBtn.disabled = true;
   deleteStaffBtn.disabled = true;
   renderTable();
-}
-
-async function loadLocations() {
-  locations = await fetch(API_URL + "?type=locations").then(r => r.json());
 }
 
 /* =========================================================

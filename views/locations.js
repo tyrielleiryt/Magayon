@@ -1,4 +1,4 @@
-import { bindDataBoxScroll, showLoader, hideLoader } from "../admin.js";
+import { bindDataBoxScroll, showLoader, hideLoader, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
@@ -30,7 +30,7 @@ export default async function loadLocationsView() {
               <th>Active</th>
             </tr>
           </thead>
-          <tbody id="locationBody"></tbody>
+          <tbody id="locationBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -43,14 +43,12 @@ export default async function loadLocationsView() {
     selected && openLocationModal(selected);
   document.getElementById("deleteBtn").onclick = deleteLocation;
 
-  showLoader("Loading locations…");
   await loadLocations();
-  hideLoader();
 }
 
 /* ================= LOAD DATA ================= */
 async function loadLocations() {
-  locations = await fetch(API_URL + "?type=locations").then(r => r.json());
+  locations = await getCached("locations");
   selected = null;
 
   document.getElementById("editBtn").disabled = true;
@@ -141,6 +139,7 @@ async function saveLocation(rowIndex) {
   if (rowIndex) url += `&rowIndex=${rowIndex}`;
 
   new Image().src = url;
+  invalidateCache("locations");
 
   setTimeout(async () => {
     await loadLocations();
@@ -157,6 +156,7 @@ function deleteLocation() {
 
   new Image().src =
     `${API_URL}?action=deleteLocation&rowIndex=${selected.rowIndex}`;
+  invalidateCache("locations");
 
   setTimeout(async () => {
     await loadLocations();

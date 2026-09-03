@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 /* =========================================================
@@ -52,7 +52,7 @@ export default function loadDailyInventoryView() {
               <th>Created By</th>
             </tr>
           </thead>
-          <tbody id="dailyInventoryBody"></tbody>
+          <tbody id="dailyInventoryBody"><tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -131,7 +131,7 @@ async function loadCarryOverReview(location) {
   try {
     const [days, masterItems] = await Promise.all([
       fetch(`${API_URL}?type=dailyInventory`).then(r => r.json()),
-      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
+      getCached("inventoryItems")
     ]);
 
     const unitMap = {};
@@ -269,8 +269,6 @@ async function submitStartInventoryDay(items) {
 
 /* ================= LOAD DAILY INVENTORY ================= */
 async function loadDailyInventory() {
-  showLoader("Loading daily inventory…");
-
   try {
     const res = await fetch(`${API_URL}?type=dailyInventory`);
     const data = await res.json();
@@ -280,8 +278,6 @@ async function loadDailyInventory() {
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory");
-  } finally {
-    hideLoader();
   }
 }
 
@@ -335,17 +331,14 @@ window.viewDailyInventory = async function (date, location, status) {
   showLoader("Loading inventory…");
 
   try {
-    const [res, itemsRes] = await Promise.all([
+    const [data, masterItems] = await Promise.all([
       fetch(
         `${API_URL}?type=dailyInventoryItems` +
         `&date=${encodeURIComponent(date)}` +
         `&location=${encodeURIComponent(location)}`
-      ),
-      fetch(`${API_URL}?type=inventoryItems`)
+      ).then(r => r.json()),
+      getCached("inventoryItems")
     ]);
-
-const data = await res.json();
-const masterItems = await itemsRes.json();
 
 // item_id → conversion info, so we can show a quantity-equivalent
 // alongside the raw Total Added / Remaining numbers.
@@ -459,7 +452,7 @@ window.openAddInventoryForDay = async function (date, location) {
 
   try {
     const [items, dailyData] = await Promise.all([
-      fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
+      getCached("inventoryItems"),
       fetch(
         `${API_URL}?type=dailyInventoryItems` +
         `&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}`

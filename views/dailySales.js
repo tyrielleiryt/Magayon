@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached } from "../admin.js";
 
 import { API_URL } from "../firebase-config.js";
 
@@ -141,8 +141,7 @@ function renderLayout() {
 /* ================= LOAD LOCATIONS ================= */
 async function loadLocations() {
   try {
-    const res = await fetch(`${API_URL}?type=locations`);
-    const data = await res.json();
+    const data = await getCached("locations");
     data.forEach(l => {
       locationMap[l.location_id] = l.location_name;
     });

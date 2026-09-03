@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 /* ================= API ================= */
@@ -28,13 +28,7 @@ let searchQuery = "";
 export default async function loadInventoryItemsView() {
   renderActionBar();
   renderTableLayout();
-
-  showLoader("Loading inventory items…");
-  try {
-    await loadInventoryItems();
-  } finally {
-    hideLoader();
-  }
+  await loadInventoryItems();
 }
 
 /* ================= ACTION BAR ================= */
@@ -79,7 +73,7 @@ function renderTableLayout() {
               <th>Selling Price</th>
             </tr>
           </thead>
-          <tbody id="inventoryTableBody"></tbody>
+          <tbody id="inventoryTableBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
       <div id="pagination"></div>
@@ -91,8 +85,7 @@ function renderTableLayout() {
 
 /* ================= LOAD DATA ================= */
 async function loadInventoryItems() {
-  const res = await fetch(`${API_URL}?type=inventoryItems`);
-  const data = await res.json();
+  const data = await getCached("inventoryItems");
 
   inventoryItems = (Array.isArray(data) ? data : []).map(r => {
     // ✅ OBJECT FORMAT (CURRENT BACKEND)
@@ -336,6 +329,7 @@ async function saveInventoryItem() {
     if (!data.success) throw new Error(data.error);
 
     closeModal();
+    invalidateCache("inventoryItems");
     await loadInventoryItems();
 
   } catch (err) {
@@ -378,6 +372,7 @@ async function updateInventoryItem() {
     if (!data.success) throw new Error(data.error);
 
     closeModal();
+    invalidateCache("inventoryItems");
     await loadInventoryItems();
 
   } catch (err) {
@@ -405,6 +400,7 @@ async function deleteInventoryItem() {
     if (!data.success) throw new Error(data.error);
 
     closeModal();
+    invalidateCache("inventoryItems");
     await loadInventoryItems();
 
   } catch (err) {

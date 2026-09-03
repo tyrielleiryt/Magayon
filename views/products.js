@@ -1,4 +1,4 @@
-import { bindDataBoxScroll } from "../admin.js";
+import { bindDataBoxScroll, getCached } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
@@ -35,14 +35,20 @@ export default async function loadProductsView() {
   renderActionBar();
   renderTableLayout();
 
-  showLoader("Loading products…");
+  // Categories are cached (they rarely change) and products are fetched
+  // fresh in parallel — no full-screen blocker, the table headers are
+  // already visible while this resolves.
+  const [cats, prods] = await Promise.all([
+    getCached("categories"),
+    fetch(API_URL + "?type=products").then(r => r.json())
+  ]);
 
-  try {
-    await loadCategories();
-    await loadProducts();
-  } finally {
-    hideLoader();
-  }
+  categories = cats;
+  products = prods;
+  selected = null;
+  document.getElementById("editBtn").disabled = true;
+  document.getElementById("deleteBtn").disabled = true;
+  renderTable();
 }
 
 /* ================= ACTION BAR ================= */
@@ -96,7 +102,7 @@ function renderTableLayout() {
               <th>Image</th>
             </tr>
           </thead>
-          <tbody id="productBody"></tbody>
+          <tbody id="productBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -106,10 +112,6 @@ function renderTableLayout() {
 }
 
 /* ================= LOAD DATA ================= */
-async function loadCategories() {
-  categories = await fetch(API_URL + "?type=categories").then(r => r.json());
-}
-
 async function loadProducts() {
   products = await fetch(API_URL + "?type=products").then(r => r.json());
 
@@ -272,7 +274,7 @@ document.getElementById("saveProductBtn").onclick = saveProduct;
 /* ================= INVENTORY ================= */
 async function loadInventory() {
   inventoryMap = {};
-  const items = await fetch(API_URL + "?type=inventoryItems").then(r => r.json());
+  const items = await getCached("inventoryItems");
 
   items.forEach(i => {
     inventoryMap[i.item_id] = {

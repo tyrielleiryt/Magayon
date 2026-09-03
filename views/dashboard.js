@@ -69,7 +69,7 @@ function renderLayout() {
             <th>Sales</th>
           </tr>
         </thead>
-        <tbody id="topSellersBody"></tbody>
+        <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -118,7 +118,7 @@ function renderLayout() {
               <th>Remaining</th>
             </tr>
           </thead>
-          <tbody id="lowStockBody"></tbody>
+          <tbody id="lowStockBody"><tr><td colspan="2" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>

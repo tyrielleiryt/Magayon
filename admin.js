@@ -28,6 +28,31 @@ export function hideLoader() {
   loader.classList.add("hidden");
 }
 
+/* ================= SHARED REFERENCE-DATA CACHE =================
+   categories / locations / inventoryItems barely change but were being
+   re-fetched from Apps Script (slow round-trip) on every single view
+   switch — Products, Staff, Locations, Capital Calculator, Daily
+   Inventory all pulled their own fresh copy every time. Cache each by
+   `type` for the rest of this session; call invalidateCache(type) right
+   after any add/edit/delete so the next read picks up the change. */
+const dataCache = {};
+
+export async function getCached(type) {
+  if (!dataCache[type]) {
+    dataCache[type] = fetch(`${API_URL}?type=${type}`)
+      .then(r => r.json())
+      .catch(err => {
+        delete dataCache[type]; // don't cache a failed fetch
+        throw err;
+      });
+  }
+  return dataCache[type];
+}
+
+export function invalidateCache(type) {
+  delete dataCache[type];
+}
+
 /* ================= DATE & TIME ================= */
 function updateDateTime() {
   const el = document.getElementById("datetime");
@@ -128,50 +153,47 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     // Reset UI
 clearView();
 
-    // 🔥 SHOW LOADER
-    showLoader("Loading module…");
-
-    try {
-      switch (btn.dataset.view) {
-        case "capitalCalculator":
-        await loadCapitalCalculatorView();
+    // Each view renders its own layout synchronously and shows a small
+    // inline "Loading…" placeholder while its own data fetch resolves —
+    // no full-screen blocker here, so the page structure (sidebar,
+    // buttons, headers) appears instantly instead of waiting behind a
+    // spinner for every field to finish loading.
+    switch (btn.dataset.view) {
+      case "capitalCalculator":
+        loadCapitalCalculatorView();
         break;
-        
-        case "categories":
-          await loadCategoriesView();
-          break;
 
-        case "products":
-          await loadProductsView();
-          break;
+      case "categories":
+        loadCategoriesView();
+        break;
 
-        case "inventory":
-          await loadInventoryItemsView();
-          break;
+      case "products":
+        loadProductsView();
+        break;
 
-        case "dailyInventory":
-          await loadDailyInventoryView();
-          break;
+      case "inventory":
+        loadInventoryItemsView();
+        break;
 
-        case "dailySales":
-          await loadDailySalesView();
-          break;
+      case "dailyInventory":
+        loadDailyInventoryView();
+        break;
 
-        case "locations":
-          await loadLocationsView();
-          break;
+      case "dailySales":
+        loadDailySalesView();
+        break;
 
-        case "staff":
-          await loadStaffView();
-          break;
+      case "locations":
+        loadLocationsView();
+        break;
 
-        case "dashboard":
-        default:
-          await loadDashboardView();
-      }
-    } finally {
-      // ✅ ALWAYS hide loader
-      requestAnimationFrame(hideLoader);
+      case "staff":
+        loadStaffView();
+        break;
+
+      case "dashboard":
+      default:
+        loadDashboardView();
     }
   };
 });
