@@ -273,6 +273,16 @@ ensureModal();
 const ADMIN_LOCATION = "ALL";
 let lastAdminChatHash = "";
 let adminChatLoading = false;
+let adminChatFirstLoad = true;
+
+function incrementAdminUnread() {
+  const badge = document.getElementById("adminChatUnreadBadge");
+  if (!badge) return;
+
+  const n = Number(badge.textContent || 0) + 1;
+  badge.textContent = n;
+  badge.classList.remove("hidden");
+}
 
 function loadAdminChat() {
   if (adminChatLoading) return;
@@ -288,6 +298,14 @@ function loadAdminChat() {
 
     const hash = JSON.stringify(messages);
     if (hash !== lastAdminChatHash) {
+      // 🔔 only notify if chat is closed (skip the very first load, since
+      // that's just picking up existing history, not a new message)
+      const box = document.getElementById("adminChatBox");
+      if (!adminChatFirstLoad && box?.classList.contains("hidden")) {
+        incrementAdminUnread();
+      }
+      adminChatFirstLoad = false;
+
       lastAdminChatHash = hash;
   renderAdminChat(messages);
     }
@@ -414,6 +432,13 @@ document.getElementById("adminChatToggle")?.addEventListener("click", async () =
   box?.classList.toggle("hidden");
 
   if (!box.classList.contains("hidden")) {
+    // ✅ CLEAR unread badge when opening chat
+    const badge = document.getElementById("adminChatUnreadBadge");
+    if (badge) {
+      badge.textContent = "0";
+      badge.classList.add("hidden");
+    }
+
     await ensureAdminChatLocations();
     loadAdminChat();
     document.getElementById("adminChatInput")?.focus();
@@ -422,13 +447,9 @@ document.getElementById("adminChatToggle")?.addEventListener("click", async () =
 
 //loadAdminChat();
 
-// 🔁 SINGLE poll (ONLY ONE)
-setInterval(() => {
-  const box = document.getElementById("adminChatBox");
-  if (box && !box.classList.contains("hidden")) {
-    loadAdminChat();
-  }
-}, 3000);
+// 🔁 SINGLE poll — keeps polling even while the chat box is closed, so the
+// unread badge (set inside loadAdminChat() only while hidden) can fire.
+setInterval(loadAdminChat, 3000);
 
 // 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;

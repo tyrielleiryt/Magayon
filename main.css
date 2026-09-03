@@ -30,6 +30,33 @@ html, body {
   cursor: pointer;
 }
 
+.chat-toggle {
+  background: #3b4066;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-toggle:hover {
+  background: #4a4f78;
+}
+
+.chat-badge {
+  background: #e53935;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 10px;
+  padding: 2px 6px;
+}
+
 /* ================= LAYOUT ================= */
 .admin-layout {
   display: flex;
