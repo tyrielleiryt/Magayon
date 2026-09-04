@@ -15,6 +15,7 @@ const PAGES = [
   { key: "products", label: "Products" },
   { key: "locations", label: "Locations" },
   { key: "staff", label: "Staff" },
+  { key: "attendance", label: "🕐 Attendance" },
   { key: "inventory", label: "Inventory" },
   { key: "dailyInventory", label: "Daily Inventory System" },
   { key: "dailySales", label: "Daily Sales" },

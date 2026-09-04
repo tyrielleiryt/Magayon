@@ -90,12 +90,13 @@ function renderTableLayout() {
               <th>Last Name</th>
               <th>First Name</th>
               <th>Position</th>
+              <th>Rate</th>
               <th>Login Email</th>
               <th>Location</th>
               <th>Status</th>
             </tr>
           </thead>
-          <tbody id="staffBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          <tbody id="staffBody"><tr><td colspan="8" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -114,7 +115,7 @@ function renderTable() {
   if (!staffList.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align:center;color:#888">
+        <td colspan="8" style="text-align:center;color:#888">
           No staff found
         </td>
       </tr>
@@ -132,6 +133,7 @@ function renderTable() {
       <td>${s.last_name}</td>
       <td>${s.first_name}</td>
       <td>${position ? position.label : (s.position || "-")}</td>
+      <td>${s.rate ? `₱${Number(s.rate).toFixed(2)}` : "—"}</td>
       <td>${s.email || "—"}</td>
       <td>${loc ? loc.location_name : ""}</td>
       <td>${s.active ? "Active" : "Inactive"}</td>
@@ -192,6 +194,13 @@ function openStaffModal(staff = null) {
         p => `<option value="${p.value}" ${p.value === position ? "selected" : ""}>${p.label}</option>`
       ).join("")}
     </select>
+
+    <label>Daily Rate</label>
+    <input id="rate" type="number" min="0" step="0.01" value="${staff?.rate || ""}" placeholder="0.00">
+    <p style="color:#888;font-size:12px;margin-top:-6px">
+      Used to compute Payroll in the Sales and Expenses Tracker. Changing this only
+      affects weeks going forward — past weeks keep the rate that was in effect then.
+    </p>
 
     <div id="loginSection" style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"></div>
 
@@ -267,6 +276,7 @@ async function saveStaff(existing) {
 
   const position = document.getElementById("position").value;
   const locationId = document.getElementById("location").value;
+  const rate = document.getElementById("rate").value;
 
   const loginEmailEl = document.getElementById("loginEmail");
   const loginPasswordEl = document.getElementById("loginPassword");
@@ -293,7 +303,8 @@ async function saveStaff(existing) {
       last_name: lastName,
       first_name: firstName,
       position,
-      location_id: locationId
+      location_id: locationId,
+      rate: rate === "" ? 0 : Number(rate)
     };
     if (existing) payload.staff_id = existing.staff_id;
 

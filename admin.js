@@ -164,6 +164,7 @@ import loadProductsView from "./views/products.js";
 import loadDailySalesView from "./views/dailySales.js";
 import loadLocationsView from "./views/locations.js";
 import loadStaffView from "./views/staff.js";
+import loadAttendanceView from "./views/attendance.js";
 import loadDashboardView, { stopDashboardPolling } from "./views/dashboard.js";
 import loadPermissionsView from "./views/permissions.js";
 import loadPettyCashView from "./views/pettyCash.js";
@@ -239,6 +240,10 @@ clearView();
 
       case "staff":
         loadStaffView();
+        break;
+
+      case "attendance":
+        loadAttendanceView();
         break;
 
       case "permissions":

@@ -347,18 +347,16 @@ function buildWeekBodyHtml(ctx) {
     ["SUM TOTAL", dayInfos.map(d => d ? fmtMoney((d.cash_sales - d.petty_cash_fund) + d.gcash_sales) : "—")]
   ];
 
-  const payrolledStaffIds = payrollWeek.rows.map(r => r.staff_id);
-
   const payrollRowsHtml = payrollWeek.rows.length
     ? payrollWeek.rows.map(r => `
       <tr data-staff="${r.staff_id}">
         <td>${r.first_name} ${r.last_name}</td>
-        <td><input type="number" class="pr-rate" value="${r.rate}"></td>
-        ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}" ${r[k] ? "checked" : ""}></td>`).join("")}
+        <td>${fmtMoney(r.rate)}</td>
+        ${DAY_KEYS.map(k => `<td style="text-align:center">${r[k] ? "✅" : "—"}</td>`).join("")}
         <td class="pr-total"><b>${fmtMoney(r.weekly_total)}</b></td>
       </tr>
     `).join("")
-    : `<tr><td colspan="9" class="set-empty-row">No staff added to this week yet — pick someone below</td></tr>`;
+    : `<tr><td colspan="9" class="set-empty-row">No active staff at this location</td></tr>`;
 
   const deductionsRowsHtml = payrollWeek.deductions.length
     ? payrollWeek.deductions.map(dd => `
@@ -409,21 +407,16 @@ function buildWeekBodyHtml(ctx) {
 
     <div class="set-section">
       <h4 class="set-section-title">👥 Payroll</h4>
-      <p class="set-section-hint">Set each employee's daily rate and tick the days they worked. Weekly Total = Rate × days checked.</p>
+      <p class="set-section-hint">
+        Rate is set per employee in the Staff Tab. Days worked come from clocking in/out
+        on the POS — this section is read-only.
+      </p>
       <table class="set-table">
         <thead>
           <tr><th>Employee</th><th>Rate</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}<th>Weekly Total</th></tr>
         </thead>
         <tbody class="pr-body">${payrollRowsHtml}</tbody>
       </table>
-      <div class="set-form-row">
-        <div>
-          <label>Add Employee</label><br>
-          <select class="pr-add-staff" style="min-width:180px">${staffOptionsHtml(payrolledStaffIds)}</select>
-        </div>
-        <button class="category-action-btn btn-add-staff-row" style="align-self:flex-end">+ Add</button>
-        <button class="category-action-btn btn-save-payroll" style="align-self:flex-end;margin-left:auto">💾 Save Week</button>
-      </div>
     </div>
 
     <div class="set-section">
@@ -587,60 +580,6 @@ function renderWeekBody(weekEl, location) {
 
 function wireWeekEvents(weekEl, location) {
   const weekStart = weekEl.dataset.week;
-
-    weekEl.querySelector(".btn-add-staff-row")?.addEventListener("click", () => {
-      const select = weekEl.querySelector(".pr-add-staff");
-      const staffId = select.value;
-      if (!staffId) return;
-      const staff = staffList.find(s => s.staff_id === staffId);
-      if (!staff) return;
-
-      const tbody = weekEl.querySelector(".pr-body");
-      if (tbody.querySelector(`tr[data-staff="${staffId}"]`)) return;
-
-      const emptyRow = tbody.querySelector("td[colspan]");
-      if (emptyRow) emptyRow.closest("tr").remove();
-
-      tbody.insertAdjacentHTML("beforeend", `
-        <tr data-staff="${staffId}">
-          <td>${staffLabel(staff)}</td>
-          <td><input type="number" class="pr-rate" value="0"></td>
-          ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}"></td>`).join("")}
-          <td class="pr-total"><b>₱0.00</b></td>
-        </tr>
-      `);
-      select.querySelector(`option[value="${staffId}"]`)?.remove();
-    });
-
-    weekEl.querySelector(".btn-save-payroll")?.addEventListener("click", async () => {
-      const rows = [...weekEl.querySelectorAll(".pr-body tr[data-staff]")].map(tr => {
-        const row = { staff_id: tr.dataset.staff, rate: Number(tr.querySelector(".pr-rate").value) || 0 };
-        DAY_KEYS.forEach(k => {
-          row[k] = tr.querySelector(`.pr-day[data-day="${k}"]`).checked;
-        });
-        return row;
-      });
-
-      showLoader("Saving payroll…");
-      try {
-        const res = await authFetch(API_URL, {
-          method: "POST",
-          body: new URLSearchParams({
-            action: "savePayrollWeek",
-            week_start_date: weekStart,
-            location_id: location,
-            rows: JSON.stringify(rows)
-          })
-        });
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error || "Save failed");
-        loadMonth();
-      } catch (err) {
-        alert("❌ " + err.message);
-      } finally {
-        hideLoader();
-      }
-    });
 
     weekEl.querySelector(".btn-add-deduction")?.addEventListener("click", async () => {
       const staffId = weekEl.querySelector(".pd-staff").value;
