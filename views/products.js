@@ -83,27 +83,16 @@ document.getElementById("editBtn").onclick = () => {
   document.getElementById("deleteBtn").onclick = deleteProduct;
 }
 
-/* ================= TABLE ================= */
+/* ================= PRODUCT CARDS ================= */
 function renderTableLayout() {
   const box = document.getElementById("contentBox");
 
   box.innerHTML = `
     <div class="data-box">
       <div class="data-scroll">
-        <table class="category-table product-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th>Image</th>
-            </tr>
-          </thead>
-          <tbody id="productBody"><tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr></tbody>
-        </table>
+        <div class="admin-product-grid" id="productGrid">
+          <p style="grid-column:1/-1;text-align:center;color:#888;padding:24px">Loading…</p>
+        </div>
       </div>
     </div>
   `;
@@ -123,73 +112,69 @@ async function loadProducts() {
 
 /* ================= RENDER ================= */
 function renderTable() {
-  const tbody = document.getElementById("productBody");
-  tbody.innerHTML = "";
+  const grid = document.getElementById("productGrid");
+  grid.innerHTML = "";
 
   if (!products.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" style="text-align:center;color:#888">
-          No products found
-        </td>
-      </tr>
-    `;
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:#888;padding:24px">No products found</p>`;
     return;
   }
 
-  products.forEach((p, i) => {
+  products.forEach(p => {
     const cat = categories.find(c => c.category_id === p.category_id);
-    const tr = document.createElement("tr");
+    const card = document.createElement("div");
+    card.className = "admin-product-card" + (!p.active ? " inactive" : "");
+    card.dataset.id = p.product_id;
 
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${p.product_code || ""}</td>
-      <td>${p.product_name}</td>
-      <td>${cat ? cat.category_name : ""}</td>
-      <td>₱${Number(p.price).toFixed(2)}</td>
-      <td>
-          <button
-    class="status-toggle ${p.active ? "active" : "inactive"}"
-    data-id="${p.product_id}"
-    data-active="${p.active}">
-    ${p.active ? "ACTIVE" : "INACTIVE"}
-  </button>
-      </td>
-      <td>${p.image_url ? "✔" : "-"}</td>
+    // No placeholder image file exists in this project, and many products
+    // have no image_url set — fall back to a plain food emoji instead of
+    // depending on a file that isn't there.
+    const imgHtml = p.image_url
+      ? `<img src="${p.image_url}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">`
+      : `<span>🍽️</span>`;
+
+    card.innerHTML = `
+      <div class="admin-product-img">${imgHtml}</div>
+      <div class="admin-product-info">
+        <div class="admin-product-code">${p.product_code || ""}</div>
+        <div class="admin-product-name">${p.product_name}</div>
+        <div class="admin-product-category">${cat ? cat.category_name : ""}</div>
+        <div class="admin-product-price">₱${Number(p.price).toFixed(2)}</div>
+      </div>
+      <button
+        class="status-toggle ${p.active ? "active" : "inactive"}"
+        data-id="${p.product_id}"
+        data-active="${p.active}">
+        ${p.active ? "ACTIVE" : "INACTIVE"}
+      </button>
     `;
 
-    if (!p.active) {
-  tr.classList.add("inactive");
-}
-
-    tr.onclick = () => {
+    card.onclick = () => {
       document
-        .querySelectorAll("#productBody tr")
-        .forEach(r => r.classList.remove("selected"));
-      tr.classList.add("selected");
-selected = p;
+        .querySelectorAll("#productGrid .admin-product-card")
+        .forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selected = p;
 
-// ⛔ Edit only allowed if ACTIVE
-document.getElementById("editBtn").disabled = !p.active;
+      // ⛔ Edit only allowed if ACTIVE
+      document.getElementById("editBtn").disabled = !p.active;
 
-// 🗑️ Delete allowed for both (or change if you want stricter rules)
-document.getElementById("deleteBtn").disabled = false;
+      // 🗑️ Delete allowed for both (or change if you want stricter rules)
+      document.getElementById("deleteBtn").disabled = false;
     };
 
-    tbody.appendChild(tr);
+    grid.appendChild(card);
 
-    const statusBtn = tr.querySelector(".status-toggle");
+    const statusBtn = card.querySelector(".status-toggle");
 
-statusBtn.onclick = (e) => {
-  e.stopPropagation(); // 🚫 prevent row select
-  console.log("STATUS BUTTON CLICKED", statusBtn.dataset);
+    statusBtn.onclick = (e) => {
+      e.stopPropagation(); // 🚫 prevent card select
 
-  toggleProductStatus({
-    product_id: statusBtn.dataset.id,
-    active: statusBtn.dataset.active === "true"
-  });
-};
-
+      toggleProductStatus({
+        product_id: statusBtn.dataset.id,
+        active: statusBtn.dataset.active === "true"
+      });
+    };
   });
 }
 

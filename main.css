@@ -236,6 +236,110 @@ html, body {
   color: #b00020;
 }
 
+/* ================= ADMIN PRODUCT CARDS =================
+   Same visual language as the POS's own product grid (order.css
+   .product-card), adapted for admin: click to select (enables Edit/
+   Delete in the action bar, same as the old table row selection),
+   status badge sits on the card instead of in a table column. */
+.admin-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 4px 2px;
+}
+
+.admin-product-card {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.admin-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+}
+
+.admin-product-card.selected {
+  border-color: #2f3457;
+  box-shadow: 0 0 0 3px rgba(47,52,87,0.15);
+}
+
+.admin-product-card.inactive {
+  opacity: 0.5;
+}
+
+.admin-product-img {
+  width: 100%;
+  height: 120px;
+  background: #f6f6f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #cbd5e1;
+}
+
+.admin-product-img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.admin-product-info {
+  padding: 10px 12px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.admin-product-code {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.admin-product-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.admin-product-category {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.admin-product-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2f3457;
+  margin-top: 2px;
+}
+
+.admin-product-card .status-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  padding: 3px 8px;
+  z-index: 2;
+}
+
 /* ================= MODAL FORM ================= */
 #modalBox label {
   margin-top: 12px;
