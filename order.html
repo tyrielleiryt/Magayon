@@ -36,6 +36,10 @@
     <span id="chatUnreadBadge" class="chat-badge hidden">1</span>
   </button>
 
+  <button id="clockInOutBtn" class="top-btn" aria-label="Staff clock in/out">
+    🕐 Clock In/Out
+  </button>
+
   <button id="logoutBtn" class="top-btn" aria-label="Log out">
     🚪 Logout
   </button>
@@ -280,6 +284,31 @@
     </table>
 
     <button onclick="closeStocks()">Close</button>
+  </div>
+</div>
+
+  <!-- ================= CLOCK IN/OUT MODAL ================= -->
+<div id="clockInModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>🕐 Staff Clock In/Out</h2>
+    <p class="muted" style="margin:-8px 0 14px;font-size:13px">
+      Tap a name, then confirm with fingerprint/Face ID on this tablet.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="clockInTable">
+        <!-- injected by order.js -->
+      </tbody>
+    </table>
+
+    <button onclick="closeClockIn()">Close</button>
   </div>
 </div>
 

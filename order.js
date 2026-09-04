@@ -1217,6 +1217,199 @@ function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
 
+/* =========================================================
+   STAFF CLOCK IN/OUT (biometric, local-gate only)
+   WebAuthn platform credentials (Face ID/fingerprint) are bound to this
+   specific tablet+browser — enrollment happens here in the POS, not the
+   admin desktop Staff tab, since a credential made on a manager's laptop
+   would be useless here. The backend never re-verifies the WebAuthn
+   signature; a resolved navigator.credentials.get() for a specific
+   staff member's specific stored credential is treated as proof it was
+   them — that's still enough to stop casual buddy-punching, since the
+   OS won't unlock the wrong person's credential.
+========================================================= */
+
+document.getElementById("clockInOutBtn")?.addEventListener("click", openClockIn);
+
+async function openClockIn() {
+  document.getElementById("clockInModal").classList.remove("hidden");
+  await loadClockInData();
+}
+
+function closeClockIn() {
+  document.getElementById("clockInModal").classList.add("hidden");
+}
+window.closeClockIn = closeClockIn;
+
+function loadClockInData() {
+  const tbody = document.getElementById("clockInTable");
+  tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+
+  return new Promise(resolve => {
+    const callbackName = "clockInCallback_" + Date.now();
+
+    window[callbackName] = data => {
+      delete window[callbackName];
+      script.remove();
+      renderClockInTable(data);
+      resolve();
+    };
+
+    const script = document.createElement("script");
+    script.src =
+      `${API_URL}?type=clockInKioskData` +
+      `&location=${LOCATION}` +
+      `&callback=${callbackName}`;
+
+    script.onerror = () => {
+      delete window[callbackName];
+      script.remove();
+      tbody.innerHTML = "<tr><td colspan='3'>Failed to load staff.</td></tr>";
+      resolve();
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+function renderClockInTable(data) {
+  const tbody = document.getElementById("clockInTable");
+
+  if (!data || !data.success) {
+    tbody.innerHTML = `<tr><td colspan='3'>${data?.error || "Failed to load staff."}</td></tr>`;
+    return;
+  }
+
+  const staff = data.staff || [];
+  if (!staff.length) {
+    tbody.innerHTML = "<tr><td colspan='3'>No active staff at this location.</td></tr>";
+    return;
+  }
+
+  tbody.innerHTML = "";
+  staff.forEach(s => {
+    let statusCell, actionCell;
+
+    if (!s.enrolled) {
+      statusCell = "Not enrolled";
+      actionCell = `<button onclick="enrollStaff('${s.staff_id}', '${(s.name || "").replace(/'/g, "\\'")}')">🔐 Enroll</button>`;
+    } else if (s.status === "IN") {
+      statusCell = `In since ${s.clock_in_time || "—"}`;
+      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockOut')">🚪 Clock Out</button>`;
+    } else {
+      statusCell = s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today";
+      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockIn')">✅ Clock In</button>`;
+    }
+
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${s.name}</td>
+        <td>${statusCell}</td>
+        <td>${actionCell}</td>
+      </tr>
+    `);
+  });
+}
+
+function base64urlToBuffer(base64url) {
+  const padded = base64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(base64url.length + (4 - base64url.length % 4) % 4, "=");
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function enrollStaff(staffId, name) {
+  if (!window.PublicKeyCredential) {
+    alert("This device/browser doesn't support biometric enrollment.");
+    return;
+  }
+
+  try {
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: "Magayon POS" },
+        user: {
+          id: new TextEncoder().encode(staffId),
+          name: staffId,
+          displayName: name || staffId
+        },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 }
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required"
+        },
+        attestation: "none",
+        timeout: 60000
+      }
+    });
+
+    if (!credential) throw new Error("Enrollment was cancelled");
+
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "enrollBiometric",
+        staff_id: staffId,
+        credential_id: credential.id
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || "Enrollment failed");
+
+    await loadClockInData();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + (err.message || "Enrollment failed"));
+  }
+}
+window.enrollStaff = enrollStaff;
+
+async function clockInOut(staffId, credentialId, action) {
+  if (!window.PublicKeyCredential) {
+    alert("This device/browser doesn't support biometric verification.");
+    return;
+  }
+
+  try {
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{
+          type: "public-key",
+          id: base64urlToBuffer(credentialId),
+          transports: ["internal"]
+        }],
+        userVerification: "required",
+        timeout: 60000
+      }
+    });
+
+    if (!assertion) throw new Error("Verification was cancelled");
+
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action,
+        staff_id: staffId,
+        location_id: LOCATION
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || "Failed to record");
+
+    await loadClockInData();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Verification failed — try again");
+  }
+}
+window.clockInOut = clockInOut;
+
 
 function closeSales() {
   document.getElementById("salesModal").classList.add("hidden");
