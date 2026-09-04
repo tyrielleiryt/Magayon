@@ -38,8 +38,11 @@ export default async function loadSalesExpensesTrackerView() {
     console.warn("Failed to load staff", err);
   }
 
-  await loadOpex();
   loadMonth();
+}
+
+function getCurrentLocation() {
+  return document.getElementById("setLocation").value.trim();
 }
 
 function renderActionBar() {
@@ -74,7 +77,7 @@ function renderLayout() {
 
 /* ================= OPEX ================= */
 
-async function loadOpex() {
+async function loadOpex(location) {
   return new Promise(resolve => {
     const callback = "handleOpexList";
     delete window[callback];
@@ -90,21 +93,29 @@ async function loadOpex() {
 
     const script = document.createElement("script");
     script.id = "setOpexJsonpScript";
-    script.src = `${API_URL}?type=opex&callback=${callback}`;
+    script.src = `${API_URL}?type=opex&location=${encodeURIComponent(location)}&callback=${callback}`;
     script.onerror = () => { opexItems = []; opexTotal = 0; resolve(); };
     document.body.appendChild(script);
   });
 }
 
-function openOpexModal() {
+async function openOpexModal() {
+  const location = getCurrentLocation();
+  if (!location) { alert("Please enter a location first"); return; }
+
+  showLoader("Loading overhead…");
+  await loadOpex(location);
+  hideLoader();
+
   const overlay = document.getElementById("modalOverlay");
   const box = document.getElementById("modalBox");
 
   box.innerHTML = `
-    <h3 class="set-section-title">⚙️ Operating Expenses (Monthly)</h3>
+    <h3 class="set-section-title">⚙️ Operating Expenses — ${locationMap[location] || location}</h3>
     <p class="set-section-hint">
-      Fixed monthly overhead (rent, electricity, etc.). Divided by 4 to get the
-      Overhead Subsidy applied to each week below.
+      Fixed monthly overhead for this location (rent, electricity, etc.) — set it once
+      and it stays until you change it. Divided by 4 to get the Overhead Subsidy
+      applied to each week below.
     </p>
     <table class="set-table" style="margin-bottom:14px">
       <thead><tr><th>Item</th><th>Amount / Month</th><th></th></tr></thead>
@@ -152,11 +163,10 @@ function openOpexModal() {
     try {
       const res = await authFetch(API_URL, {
         method: "POST",
-        body: new URLSearchParams({ action: "addOpexItem", item_name, amount_month })
+        body: new URLSearchParams({ action: "addOpexItem", item_name, amount_month, location_id: location })
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || "Save failed");
-      await loadOpex();
       openOpexModal();
       loadMonth();
     } catch (err) {
@@ -177,7 +187,6 @@ function openOpexModal() {
         });
         const result = await res.json();
         if (!result.success) throw new Error(result.error || "Delete failed");
-        await loadOpex();
         openOpexModal();
         loadMonth();
       } catch (err) {
@@ -191,7 +200,7 @@ function openOpexModal() {
 
 /* ================= MONTH LOAD ================= */
 
-function loadMonth() {
+async function loadMonth() {
   const month = document.getElementById("setMonth").value;
   const location = document.getElementById("setLocation").value.trim();
 
@@ -200,6 +209,11 @@ function loadMonth() {
 
   document.getElementById("setContent").innerHTML =
     `<div style="text-align:center;color:#888;padding:24px">Loading…</div>`;
+
+  // OPEX is location-specific, so re-fetch it for whichever location is
+  // currently selected before rendering — it may have changed since the
+  // last load.
+  await loadOpex(location);
 
   const callback = "handleSalesExpensesMonth";
   delete window[callback];
