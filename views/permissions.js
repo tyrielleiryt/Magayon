@@ -18,7 +18,8 @@ const PAGES = [
   { key: "inventory", label: "Inventory" },
   { key: "dailyInventory", label: "Daily Inventory System" },
   { key: "dailySales", label: "Daily Sales" },
-  { key: "pettyCash", label: "💵 Petty Cash Fund / Expenses" }
+  { key: "pettyCash", label: "💵 Petty Cash Fund / Expenses" },
+  { key: "salesExpensesTracker", label: "📈 Sales and Expenses Tracker" }
 ];
 
 // Cashier isn't editable here: cashier accounts are hard-restricted to
