@@ -101,8 +101,10 @@ html, body {
 
 .content-box {
   background: white;
-  border: 1px solid #aaa;
-  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  padding: 18px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -114,10 +116,26 @@ html, body {
 /* ================= ACTION BAR ================= */
 .action-bar {
   display: flex;
-  gap: 8px;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #ccc;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.action-bar input,
+.action-bar select {
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.action-bar input:focus,
+.action-bar select:focus {
+  outline: none;
+  border-color: #2f3457;
 }
 
 .category-action-btn {
@@ -143,16 +161,31 @@ html, body {
 }
 
 .category-table th {
-  background: #f3f3f3;
-  padding: 8px;
+  background: #f8fafc;
+  color: #334155;
+  padding: 11px 10px;
   position: sticky;
   top: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
 }
 
 .category-table td {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  border-bottom: 1px solid #eef2f6;
   text-align: center;
+}
+
+.category-table th:first-child,
+.category-table td:first-child {
+  text-align: left;
+}
+
+.category-table tbody tr:nth-child(even) {
+  background: #fafbfc;
 }
 
 /* ================= ADMIN TABLE UX ================= */
