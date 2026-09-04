@@ -44,10 +44,18 @@ export default async function loadSalesExpensesTrackerView() {
 
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <input type="month" id="setMonth" />
-    <input type="text" id="setLocation" placeholder="Location ID" />
-    <button class="category-action-btn" id="setLoadBtn">Load</button>
-    <button class="category-action-btn" id="setOpexBtn">⚙️ OPEX</button>
+    <div class="set-action-bar">
+      <div class="set-action-field">
+        <label for="setMonth">Month</label>
+        <input type="month" id="setMonth" />
+      </div>
+      <div class="set-action-field">
+        <label for="setLocation">Location ID</label>
+        <input type="text" id="setLocation" placeholder="e.g. LOC-1767637180808" />
+      </div>
+      <button class="category-action-btn" id="setLoadBtn">Load</button>
+      <button class="category-action-btn" id="setOpexBtn">⚙️ Overhead (OPEX)</button>
+    </div>
   `;
   document.getElementById("setLoadBtn").onclick = loadMonth;
   document.getElementById("setOpexBtn").onclick = openOpexModal;
@@ -57,7 +65,9 @@ function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
       <h3>📈 Sales and Expenses Tracker</h3>
-      <div id="setContent" class="data-scroll" style="padding:12px;text-align:center;color:#888">Loading…</div>
+      <div id="setContent" class="data-scroll" style="padding:12px">
+        <div style="text-align:center;color:#888">Loading…</div>
+      </div>
     </div>
   `;
 }
@@ -91,8 +101,12 @@ function openOpexModal() {
   const box = document.getElementById("modalBox");
 
   box.innerHTML = `
-    <h3>⚙️ Operating Expenses (Monthly)</h3>
-    <table class="category-table" style="margin-bottom:12px">
+    <h3 class="set-section-title">⚙️ Operating Expenses (Monthly)</h3>
+    <p class="set-section-hint">
+      Fixed monthly overhead (rent, electricity, etc.). Divided by 4 to get the
+      Overhead Subsidy applied to each week below.
+    </p>
+    <table class="set-table" style="margin-bottom:14px">
       <thead><tr><th>Item</th><th>Amount / Month</th><th></th></tr></thead>
       <tbody id="opexModalBody">
         ${opexItems.length
@@ -103,17 +117,23 @@ function openOpexModal() {
               <td><button class="btn-del-opex" data-id="${i.opex_id}">✕</button></td>
             </tr>
           `).join("")
-          : `<tr><td colspan="3" style="text-align:center;color:#888">No OPEX items yet</td></tr>`
+          : `<tr><td colspan="3" class="set-empty-row">No OPEX items yet</td></tr>`
         }
       </tbody>
       <tfoot>
-        <tr style="font-weight:700"><td>Total / Month</td><td>₱${opexTotal.toFixed(2)}</td><td></td></tr>
+        <tr><td>Total / Month</td><td>₱${opexTotal.toFixed(2)}</td><td></td></tr>
       </tfoot>
     </table>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <input type="text" id="opexNewName" placeholder="e.g. Rent" style="flex:2">
-      <input type="number" id="opexNewAmount" placeholder="Amount" style="flex:1">
-      <button class="category-action-btn" id="opexAddBtn">Add</button>
+    <div class="set-form-row" style="margin-bottom:16px">
+      <div>
+        <label>Item Name</label><br>
+        <input type="text" id="opexNewName" placeholder="e.g. Rent" style="width:180px">
+      </div>
+      <div>
+        <label>Amount / Month</label><br>
+        <input type="number" id="opexNewAmount" placeholder="0.00" style="width:120px">
+      </div>
+      <button class="category-action-btn" id="opexAddBtn" style="align-self:flex-end">Add</button>
     </div>
     <button class="category-action-btn" id="opexCloseBtn">Close</button>
   `;
@@ -302,10 +322,10 @@ function renderMonth(data, month, location) {
 
     const containsToday = dayDates.includes(todayStr);
 
-    function tableHtml(title, rows) {
+    function tableHtml(rows) {
       return `
-        <table class="category-table" style="margin-bottom:12px">
-          <thead><tr><th>${title}</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}</tr></thead>
+        <table class="set-table">
+          <thead><tr><th></th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}</tr></thead>
           <tbody>
             ${rows.map(([label, vals]) => `<tr><td>${label}</td>${vals.map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}
           </tbody>
@@ -333,12 +353,12 @@ function renderMonth(data, month, location) {
       ? payrollWeek.rows.map(r => `
         <tr data-staff="${r.staff_id}">
           <td>${r.first_name} ${r.last_name}</td>
-          <td><input type="number" class="pr-rate" value="${r.rate}" style="width:70px"></td>
-          ${DAY_KEYS.map(k => `<td style="text-align:center"><input type="checkbox" class="pr-day" data-day="${k}" ${r[k] ? "checked" : ""}></td>`).join("")}
-          <td class="pr-total">${fmtMoney(r.weekly_total)}</td>
+          <td><input type="number" class="pr-rate" value="${r.rate}"></td>
+          ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}" ${r[k] ? "checked" : ""}></td>`).join("")}
+          <td class="pr-total"><b>${fmtMoney(r.weekly_total)}</b></td>
         </tr>
       `).join("")
-      : `<tr><td colspan="9" style="text-align:center;color:#888">No staff added yet</td></tr>`;
+      : `<tr><td colspan="9" class="set-empty-row">No staff added to this week yet — pick someone below</td></tr>`;
 
     const deductionsRowsHtml = payrollWeek.deductions.length
       ? payrollWeek.deductions.map(dd => `
@@ -349,7 +369,7 @@ function renderMonth(data, month, location) {
           <td><button class="btn-del-deduction" data-id="${dd.deduction_id}">✕</button></td>
         </tr>
       `).join("")
-      : `<tr><td colspan="4" style="text-align:center;color:#888">No deductions</td></tr>`;
+      : `<tr><td colspan="4" class="set-empty-row">No deductions this week</td></tr>`;
 
     const expenseRows = [];
     dayInfos.forEach((d, idx) => {
@@ -368,75 +388,112 @@ function renderMonth(data, month, location) {
           <td>${fmtMoney(e.amount)}</td>
         </tr>
       `).join("")
-      : `<tr><td colspan="4" style="text-align:center;color:#888">No expenses logged</td></tr>`;
+      : `<tr><td colspan="4" class="set-empty-row">No expenses logged this week</td></tr>`;
 
     const dateOptions = dayDates
       .map((ds, i) => dayInfos[i] ? `<option value="${ds}" data-daily-id="${dayInfos[i].daily_id}">${ds}</option>` : "")
       .join("");
 
     return `
-      <details class="set-week" ${containsToday ? "open" : ""} style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:10px;padding:10px" data-week="${weekStartStr}">
-        <summary style="cursor:pointer;font-weight:700;font-size:15px">${weekLabel}</summary>
+      <details class="set-week" ${containsToday ? "open" : ""} data-week="${weekStartStr}">
+        <summary>${weekLabel}</summary>
 
-        <div style="margin-top:12px">
-          ${tableHtml("Daily Sales", salesRows)}
-          ${tableHtml("Cash On Hand", onHandRows)}
+        <div class="set-week-body">
 
-          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
-            <div style="flex:2;min-width:340px">
-              <h4 style="margin:8px 0">👥 Payroll</h4>
-              <table class="category-table">
-                <thead>
-                  <tr><th>Employee</th><th>Rate</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}<th>Weekly Total</th></tr>
-                </thead>
-                <tbody class="pr-body">${payrollRowsHtml}</tbody>
-              </table>
-              <div style="display:flex;gap:8px;margin:8px 0;align-items:center">
-                <select class="pr-add-staff" style="flex:1">${staffOptionsHtml(payrolledStaffIds)}</select>
-                <button class="category-action-btn btn-add-staff-row">+ Add</button>
-                <button class="category-action-btn btn-save-payroll">💾 Save Week</button>
+          <div class="set-section">
+            <h4 class="set-section-title">💰 Daily Sales</h4>
+            <p class="set-section-hint">Cash and GCash sales pulled automatically from POS orders each day.</p>
+            ${tableHtml(salesRows)}
+          </div>
+
+          <div class="set-section">
+            <h4 class="set-section-title">💵 Cash &amp; GCash On Hand</h4>
+            <p class="set-section-hint">What's left in the drawer after any petty cash top-up that day.</p>
+            ${tableHtml(onHandRows)}
+          </div>
+
+          <div class="set-section">
+            <h4 class="set-section-title">👥 Payroll</h4>
+            <p class="set-section-hint">Set each employee's daily rate and tick the days they worked. Weekly Total = Rate × days checked.</p>
+            <table class="set-table">
+              <thead>
+                <tr><th>Employee</th><th>Rate</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}<th>Weekly Total</th></tr>
+              </thead>
+              <tbody class="pr-body">${payrollRowsHtml}</tbody>
+            </table>
+            <div class="set-form-row">
+              <div>
+                <label>Add Employee</label><br>
+                <select class="pr-add-staff" style="min-width:180px">${staffOptionsHtml(payrolledStaffIds)}</select>
               </div>
-
-              <h4 style="margin:8px 0">Deductions</h4>
-              <table class="category-table">
-                <thead><tr><th>Employee</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
-                <tbody class="pd-body">${deductionsRowsHtml}</tbody>
-              </table>
-              <div style="display:flex;gap:8px;margin:8px 0">
-                <select class="pd-staff" style="flex:1">${staffOptionsHtml()}</select>
-                <input type="number" class="pd-amount" placeholder="Amount" style="width:100px">
-                <input type="text" class="pd-notes" placeholder="Notes" style="flex:1">
-                <button class="category-action-btn btn-add-deduction">Add</button>
-              </div>
-            </div>
-
-            <div style="flex:1;min-width:280px">
-              <h4 style="margin:8px 0">🧾 Listed Expenses</h4>
-              <table class="category-table">
-                <thead><tr><th>Date</th><th>Item</th><th>Desc.</th><th>Cost</th></tr></thead>
-                <tbody>${expensesHtml}</tbody>
-                <tfoot><tr style="font-weight:700"><td colspan="3">Total</td><td>${fmtMoney(listedExpensesTotal)}</td></tr></tfoot>
-              </table>
-              ${dateOptions ? `
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                  <select class="exp-date" style="flex:1">${dateOptions}</select>
-                  <input type="text" class="exp-item" placeholder="Item" style="flex:1">
-                  <input type="text" class="exp-desc" placeholder="Description (qty/unit)" style="flex:1">
-                  <input type="number" class="exp-cost" placeholder="Cost" style="width:90px">
-                  <button class="category-action-btn btn-add-expense">Add</button>
-                </div>
-              ` : `<p style="color:#888;font-size:12px">No open inventory day this week to log an expense against.</p>`}
+              <button class="category-action-btn btn-add-staff-row" style="align-self:flex-end">+ Add</button>
+              <button class="category-action-btn btn-save-payroll" style="align-self:flex-end;margin-left:auto">💾 Save Week</button>
             </div>
           </div>
 
-          <div style="background:#f8fafc;border-radius:10px;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">
-            <div><b>Payroll Total</b><br>${fmtMoney(payrollTotal)}</div>
-            <div><b>Listed Expenses Total</b><br>${fmtMoney(listedExpensesTotal)}</div>
-            <div><b>Overhead Subsidy</b><br>${fmtMoney(overheadSubsidy)}</div>
-            <div><b>SUM Expenses Total</b><br>${fmtMoney(sumExpenses)}</div>
-            <div><b>Total Cash Earned</b><br>${fmtMoney(totalCash)}</div>
-            <div><b>Total GCash Earned</b><br>${fmtMoney(totalGcash)}</div>
-            <div><b>Gross Income</b><br>${fmtMoney(grossIncome)}</div>
+          <div class="set-section">
+            <h4 class="set-section-title">➖ Payroll Deductions</h4>
+            <p class="set-section-hint">Cash advances or other amounts subtracted from an employee's pay this week.</p>
+            <table class="set-table">
+              <thead><tr><th>Employee</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+              <tbody class="pd-body">${deductionsRowsHtml}</tbody>
+            </table>
+            <div class="set-form-row">
+              <div>
+                <label>Employee</label><br>
+                <select class="pd-staff" style="min-width:160px">${staffOptionsHtml()}</select>
+              </div>
+              <div>
+                <label>Amount</label><br>
+                <input type="number" class="pd-amount" placeholder="0.00" style="width:100px">
+              </div>
+              <div style="flex:1;min-width:160px">
+                <label>Notes</label><br>
+                <input type="text" class="pd-notes" placeholder="e.g. Cash advance" style="width:100%">
+              </div>
+              <button class="category-action-btn btn-add-deduction" style="align-self:flex-end">Add</button>
+            </div>
+          </div>
+
+          <div class="set-section">
+            <h4 class="set-section-title">🧾 Listed Expenses</h4>
+            <p class="set-section-hint">Itemized purchases (supplies, ingredients, etc.) logged against a specific day.</p>
+            <table class="set-table">
+              <thead><tr><th>Date</th><th>Item</th><th>Description</th><th>Cost</th></tr></thead>
+              <tbody>${expensesHtml}</tbody>
+              <tfoot><tr><td colspan="3">Total</td><td>${fmtMoney(listedExpensesTotal)}</td></tr></tfoot>
+            </table>
+            ${dateOptions ? `
+              <div class="set-form-row">
+                <div>
+                  <label>Date</label><br>
+                  <select class="exp-date">${dateOptions}</select>
+                </div>
+                <div>
+                  <label>Item</label><br>
+                  <input type="text" class="exp-item" placeholder="e.g. Siomai pork">
+                </div>
+                <div style="flex:1;min-width:160px">
+                  <label>Description (qty/unit)</label><br>
+                  <input type="text" class="exp-desc" placeholder="e.g. 13 packs" style="width:100%">
+                </div>
+                <div>
+                  <label>Cost</label><br>
+                  <input type="number" class="exp-cost" placeholder="0.00" style="width:90px">
+                </div>
+                <button class="category-action-btn btn-add-expense" style="align-self:flex-end">Add</button>
+              </div>
+            ` : `<p class="set-section-hint">No open inventory day this week to log an expense against.</p>`}
+          </div>
+
+          <div class="set-rollup">
+            <div class="set-rollup-item"><div class="set-label">Payroll Total</div><div class="set-value">${fmtMoney(payrollTotal)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">Listed Expenses Total</div><div class="set-value">${fmtMoney(listedExpensesTotal)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">Overhead Subsidy</div><div class="set-value">${fmtMoney(overheadSubsidy)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">SUM Expenses Total</div><div class="set-value">${fmtMoney(sumExpenses)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">Total Cash Earned</div><div class="set-value">${fmtMoney(totalCash)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">Total GCash Earned</div><div class="set-value">${fmtMoney(totalGcash)}</div></div>
+            <div class="set-rollup-item"><div class="set-label">Gross Income</div><div class="set-value">${fmtMoney(grossIncome)}</div></div>
           </div>
         </div>
       </details>
@@ -448,18 +505,18 @@ function renderMonth(data, month, location) {
   const grossProfit = monthlyGrossIncome - monthlyTotalExpenses;
 
   content.innerHTML = `
-    <p style="color:#666;margin-bottom:12px">${month} — ${locationMap[location] || location}</p>
+    <p class="set-month-label">${month} — ${locationMap[location] || location}</p>
     ${weekBlocks.join("")}
-    <div style="background:#111827;color:#fff;border-radius:10px;padding:16px;margin-top:8px">
-      <h3 style="margin:0 0 10px">Monthly Summary</h3>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-        <div>Payroll Total<br><b>${fmtMoney(monthlyPayroll)}</b></div>
-        <div>Listed Expenses<br><b>${fmtMoney(monthlyListed)}</b></div>
-        <div>Overhead Subsidy<br><b>${fmtMoney(monthlyOverhead)}</b></div>
-        <div>Total Cash<br><b>${fmtMoney(monthlyCash)}</b></div>
-        <div>Total GCash<br><b>${fmtMoney(monthlyGcash)}</b></div>
-        <div>Gross Income<br><b>${fmtMoney(monthlyGrossIncome)}</b></div>
-        <div>Gross Profit<br><b style="color:${grossProfit < 0 ? "#f87171" : "#4ade80"}">${fmtMoney(grossProfit)}</b></div>
+    <div class="set-monthly-summary">
+      <h3>📊 Monthly Summary</h3>
+      <div class="set-monthly-grid">
+        <div><div class="set-label">Payroll Total</div><div class="set-value">${fmtMoney(monthlyPayroll)}</div></div>
+        <div><div class="set-label">Listed Expenses</div><div class="set-value">${fmtMoney(monthlyListed)}</div></div>
+        <div><div class="set-label">Overhead Subsidy</div><div class="set-value">${fmtMoney(monthlyOverhead)}</div></div>
+        <div><div class="set-label">Total Cash</div><div class="set-value">${fmtMoney(monthlyCash)}</div></div>
+        <div><div class="set-label">Total GCash</div><div class="set-value">${fmtMoney(monthlyGcash)}</div></div>
+        <div><div class="set-label">Gross Income</div><div class="set-value">${fmtMoney(monthlyGrossIncome)}</div></div>
+        <div><div class="set-label">Gross Profit</div><div class="set-value" style="color:${grossProfit < 0 ? "#f87171" : "#4ade80"}">${fmtMoney(grossProfit)}</div></div>
       </div>
     </div>
   `;
@@ -490,9 +547,9 @@ function wireWeekEvents(location) {
       tbody.insertAdjacentHTML("beforeend", `
         <tr data-staff="${staffId}">
           <td>${staffLabel(staff)}</td>
-          <td><input type="number" class="pr-rate" value="0" style="width:70px"></td>
-          ${DAY_KEYS.map(k => `<td style="text-align:center"><input type="checkbox" class="pr-day" data-day="${k}"></td>`).join("")}
-          <td class="pr-total">₱0.00</td>
+          <td><input type="number" class="pr-rate" value="0"></td>
+          ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}"></td>`).join("")}
+          <td class="pr-total"><b>₱0.00</b></td>
         </tr>
       `);
       select.querySelector(`option[value="${staffId}"]`)?.remove();

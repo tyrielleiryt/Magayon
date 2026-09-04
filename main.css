@@ -493,6 +493,245 @@ html, body {
   border-radius: 6px;
 }
 
+/* ================= SALES & EXPENSES TRACKER ================= */
+.set-month-label {
+  font-size: 15px;
+  color: #475569;
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+
+.set-week {
+  background: #fff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.set-week > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 16px 20px;
+  background: #eef2f7;
+  color: #1e293b;
+  list-style: none;
+}
+
+.set-week > summary::-webkit-details-marker {
+  display: none;
+}
+
+.set-week > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 10px;
+  transition: transform 0.15s ease;
+}
+
+.set-week[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.set-week-body {
+  padding: 20px;
+}
+
+.set-section {
+  background: #fff;
+  border: 1.5px solid #dbe2ea;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.set-section:last-child {
+  margin-bottom: 0;
+}
+
+.set-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-section-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 12px;
+}
+
+.set-columns {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.set-col {
+  flex: 1;
+  min-width: 320px;
+}
+
+.set-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.set-table th,
+.set-table td {
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.set-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.set-table td:first-child,
+.set-table th:first-child {
+  text-align: left;
+}
+
+.set-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.set-table tfoot td {
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.set-table input[type="number"] {
+  width: 70px;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.set-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.set-empty-row {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.set-form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.set-form-row label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.set-form-row input,
+.set-form-row select {
+  padding: 9px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.set-rollup {
+  background: #f8fafc;
+  border: 1.5px solid #dbe2ea;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+
+.set-rollup-item .set-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.set-rollup-item .set-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.set-monthly-summary {
+  background: #111827;
+  color: #fff;
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-top: 8px;
+}
+
+.set-monthly-summary h3 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.set-monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 18px;
+}
+
+.set-monthly-grid .set-label {
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.set-monthly-grid .set-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.set-action-bar {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.set-action-field label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.set-action-field input {
+  padding: 9px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
 
 .analytics-box .label {
   font-size:12px;
