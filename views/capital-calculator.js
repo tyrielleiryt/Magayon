@@ -1,6 +1,7 @@
 import { bindDataBoxScroll, getCached } from "../admin.js";
 
 import { API_URL } from "../firebase-config.js";
+import { icon } from "../icons.js";
 
 let products = [];
 let recipesMap = {};
@@ -27,7 +28,7 @@ function renderLayout() {
 
   document.getElementById("contentBox").innerHTML = `
   <div class="data-box">
-    <h2>💰 Capital Calculator</h2>
+    <h2>${icon("calculator")} Capital Calculator</h2>
 
     <div class="capital-layout">
 
@@ -79,7 +80,7 @@ function renderLayout() {
       <!-- RIGHT INVENTORY PANEL -->
       <div class="capital-inventory-panel">
         <div class="inventory-panel-header">
-          📦 Required Inventory
+          ${icon("package")} Required Inventory
         </div>
         <div id="inventorySummaryList" class="inventory-summary-list"></div>
       </div>

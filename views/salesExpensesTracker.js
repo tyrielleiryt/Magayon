@@ -1,6 +1,7 @@
 import { bindDataBoxScroll, getCached, showLoader, hideLoader } from "../admin.js";
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 /* Sales and Expenses Tracker — a month-at-a-glance rollup mirroring the
    business's manual weekly bookkeeping: Mon-Sat business weeks, daily
@@ -55,7 +56,7 @@ function renderActionBar() {
         <input type="text" id="setLocation" placeholder="e.g. LOC-1767637180808" />
       </div>
       <button class="category-action-btn" id="setLoadBtn">Load</button>
-      <button class="category-action-btn" id="setOpexBtn">⚙️ Overhead (OPEX)</button>
+      <button class="category-action-btn" id="setOpexBtn">${icon("settings")} Overhead (OPEX)</button>
     </div>
   `;
   document.getElementById("setLoadBtn").onclick = loadMonth;
@@ -65,9 +66,9 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
-      <h3>📈 Sales and Expenses Tracker</h3>
+      <h3>${icon("trending-up")} Sales and Expenses Tracker</h3>
       <div id="setContent" class="data-scroll" style="padding:12px">
-        <div class="set-tip">📅 Choose a month to open the Sales and Expenses Tracker</div>
+        <div class="set-tip">${icon("calendar", { size: 22 })} Choose a month to open the Sales and Expenses Tracker</div>
       </div>
     </div>
   `;
@@ -109,7 +110,7 @@ async function openOpexModal() {
   const box = document.getElementById("modalBox");
 
   box.innerHTML = `
-    <h3 class="set-section-title">⚙️ Operating Expenses — ${locationMap[location] || location}</h3>
+    <h3 class="set-section-title">${icon("settings")} Operating Expenses — ${locationMap[location] || location}</h3>
     <p class="set-section-hint">
       Fixed monthly overhead for this location (rent, electricity, etc.) — set it once
       and it stays until you change it. Divided by 4 to get the Overhead Subsidy
@@ -123,7 +124,7 @@ async function openOpexModal() {
             <tr>
               <td>${i.item_name}</td>
               <td>₱${Number(i.amount_month).toFixed(2)}</td>
-              <td><button class="btn-del-opex" data-id="${i.opex_id}">✕</button></td>
+              <td><button class="btn-del-opex" data-id="${i.opex_id}">${icon("x", { size: 13 })}</button></td>
             </tr>
           `).join("")
           : `<tr><td colspan="3" class="set-empty-row">No OPEX items yet</td></tr>`
@@ -352,7 +353,7 @@ function buildWeekBodyHtml(ctx) {
       <tr data-staff="${r.staff_id}">
         <td>${r.first_name} ${r.last_name}</td>
         <td>${fmtMoney(r.rate)}</td>
-        ${DAY_KEYS.map(k => `<td style="text-align:center">${r[k] ? "✅" : "—"}</td>`).join("")}
+        ${DAY_KEYS.map(k => `<td style="text-align:center">${r[k] ? icon("check-circle", { size: 15, style: "color:#34c759" }) : "—"}</td>`).join("")}
         <td class="pr-total"><b>${fmtMoney(r.weekly_total)}</b></td>
       </tr>
     `).join("")
@@ -364,7 +365,7 @@ function buildWeekBodyHtml(ctx) {
         <td>${dd.first_name} ${dd.last_name}</td>
         <td>${fmtMoney(dd.amount)}</td>
         <td>${dd.notes || ""}</td>
-        <td><button class="btn-del-deduction" data-id="${dd.deduction_id}">✕</button></td>
+        <td><button class="btn-del-deduction" data-id="${dd.deduction_id}">${icon("x", { size: 13 })}</button></td>
       </tr>
     `).join("")
     : `<tr><td colspan="4" class="set-empty-row">No deductions this week</td></tr>`;
@@ -394,19 +395,19 @@ function buildWeekBodyHtml(ctx) {
 
   return `
     <div class="set-section">
-      <h4 class="set-section-title">💰 Daily Sales</h4>
+      <h4 class="set-section-title">${icon("dollar-sign")} Daily Sales</h4>
       <p class="set-section-hint">Cash and GCash sales pulled automatically from POS orders each day.</p>
       ${tableHtml(salesRows)}
     </div>
 
     <div class="set-section">
-      <h4 class="set-section-title">💵 Cash &amp; GCash On Hand</h4>
+      <h4 class="set-section-title">${icon("banknote")} Cash &amp; GCash On Hand</h4>
       <p class="set-section-hint">What's left in the drawer after any petty cash top-up that day.</p>
       ${tableHtml(onHandRows)}
     </div>
 
     <div class="set-section">
-      <h4 class="set-section-title">👥 Payroll</h4>
+      <h4 class="set-section-title">${icon("users")} Payroll</h4>
       <p class="set-section-hint">
         Rate is set per employee in the Staff Tab. Days worked come from clocking in/out
         on the POS — this section is read-only.
@@ -420,7 +421,7 @@ function buildWeekBodyHtml(ctx) {
     </div>
 
     <div class="set-section">
-      <h4 class="set-section-title">➖ Payroll Deductions</h4>
+      <h4 class="set-section-title">${icon("minus")} Payroll Deductions</h4>
       <p class="set-section-hint">Cash advances or other amounts subtracted from an employee's pay this week.</p>
       <table class="set-table">
         <thead><tr><th>Employee</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
@@ -444,7 +445,7 @@ function buildWeekBodyHtml(ctx) {
     </div>
 
     <div class="set-section">
-      <h4 class="set-section-title">🧾 Listed Expenses</h4>
+      <h4 class="set-section-title">${icon("receipt")} Listed Expenses</h4>
       <p class="set-section-hint">Itemized purchases (supplies, ingredients, etc.) logged against a specific day.</p>
       <table class="set-table">
         <thead><tr><th>Date</th><th>Item</th><th>Description</th><th>Cost</th></tr></thead>
@@ -541,7 +542,7 @@ function renderMonth(data, month, location) {
     <p class="set-month-label">${month} — ${locationMap[location] || location}</p>
     ${weekBlocks.join("")}
     <div class="set-monthly-summary">
-      <h3>📊 Monthly Summary</h3>
+      <h3>${icon("bar-chart-3")} Monthly Summary</h3>
       <div class="set-monthly-grid">
         <div><div class="set-label">Payroll Total</div><div class="set-value">${fmtMoney(monthlyPayroll)}</div></div>
         <div><div class="set-label">Listed Expenses</div><div class="set-value">${fmtMoney(monthlyListed)}</div></div>

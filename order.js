@@ -4,8 +4,11 @@
 ========================================================= */
 import { API_URL } from "./firebase-config.js";
 import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
+import { icon, renderIcons } from "./icons.js";
 
 window.API_URL = API_URL; // kept for any legacy code expecting a global
+
+renderIcons();
 
 const LOW_STOCK_THRESHOLD = 5; // fallback only, for items with no reorder_level set
 let SYNC_IN_PROGRESS = false;
@@ -115,7 +118,7 @@ function showSalesOnlyBanner() {
   const banner = document.createElement("div");
   banner.id = "salesOnlyBanner";
   banner.innerHTML = `
-    🔒 Inventory Closed<br>
+    ${icon("lock")} Inventory Closed<br>
     Automatically closed at end of day.<br>
     Please wait for admin to start a new day.
   `;
@@ -160,7 +163,7 @@ function showInventoryToast(text) {
   const el = document.getElementById("inventoryToast");
   if (!el) return;
 
-  el.textContent = text;
+  el.innerHTML = text;
   el.classList.add("show");
 
   clearTimeout(inventoryToastTimer);
@@ -519,7 +522,7 @@ async function refreshInventoryOnly({ silent = false } = {}) {
 
   try {
     if (!silent) {
-      showInventoryToast("🔄 Syncing inventory…");
+      showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing inventory…`);
     }
 
    const data = await fetch(
@@ -546,13 +549,13 @@ applyInventoryGate(rows);
 renderProducts(); // 🔥 update grid, LOW badges, disabled states
     window.__lastInventorySync = new Date();
     if (!silent) {
-      showInventoryToast("✅ Inventory updated");
+      showInventoryToast(`${icon("check-circle", { size: 13 })} Inventory updated`);
     }
 
   } catch (err) {
     console.warn("Inventory refresh failed", err);
     if (!silent) {
-      showInventoryToast("⚠️ Inventory sync failed");
+      showInventoryToast(`${icon("alert-triangle", { size: 13 })} Inventory sync failed`);
     }
   }
 }
@@ -684,7 +687,7 @@ function renderProducts(search = "") {
 card.innerHTML = `
   <div class="recipe-indicator"  ${disabled ? "style='opacity:.4;pointer-events:none'" : ""}
        onclick="showRecipeInfo('${p.product_id}', event)">
-    🧪
+    ${icon("flask-conical", { size: 14 })}
   </div>
 
   <div class="product-img">
@@ -1238,7 +1241,7 @@ function lockPosUI() {
   overlay.id = "posLockedOverlay";
   overlay.innerHTML = `
     <div class="pos-locked-box">
-      🔒 POS is locked<br>
+      ${icon("lock")} POS is locked<br>
       <small>Inventory day has been closed</small>
     </div>
   `;
@@ -1325,13 +1328,13 @@ function renderClockInTable(data) {
 
     if (!s.enrolled) {
       statusCell = "Not enrolled";
-      actionCell = `<button onclick="enrollStaff('${s.staff_id}', '${(s.name || "").replace(/'/g, "\\'")}')">🔐 Enroll</button>`;
+      actionCell = `<button onclick="enrollStaff('${s.staff_id}', '${(s.name || "").replace(/'/g, "\\'")}')">${icon("fingerprint", { size: 14 })} Enroll</button>`;
     } else if (s.status === "IN") {
       statusCell = `In since ${s.clock_in_time || "—"}`;
-      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockOut')">🚪 Clock Out</button>`;
+      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockOut')">${icon("log-out", { size: 14 })} Clock Out</button>`;
     } else {
       statusCell = s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today";
-      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockIn')">✅ Clock In</button>`;
+      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockIn')">${icon("log-in", { size: 14 })} Clock In</button>`;
     }
 
     tbody.insertAdjacentHTML("beforeend", `
@@ -1528,8 +1531,8 @@ if (method === "GCASH") {
   // SUMMARY
 totalEl.innerHTML = `
   <div><strong>Gross Sales:</strong> ₱${grandTotal.toFixed(2)}</div>
-  <div>💵 Cash: ₱${cashTotal.toFixed(2)}</div>
-  <div>📱 GCash: ₱${gcashTotal.toFixed(2)}</div>
+  <div>${icon("banknote", { size: 14 })} Cash: ₱${cashTotal.toFixed(2)}</div>
+  <div>${icon("smartphone", { size: 14 })} GCash: ₱${gcashTotal.toFixed(2)}</div>
 `;
 }
 

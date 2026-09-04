@@ -6,6 +6,7 @@ import { authFetch, getCurrentProfile, ROLES } from "../auth-guard.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { icon } from "../icons.js";
 
 /* =========================================================
    POSITIONS
@@ -64,9 +65,9 @@ export default async function loadStaffView() {
 ========================================================= */
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <button class="category-action-btn" id="addStaffBtn">➕ Add Staff</button>
-    <button class="category-action-btn" id="editStaffBtn" disabled>✏️ Edit</button>
-    <button class="category-action-btn" id="deleteStaffBtn" disabled>🗑️ Deactivate</button>
+    <button class="category-action-btn" id="addStaffBtn">${icon("plus")} Add Staff</button>
+    <button class="category-action-btn" id="editStaffBtn" disabled>${icon("pencil")} Edit</button>
+    <button class="category-action-btn" id="deleteStaffBtn" disabled>${icon("trash-2")} Deactivate</button>
   `;
 
   addStaffBtn.onclick = () => openStaffModal();

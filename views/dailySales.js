@@ -3,6 +3,7 @@ import { openModal, closeModal } from "./modal.js";
 
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 /* ================= STATE ================= */
 let locationMap = {};  // location_id → location_name
@@ -43,7 +44,7 @@ function renderActionBar() {
       Load Report
     </button>
     <button id="dailySalesReportBtn" class="primary">
-  📋 DAILY SALES REPORT
+  ${icon("receipt")} DAILY SALES REPORT
 </button>
   `;
   document.getElementById("loadSalesBtn").onclick = loadSales;
@@ -80,7 +81,7 @@ function loadDailySalesReportFull() {
 
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
-      <h3>📋 Daily Sales Report — ${date}</h3>
+      <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
       <div style="text-align:center;color:#888;padding:24px">Loading…</div>
     </div>
   `;
@@ -114,7 +115,7 @@ function renderDailySalesReportFull(data, date, location) {
   if (!data || !data.success) {
     document.getElementById("contentBox").innerHTML = `
       <div class="tracker-card">
-        <h3>📋 Daily Sales Report — ${date}</h3>
+        <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
         <div style="text-align:center;color:#888;padding:24px">
           ${data?.error || "No inventory day found for that date"}
         </div>
@@ -127,7 +128,7 @@ function renderDailySalesReportFull(data, date, location) {
 
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
-      <h3>📋 Daily Sales Report — ${date}</h3>
+      <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
 
       <div class="table-scroll" style="max-height:none;flex:1">
         <table class="category-table">
@@ -183,7 +184,7 @@ function renderDailySalesReportFull(data, date, location) {
 
         <p style="color:#888;font-size:12px;margin-top:8px">
           Petty Cash Fund and Expenses are managed on the
-          💵 Petty Cash Fund / Expenses tab.
+          ${icon("banknote", { size: 13 })} Petty Cash Fund / Expenses tab.
         </p>
       </div>
     </div>

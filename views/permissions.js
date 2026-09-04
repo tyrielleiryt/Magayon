@@ -2,6 +2,7 @@ import { bindDataBoxScroll, showLoader, hideLoader } from "../admin.js";
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "../firebase-config.js";
 import { ROLES, DEFAULT_ROLE_PAGES } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 /* IT-admin-only screen: choose which admin pages each non-full-access
    role (manager, cashier) can see. server/cook get no login at all, so
@@ -9,18 +10,18 @@ import { ROLES, DEFAULT_ROLE_PAGES } from "../auth-guard.js";
    config/rolePermissions — admin.js reads this doc on every login to
    decide which nav buttons to show that role. */
 const PAGES = [
-  { key: "dashboard", label: "📊 Dashboard" },
-  { key: "capitalCalculator", label: "💰 Capital Calculator" },
-  { key: "categories", label: "Categories" },
-  { key: "products", label: "Products" },
-  { key: "locations", label: "Locations" },
-  { key: "staff", label: "Staff" },
-  { key: "attendance", label: "🕐 Attendance" },
-  { key: "inventory", label: "Inventory" },
-  { key: "dailyInventory", label: "Daily Inventory System" },
-  { key: "dailySales", label: "Daily Sales" },
-  { key: "pettyCash", label: "💵 Petty Cash Fund / Expenses" },
-  { key: "salesExpensesTracker", label: "📈 Sales and Expenses Tracker" }
+  { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
+  { key: "capitalCalculator", label: `${icon("calculator")} Capital Calculator` },
+  { key: "categories", label: `${icon("tag")} Categories` },
+  { key: "products", label: `${icon("package")} Products` },
+  { key: "locations", label: `${icon("store")} Locations` },
+  { key: "staff", label: `${icon("users")} Staff` },
+  { key: "attendance", label: `${icon("clock")} Attendance` },
+  { key: "inventory", label: `${icon("archive")} Inventory` },
+  { key: "dailyInventory", label: `${icon("clipboard-list")} Daily Inventory System` },
+  { key: "dailySales", label: `${icon("receipt")} Daily Sales` },
+  { key: "pettyCash", label: `${icon("banknote")} Petty Cash Fund / Expenses` },
+  { key: "salesExpensesTracker", label: `${icon("trending-up")} Sales and Expenses Tracker` }
 ];
 
 // Cashier isn't editable here: cashier accounts are hard-restricted to
@@ -61,7 +62,7 @@ export default async function loadPermissionsView() {
 
 function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
-    <button id="savePermissionsBtn" class="category-action-btn">💾 Save Permissions</button>
+    <button id="savePermissionsBtn" class="category-action-btn">${icon("save")} Save Permissions</button>
   `;
   document.getElementById("savePermissionsBtn").onclick = savePermissions;
 }
@@ -69,7 +70,7 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
-      <h2>🔐 Role Permissions</h2>
+      <h2>${icon("shield")} Role Permissions</h2>
       <p style="color:#666;margin-bottom:12px">
         Choose which admin pages Manager can access. IT Admin, Owner, and
         Admin always have full access; Cashier is always POS-only.

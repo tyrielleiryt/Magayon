@@ -1,5 +1,6 @@
 import { bindDataBoxScroll, getCached } from "../admin.js";
 import { API_URL } from "../firebase-config.js";
+import { icon } from "../icons.js";
 
 /* Attendance — a cross-location, read-only view of who's clocked in/out
    right now (or on a past day), plus a per-employee DTR (Daily Time
@@ -56,11 +57,11 @@ function renderLayout() {
 
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
-      <h3>🕐 Attendance</h3>
+      <h3>${icon("clock")} Attendance</h3>
       <div class="data-scroll" style="padding:12px">
 
         <div class="set-section">
-          <h4 class="set-section-title">📍 Live Status</h4>
+          <h4 class="set-section-title">${icon("map-pin")} Live Status</h4>
           <p class="set-section-hint">Who's clocked in/out, across every location, for the date picked above.</p>
           <div id="attContent">
             <div style="text-align:center;color:#888;padding:24px">Loading…</div>
@@ -68,7 +69,7 @@ function renderLayout() {
         </div>
 
         <div class="set-section">
-          <h4 class="set-section-title">📋 Daily Time Record (DTR)</h4>
+          <h4 class="set-section-title">${icon("list-checks")} Daily Time Record (DTR)</h4>
           <p class="set-section-hint">Pull one employee's clock in/out history for any date range.</p>
           <div class="set-form-row">
             <div>

@@ -1,7 +1,8 @@
 import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
- 
+
 import { API_URL } from "../firebase-config.js";
+import { icon } from "../icons.js";
 
 /* =========================================================
    LOADER HELPERS (STEP 4)
@@ -41,9 +42,9 @@ function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
     <input id="categorySearch" placeholder="Search categories..." />
 
-    <button class="category-action-btn" id="addBtn">➕ Add Category</button>
-    <button class="category-action-btn" id="editBtn" disabled>✏️ Edit</button>
-    <button class="category-action-btn" id="deleteBtn" disabled>🗑️ Delete</button>
+    <button class="category-action-btn" id="addBtn">${icon("plus")} Add Category</button>
+    <button class="category-action-btn" id="editBtn" disabled>${icon("pencil")} Edit</button>
+    <button class="category-action-btn" id="deleteBtn" disabled>${icon("trash-2")} Delete</button>
   `;
 
   document.getElementById("addBtn").onclick = () => openCategoryModal();

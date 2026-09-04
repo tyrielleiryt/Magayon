@@ -25,23 +25,23 @@
     <div class="pos-title">POS</div>
     <span id="netStatus" class="net online">ONLINE</span>
     <div class="pos-top-actions">
-  <button id="syncBtn" class="top-btn">🔄 Sync</button>
+  <button id="syncBtn" class="top-btn"><i data-icon="refresh-cw"></i> Sync</button>
 
   <button
     id="posChatToggle"
     class="top-btn chat-toggle"
     aria-label="Open support chat"
   >
-    💬 Chat
+    <i data-icon="message-circle"></i> Chat
     <span id="chatUnreadBadge" class="chat-badge hidden">1</span>
   </button>
 
   <button id="clockInOutBtn" class="top-btn" aria-label="Staff clock in/out">
-    🕐 Clock In/Out
+    <i data-icon="clock"></i> Clock In/Out
   </button>
 
   <button id="logoutBtn" class="top-btn" aria-label="Log out">
-    🚪 Logout
+    <i data-icon="log-out"></i> Logout
   </button>
 </div>
     <div id="syncStatus" style="
@@ -52,7 +52,7 @@
   color:#fff;
   border-radius:12px;
 ">
-  🔄 Syncing: <span id="syncCount">0</span>
+  <i data-icon="refresh-cw" data-icon-size="13" style="vertical-align:-2px"></i> Syncing: <span id="syncCount">0</span>
 </div>
 <button
   id="syncInventoryBtn" aria-label="Sync inventory"
@@ -66,13 +66,13 @@
     border:none;
     cursor:pointer;
   ">
-  🔄 Sync Inventory
+  <i data-icon="refresh-cw" data-icon-size="13" style="vertical-align:-2px"></i> Sync Inventory
 </button>
     <div class="top-actions">
       <!--<button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button> -->
       <button id="stocksBtn">Stocks List</button>
       <button id="salesBtn">Sales Report</button>
-      <button id="productTrackerBtn">📊 Product Sale Tracker</button>
+      <button id="productTrackerBtn"><i data-icon="bar-chart-3"></i> Product Sale Tracker</button>
       <button class="active">Main Page</button>
  
     </div>
@@ -290,7 +290,7 @@
   <!-- ================= CLOCK IN/OUT MODAL ================= -->
 <div id="clockInModal" class="modal hidden">
   <div class="modal-content">
-    <h2>🕐 Staff Clock In/Out</h2>
+    <h2><i data-icon="clock"></i> Staff Clock In/Out</h2>
     <p class="muted" style="margin:-8px 0 14px;font-size:13px">
       Tap a name, then confirm with fingerprint/Face ID on this tablet.
     </p>
@@ -327,7 +327,7 @@
 <div id="productTrackerModal" class="modal hidden">
   <div class="modal-content sales-modal">
 
-    <h2>📊 Product Sale Tracker (Today)</h2>
+    <h2><i data-icon="bar-chart-3"></i> Product Sale Tracker (Today)</h2>
 
     <div class="sales-table-wrapper">
       <table>
@@ -343,7 +343,7 @@
       </table>
     </div>
 
-    <h2 style="margin-top:15px;">📦 Inventory Reconciliation</h2>
+    <h2 style="margin-top:15px;"><i data-icon="package"></i> Inventory Reconciliation</h2>
 
     <div class="sales-table-wrapper">
       <table>

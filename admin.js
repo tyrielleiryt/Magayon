@@ -2,8 +2,11 @@
 
 import { ROLES, requireRole, logout, authFetch, getAllowedPages } from "./auth-guard.js";
 import { API_URL } from "./firebase-config.js";
+import { renderIcons } from "./icons.js";
 
 window.API_URL = API_URL; // kept for admin-close-day.js
+
+renderIcons();
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every

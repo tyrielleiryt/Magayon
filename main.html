@@ -10,36 +10,36 @@
 
 <header class="top-bar">
   <div class="brand">
-    <span class="icon">🍴</span>
+    <span class="icon" data-icon="utensils"></span>
     <span class="title">POS</span>
   </div>
-  
+
   <div id="datetime"></div>
 
   <button id="adminChatToggle" class="chat-toggle">
-  💬 Chat
+  <i data-icon="message-circle"></i> Chat
   <span id="adminChatUnreadBadge" class="chat-badge hidden">1</span>
 </button>
 
-  <button id="logoutBtn" class="logout-btn">LOGOUT</button>
+  <button id="logoutBtn" class="logout-btn"><i data-icon="log-out"></i> LOGOUT</button>
 </header>
 
 <div class="admin-layout">
 
   <aside class="sidebar">
-    <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
-    <button class="nav-btn" data-view="capitalCalculator">💰 Capital Calculator</button>
-    <button class="nav-btn" data-view="categories">Categories</button>
-    <button class="nav-btn" data-view="products">Products</button>
-    <button class="nav-btn" data-view="locations">Locations</button>
-    <button class="nav-btn" data-view="staff">Staff</button>
-    <button class="nav-btn" data-view="attendance">🕐 Attendance</button>
-    <button class="nav-btn" data-view="inventory">Inventory</button>
-    <button class="nav-btn" data-view="dailyInventory">Daily Inventory System</button>
-    <button class="nav-btn" data-view="dailySales">Daily Sales</button>
-    <button class="nav-btn" data-view="pettyCash">💵 Petty Cash Fund / Expenses</button>
-    <button class="nav-btn" data-view="salesExpensesTracker">📈 Sales and Expenses Tracker</button>
-    <button class="nav-btn" data-view="permissions">🔐 Permissions</button>
+    <button class="nav-btn active" data-view="dashboard"><i data-icon="layout-dashboard"></i> Dashboard</button>
+    <button class="nav-btn" data-view="capitalCalculator"><i data-icon="calculator"></i> Capital Calculator</button>
+    <button class="nav-btn" data-view="categories"><i data-icon="tag"></i> Categories</button>
+    <button class="nav-btn" data-view="products"><i data-icon="package"></i> Products</button>
+    <button class="nav-btn" data-view="locations"><i data-icon="store"></i> Locations</button>
+    <button class="nav-btn" data-view="staff"><i data-icon="users"></i> Staff</button>
+    <button class="nav-btn" data-view="attendance"><i data-icon="clock"></i> Attendance</button>
+    <button class="nav-btn" data-view="inventory"><i data-icon="archive"></i> Inventory</button>
+    <button class="nav-btn" data-view="dailyInventory"><i data-icon="clipboard-list"></i> Daily Inventory System</button>
+    <button class="nav-btn" data-view="dailySales"><i data-icon="receipt"></i> Daily Sales</button>
+    <button class="nav-btn" data-view="pettyCash"><i data-icon="banknote"></i> Petty Cash Fund / Expenses</button>
+    <button class="nav-btn" data-view="salesExpensesTracker"><i data-icon="trending-up"></i> Sales and Expenses Tracker</button>
+    <button class="nav-btn" data-view="permissions"><i data-icon="shield"></i> Permissions</button>
   </aside>
 
 <main class="content">
@@ -68,7 +68,7 @@
 <!-- CLOSE DAY MODAL -->
 <div id="closeDayModal" class="modal hidden">
   <div class="modal-content">
-    <h2>🔒 Close Inventory Day</h2>
+    <h2><i data-icon="lock"></i> Close Inventory Day</h2>
 
     <p class="muted">
       This will permanently close today’s inventory and lock the POS.
@@ -80,7 +80,7 @@
     </div>
 
     <div class="inventory-summary">
-  <h3>📦 Remaining Inventory Summary</h3>
+  <h3><i data-icon="package"></i> Remaining Inventory Summary</h3>
 
   <div class="summary-table">
     <div class="summary-header">
@@ -138,7 +138,7 @@
     color:#fff;
     border-radius:14px 14px 0 0;
   ">
-    💬 Cashier Chat
+    <i data-icon="message-circle" data-icon-size="15" style="vertical-align:-2px;margin-right:4px"></i>Cashier Chat
   </div>
 
   <div style="padding:8px 10px;border-bottom:1px solid #eee;background:#fff">

@@ -7,6 +7,7 @@ import { openModal, closeModal } from "./modal.js";
 import { API_URL } from "../firebase-config.js";
 import { openCloseDayModal } from "../admin-close-day.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 const STAFF_ID = localStorage.getItem("staff_id");
 const CREATED_BY =
@@ -86,11 +87,11 @@ function renderActionBar() {
     <input id="searchLocationInput" placeholder="Search location" />
 
             <button id="startDayBtn" class="primary">
-  🌅 Start Inventory Day
+  ${icon("sunrise")} Start Inventory Day
 </button>
 
     <button id="closeDayBtn" class="danger">
-  🔒 Close Inventory Day
+  ${icon("lock")} Close Inventory Day
 </button>
   `;
 
@@ -171,7 +172,7 @@ async function loadCarryOverReview(location) {
 
     openModal(`
       <div class="modal-header">
-        🌅 Start Inventory Day — stock remaining from ${new Date(prevDay.date).toLocaleDateString()}
+        ${icon("sunrise")} Start Inventory Day — stock remaining from ${new Date(prevDay.date).toLocaleDateString()}
       </div>
       <p style="padding:4px 0;color:#666">
         Choose how much of yesterday's remaining stock to carry over. Set an item to 0 to leave it out.
@@ -434,7 +435,7 @@ ${String(status).toUpperCase() === "OPEN" ? `
   <div class="modal-actions">
     <button class="btn-primary"
       onclick="openAddInventoryForDay('${date}','${location}')">
-      ➕ Add Inventory
+      ${icon("plus")} Add Inventory
     </button>
     <button class="btn-back" onclick="closeModal()">Close</button>
   </div>

@@ -1,7 +1,8 @@
 import { bindDataBoxScroll, showLoader, hideLoader, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
- 
+
 import { API_URL } from "../firebase-config.js";
+import { icon } from "../icons.js";
 
 /* ================= STATE ================= */
 let locations = [];
@@ -22,10 +23,10 @@ export default async function loadLocationsView() {
   const contentBox = document.getElementById("contentBox");
 
   actionBar.innerHTML = `
-    <button class="category-action-btn" id="addBtn">➕ Add Location</button>
-    <button class="category-action-btn" id="editBtn" disabled>✏️ Edit</button>
-    <button class="category-action-btn" id="staffBtn" disabled>👥 View Staff</button>
-    <button class="category-action-btn" id="deleteBtn" disabled>🗑️ Delete</button>
+    <button class="category-action-btn" id="addBtn">${icon("plus")} Add Location</button>
+    <button class="category-action-btn" id="editBtn" disabled>${icon("pencil")} Edit</button>
+    <button class="category-action-btn" id="staffBtn" disabled>${icon("users")} View Staff</button>
+    <button class="category-action-btn" id="deleteBtn" disabled>${icon("trash-2")} Delete</button>
   `;
 
   contentBox.innerHTML = `
@@ -105,7 +106,7 @@ function renderTable() {
       <td>${l.location_name}</td>
       <td>${l.address || ""}</td>
       <td>${count} staff</td>
-      <td>${l.active ? "✔" : "✖"}</td>
+      <td>${l.active ? icon("check", { style: "color:#34c759" }) : icon("x", { style: "color:#8e8e93" })}</td>
     `;
 
     tr.onclick = () => {
@@ -129,7 +130,7 @@ function openStaffModal(loc) {
   const assigned = staffAtLocation(loc.location_id);
 
   openModal(`
-    <div class="modal-header">👥 Staff at ${loc.location_name}</div>
+    <div class="modal-header">${icon("users")} Staff at ${loc.location_name}</div>
     <p style="color:#888;font-size:13px;margin-top:-6px">
       To move someone to a different location, edit their record in the Staff Tab.
     </p>

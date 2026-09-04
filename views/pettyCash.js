@@ -1,6 +1,7 @@
 import { bindDataBoxScroll, getCached, showLoader, hideLoader } from "../admin.js";
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 /* Petty Cash Fund / Expenses — the one place the day's petty cash and
    itemized expenses are entered. Both are tied to that date+location's
@@ -41,7 +42,7 @@ function renderActionBar() {
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
-      <h3>💵 Petty Cash Fund / Expenses</h3>
+      <h3>${icon("banknote")} Petty Cash Fund / Expenses</h3>
       <div id="pcContent" style="text-align:center;color:#888;padding:24px">Loading…</div>
     </div>
   `;
@@ -109,7 +110,7 @@ function renderSummary(data, date, location) {
         <div style="display:flex;gap:8px">
           <input id="pcFund" type="number" min="0" step="0.01"
             value="${data.petty_cash_fund}" style="flex:1">
-          <button id="pcSaveFundBtn" class="category-action-btn">💾 Save</button>
+          <button id="pcSaveFundBtn" class="category-action-btn">${icon("save")} Save</button>
         </div>
       </div>
 

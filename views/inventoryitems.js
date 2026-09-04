@@ -4,6 +4,7 @@ import { openModal, closeModal } from "./modal.js";
 /* ================= API ================= */
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading data…") {
@@ -39,9 +40,9 @@ function renderActionBar() {
     <input id="inventorySearch" placeholder="Search inventory..." />
 
 
-    <button id="addItemBtn" class="category-action-btn">➕ Add Item</button>
-    <button id="editItemBtn" class="category-action-btn" disabled>✏️ Edit</button>
-    <button id="deleteItemBtn" class="category-action-btn" disabled>🗑️ Delete</button>
+    <button id="addItemBtn" class="category-action-btn">${icon("plus")} Add Item</button>
+    <button id="editItemBtn" class="category-action-btn" disabled>${icon("pencil")} Edit</button>
+    <button id="deleteItemBtn" class="category-action-btn" disabled>${icon("trash-2")} Delete</button>
   `;
 
   document.getElementById("addItemBtn").onclick = openAddItemModal;
@@ -204,7 +205,7 @@ document.getElementById("deleteItemBtn").disabled = false;
 /* ================= MODALS ================= */
 function openAddItemModal() {
   openModal(`
-    <div class="modal-header">➕ Add Inventory Item</div>
+    <div class="modal-header">${icon("plus")} Add Inventory Item</div>
 
     <label>Item Name</label>
     <input id="inv_item_name" required />
@@ -243,7 +244,7 @@ function openEditItemModal() {
     if (!selected) return;
   
   openModal(`
-    <div class="modal-header">✏️ Edit Inventory Item</div>
+    <div class="modal-header">${icon("pencil")} Edit Inventory Item</div>
 
     <label>Item Name</label>
     <input id="inv_item_name" value="${selected.item_name}" required />
@@ -282,7 +283,7 @@ function openDeleteItemModal() {
   if (!selected) return;
 
   openModal(`
-    <div class="modal-header">🗑️ Delete Inventory Item</div>
+    <div class="modal-header">${icon("trash-2")} Delete Inventory Item</div>
 
     <p style="padding:10px 0">
       Are you sure you want to delete:<br>

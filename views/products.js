@@ -3,8 +3,10 @@ import { openModal, closeModal } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
+import { icon } from "../icons.js";
 
 window.closeModal = closeModal;
+window.__productImgFallback = () => icon("utensils", { size: 32, style: "color:#cbd5e1" });
 
 /* =========================================================
    LOADER HELPERS (STEP 4)
@@ -56,9 +58,9 @@ function renderActionBar() {
   const bar = document.getElementById("actionBar");
 
   bar.innerHTML = `
-    <button id="addBtn" class="category-action-btn">➕ Add Product</button>
-    <button id="editBtn" class="category-action-btn" disabled>✏️ Edit</button>
-    <button id="deleteBtn" class="category-action-btn" disabled>🗑️ Delete</button>
+    <button id="addBtn" class="category-action-btn">${icon("plus")} Add Product</button>
+    <button id="editBtn" class="category-action-btn" disabled>${icon("pencil")} Edit</button>
+    <button id="deleteBtn" class="category-action-btn" disabled>${icon("trash-2")} Delete</button>
   `;
 
   document.getElementById("addBtn").onclick = () => {
@@ -129,9 +131,10 @@ function renderTable() {
     // No placeholder image file exists in this project, and many products
     // have no image_url set — fall back to a plain food emoji instead of
     // depending on a file that isn't there.
+    const placeholderIcon = icon("utensils", { size: 32, style: "color:#cbd5e1" });
     const imgHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">`
-      : `<span>🍽️</span>`;
+      ? `<img src="${p.image_url}" alt="" loading="lazy" onerror="this.outerHTML=window.__productImgFallback()">`
+      : placeholderIcon;
 
     card.innerHTML = `
       <div class="admin-product-img">${imgHtml}</div>
@@ -226,7 +229,7 @@ async function openProductModal(product = {}) {
       <strong>Product Recipe</strong>
       <div class="recipe-scroll" id="recipeList"></div>
       <button type="button" class="add-ingredient-btn" id="addIngredientBtn">
-        ➕ Add Ingredient
+        ${icon("plus")} Add Ingredient
       </button>
     </div>
 

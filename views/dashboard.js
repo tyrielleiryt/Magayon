@@ -1,6 +1,7 @@
 import { bindDataBoxScroll } from "../admin.js";
 
 import { API_URL } from "../firebase-config.js";
+import { icon } from "../icons.js";
 
 
 /* ================= ENTRY ================= */
@@ -57,13 +58,13 @@ function applyTrend(el, today, yesterday) {
   el.className = "trend";
 
   if (today > yesterday) {
-    el.textContent = "⬆";
+    el.innerHTML = icon("trending-up", { size: 15 });
     el.classList.add("up");
   } else if (today < yesterday) {
-    el.textContent = "⬇";
+    el.innerHTML = icon("trending-down", { size: 15 });
     el.classList.add("down");
   } else {
-    el.textContent = "➖";
+    el.innerHTML = icon("minus", { size: 15 });
     el.classList.add("flat");
   }
 }
@@ -74,13 +75,13 @@ function renderLayout() {
 
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
-      <h2>📊 Dashboard Overview</h2>
+      <h2>${icon("layout-dashboard")} Dashboard Overview</h2>
 
       <div class="dashboard-grid">
 
   <!-- Left: Top Sellers -->
   <div class="dashboard-card">
-    <h3>🏆 Top 5 Best Sellers</h3>
+    <h3>${icon("trophy")} Top 5 Best Sellers</h3>
     <div class="dashboard-table-wrap">
       <table class="category-table">
         <thead>
@@ -109,7 +110,7 @@ function renderLayout() {
 
     <!-- Daily Performance -->
     <div class="dashboard-card">
-      <h3>📈 Daily Performance</h3>
+      <h3>${icon("trending-up")} Daily Performance</h3>
       <div class="analytics-grid">
         <div class="analytics-box">
           <div class="label">Gross Sales</div>
@@ -139,7 +140,7 @@ function renderLayout() {
 
     <!-- Low Stock -->
     <div class="dashboard-card danger">
-      <h3>⚠️ Low Stock Warnings</h3>
+      <h3>${icon("alert-triangle")} Low Stock Warnings</h3>
       <div class="dashboard-table-wrap">
         <table class="category-table">
           <thead>
@@ -301,7 +302,7 @@ function renderLiveSalesFeed(orders) {
     return `
       <div class="live-sales-item">
         <div class="live-sales-item-top">
-          <span class="live-sales-cashier">👤 ${o.cashier || "-"}</span>
+          <span class="live-sales-cashier">${icon("user", { size: 13 })} ${o.cashier || "-"}</span>
           <span class="live-sales-time">${formatLiveTime(o.datetime)}</span>
         </div>
         <div class="live-sales-contents">${contents || "-"}</div>

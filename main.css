@@ -1,4 +1,14 @@
 /* ================= GLOBAL ================= */
+:root {
+  --apple-blue: #007aff;
+  --apple-blue-dark: #0066d6;
+  --apple-red: #ff3b30;
+  --apple-gray-bg: #f5f5f7;
+  --apple-border: rgba(0,0,0,0.08);
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: #6e6e73;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -6,33 +16,39 @@
 html, body {
   margin: 0;
   height: 100%;
-  font-family: Arial, sans-serif;
-  background: #f0f0f0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f5f5f7;
     overflow: hidden; /* 🚫 body must NEVER scroll */
 }
 
 /* ================= TOP BAR ================= */
 .top-bar {
-  background: #2f3457;
-  color: white;
+  background: #fff;
+  color: var(--apple-text);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--apple-border);
 }
 
 .logout-btn {
-  background: #e06780;
+  background: var(--apple-red);
   color: white;
   border: none;
   padding: 8px 18px;
   border-radius: 20px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .chat-toggle {
-  background: #3b4066;
-  color: #fff;
+  background: rgba(0,0,0,0.06);
+  color: var(--apple-text);
   border: none;
   padding: 8px 14px;
   border-radius: 20px;
@@ -45,11 +61,11 @@ html, body {
 }
 
 .chat-toggle:hover {
-  background: #4a4f78;
+  background: rgba(0,0,0,0.1);
 }
 
 .chat-badge {
-  background: #e53935;
+  background: var(--apple-red);
   color: white;
   font-size: 11px;
   font-weight: bold;
@@ -66,25 +82,43 @@ html, body {
 /* ================= SIDEBAR ================= */
 .sidebar {
   width: 220px;
-  background: #2e3354;
+  background: var(--apple-gray-bg);
   padding: 10px;
+  border-right: 1px solid var(--apple-border);
 }
 
 .sidebar button {
   width: 100%;
   padding: 12px;
-  margin-bottom: 8px;
-  background: #3b4066;
+  margin-bottom: 6px;
+  background: transparent;
   border: none;
-  color: white;
+  color: var(--apple-text);
   cursor: pointer;
   text-align: left;
-  border-radius: 4px;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar button svg {
+  opacity: 0.75;
+}
+
+.sidebar button.active svg,
+.sidebar .active svg {
+  opacity: 1;
+}
+
+.sidebar button:hover:not(.active) {
+  background: rgba(0,0,0,0.05);
 }
 
 .sidebar .active {
-  background: #f3c84b;
-  color: black;
+  background: var(--apple-blue);
+  color: white;
   font-weight: bold;
 }
 
@@ -101,10 +135,10 @@ html, body {
 
 .content-box {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  padding: 18px;
+  border: 1px solid rgba(0,0,0,0.04);
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -135,21 +169,34 @@ html, body {
 .action-bar input:focus,
 .action-bar select:focus {
   outline: none;
-  border-color: #2f3457;
+  border-color: var(--apple-blue);
 }
 
 .category-action-btn {
-  background: #2f3457;
+  background: var(--apple-blue);
   color: white;
   border: none;
   padding: 10px 18px;
-  border-radius: 6px;
-  font-weight: bold;
+  border-radius: 10px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-action-btn:hover:not(:disabled) {
+  background: var(--apple-blue-dark);
+}
+
+.category-action-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .category-action-btn:disabled {
-  background: #999;
+  background: rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.35);
   cursor: not-allowed;
 }
 
@@ -199,12 +246,12 @@ html, body {
 }
 
 .product-table tbody tr.selected {
-  background-color: #e9f0ff;
-  box-shadow: inset 4px 0 0 #2563eb;
+  background-color: rgba(0,122,255,0.08);
+  box-shadow: inset 4px 0 0 var(--apple-blue);
 }
 
 .product-table tbody tr.selected:hover {
-  background-color: #dfe9ff;
+  background-color: rgba(0,122,255,0.14);
 }
 
 .product-table tr.inactive {
@@ -266,8 +313,8 @@ html, body {
 }
 
 .admin-product-card.selected {
-  border-color: #2f3457;
-  box-shadow: 0 0 0 3px rgba(47,52,87,0.15);
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
 }
 
 .admin-product-card.inactive {
@@ -327,7 +374,7 @@ html, body {
 .admin-product-price {
   font-size: 15px;
   font-weight: 800;
-  color: #2f3457;
+  color: var(--apple-blue);
   margin-top: 2px;
 }
 
@@ -524,12 +571,12 @@ html, body {
 }
 
 .category-table tbody tr:hover {
-  background: rgba(243, 200, 75, 0.12);
+  background: rgba(0,122,255,0.06);
 }
 
 .category-table tbody tr.selected {
-  background: linear-gradient(90deg, rgba(243,200,75,.28), rgba(243,200,75,.12));
-  box-shadow: inset 4px 0 0 #f3c84b;
+  background: linear-gradient(90deg, rgba(0,122,255,.14), rgba(0,122,255,.06));
+  box-shadow: inset 4px 0 0 var(--apple-blue);
   font-weight: 600;
 }
 
@@ -620,9 +667,9 @@ html, body {
 
 .tracker-card {
   background: white;
-  border-radius: 10px;
-  padding: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1096,7 +1143,7 @@ html, body {
 
 .recipe-btn {
   border: none;
-  background: #2f3457;
+  background: var(--apple-blue);
   color: white;
   width: 26px;
   height: 26px;
