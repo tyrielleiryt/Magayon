@@ -30,13 +30,14 @@ function hideLoader() {
 let dailyInventory = [];
 let inventoryItems = [];
 let locations = [];
+let locationMap = {};
 let searchDate = "";
 let searchLocation = "";
 
 const el = id => document.getElementById(id);
 
 /* ================= ENTRY ================= */
-export default function loadDailyInventoryView() {
+export default async function loadDailyInventoryView() {
   renderActionBar();
 
   el("contentBox").innerHTML = `
@@ -59,6 +60,14 @@ export default function loadDailyInventoryView() {
   `;
 
   bindDataBoxScroll(document.querySelector(".data-box"));
+
+  try {
+    locations = await getCached("locations");
+    locations.forEach(l => { locationMap[l.location_id] = l.location_name; });
+  } catch (err) {
+    console.warn("Failed to load locations", err);
+  }
+
   loadDailyInventory();
 }
 
@@ -320,7 +329,7 @@ function renderTable() {
             View
           </button>
         </td>
-        <td>${d.location}</td>
+        <td>${locationMap[d.location] || d.location}</td>
         <td>${d.created_by || "-"}</td>
       </tr>
     `);

@@ -251,7 +251,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   document.getElementById("cashierName").textContent = CASHIER_NAME;
   document.getElementById("cashierPosition").textContent = CASHIER_POSITION;
-  document.getElementById("cashierLocation").textContent = LOCATION;
+  document.getElementById("cashierLocation").textContent = LOCATION; // fallback while the name resolves below
+
+  // LOCATION is the raw location_id (that's what every API call correctly
+  // filters by) — resolve it to a friendly name just for display, same as
+  // every admin view already does via its own locationMap lookup.
+  fetch(`${API_URL}?type=locations`)
+    .then(r => r.json())
+    .then(locs => {
+      const loc = (Array.isArray(locs) ? locs : []).find(l => l.location_id === LOCATION);
+      if (loc) document.getElementById("cashierLocation").textContent = loc.location_name;
+    })
+    .catch(err => console.warn("Failed to resolve location name", err));
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
   document.getElementById("productTrackerBtn")
