@@ -96,6 +96,7 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;   /* ✅ REQUIRED FOR SCROLL */
+  position: relative; /* anchors #globalLoader to this panel, not the whole page */
 }
 
 .content-box {
@@ -266,12 +267,15 @@ html, body {
     min-height: 0;
 }
 
-/* ================= GLOBAL LOADER ================= */
+/* ================= GLOBAL LOADER =================
+   position:absolute (not fixed) so it covers only its positioned ancestor
+   (.content — the white panel), leaving the sidebar's nav tabs clickable
+   while a feature is loading or saving. */
 .loader {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(244, 246, 251, 0.85);
-  z-index: 9999;
+  z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -494,6 +498,21 @@ html, body {
 }
 
 /* ================= SALES & EXPENSES TRACKER ================= */
+.set-tip {
+  text-align: center;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 70px 20px;
+}
+
+.set-week-placeholder {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 30px 20px;
+}
+
 .set-month-label {
   font-size: 15px;
   color: #475569;

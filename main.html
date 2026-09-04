@@ -47,6 +47,14 @@
 
 <div id="contentBox" class="content-box"></div>
 
+<!-- ================= GLOBAL LOADER =================
+     Scoped to this panel (not position:fixed on the whole page) so the
+     sidebar's nav tabs stay clickable while a feature is loading/saving. -->
+<div id="globalLoader" class="loader hidden">
+  <div class="spinner"></div>
+  <div class="loader-text">Loading data…</div>
+</div>
+
 </main>
 
 </div>
@@ -54,12 +62,6 @@
 <!-- ✅ REQUIRED FOR MODALS -->
 <div id="modalOverlay" class="hidden">
   <div id="modalBox"></div>
-</div>
-
-<!-- ================= GLOBAL LOADER ================= -->
-<div id="globalLoader" class="loader hidden">
-  <div class="spinner"></div>
-  <div class="loader-text">Loading data…</div>
 </div>
 
 <!-- CLOSE DAY MODAL -->

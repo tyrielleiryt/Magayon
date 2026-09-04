@@ -37,8 +37,6 @@ export default async function loadSalesExpensesTrackerView() {
   } catch (err) {
     console.warn("Failed to load staff", err);
   }
-
-  loadMonth();
 }
 
 function getCurrentLocation() {
@@ -69,7 +67,7 @@ function renderLayout() {
     <div class="tracker-card" style="height:100%">
       <h3>📈 Sales and Expenses Tracker</h3>
       <div id="setContent" class="data-scroll" style="padding:12px">
-        <div style="text-align:center;color:#888">Loading…</div>
+        <div class="set-tip">📅 Choose a month to open the Sales and Expenses Tracker</div>
       </div>
     </div>
   `;
@@ -283,6 +281,218 @@ function staffOptionsHtml(excludeIds = []) {
 
 /* ================= RENDER ================= */
 
+let weekContexts = {};
+
+function tableHtml(rows) {
+  return `
+    <table class="set-table">
+      <thead><tr><th></th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}</tr></thead>
+      <tbody>
+        ${rows.map(([label, vals]) => `<tr><td>${label}</td>${vals.map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function buildWeekContext(w, dayMap, payrollMap) {
+  const weekStartStr = fmtDate(w.start);
+  const dayDates = DAY_KEYS.map((k, i) => {
+    const d = new Date(w.start);
+    d.setDate(d.getDate() + i);
+    return fmtDate(d);
+  });
+
+  const dayInfos = dayDates.map(ds => dayMap[ds] || null);
+  const payrollWeek = payrollMap[weekStartStr] || { rows: [], deductions: [] };
+
+  const totalCash = dayInfos.reduce((s, d) => s + (d ? d.cash_sales : 0), 0);
+  const totalGcash = dayInfos.reduce((s, d) => s + (d ? d.gcash_sales : 0), 0);
+  const listedExpensesTotal = dayInfos.reduce((s, d) => s + (d ? d.total_expenses : 0), 0);
+  const payrollGross = payrollWeek.rows.reduce((s, r) => s + (Number(r.weekly_total) || 0), 0);
+  const deductionsTotal = payrollWeek.deductions.reduce((s, dd) => s + (Number(dd.amount) || 0), 0);
+  const payrollTotal = payrollGross - deductionsTotal;
+  const overheadSubsidy = opexTotal / 4;
+  const sumExpenses = payrollTotal + listedExpensesTotal + overheadSubsidy;
+  const grossIncome = totalCash + totalGcash;
+
+  const weekLabel =
+    `${w.start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ` +
+    `${w.end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+
+  return {
+    weekStartStr, dayDates, dayInfos, payrollWeek, weekLabel,
+    totalCash, totalGcash, listedExpensesTotal, payrollTotal,
+    overheadSubsidy, sumExpenses, grossIncome
+  };
+}
+
+// The expensive part — building 5 tables + 3 forms worth of HTML per week.
+// Deferred until a week is actually opened so a weak tablet CPU only ever
+// has to do this for the one week the user is looking at.
+function buildWeekBodyHtml(ctx) {
+  const { dayInfos, payrollWeek, dayDates, listedExpensesTotal, payrollTotal,
+          overheadSubsidy, sumExpenses, totalCash, totalGcash, grossIncome } = ctx;
+
+  const salesRows = [
+    ["Cash", dayInfos.map(d => d ? fmtMoney(d.cash_sales) : "—")],
+    ["GCash", dayInfos.map(d => d ? fmtMoney(d.gcash_sales) : "—")],
+    ["Petty Cash Remaining", dayInfos.map(d => d ? fmtMoney(d.remaining_petty_cash) : "—")],
+    ["SUM TOTAL", dayInfos.map(d => d ? fmtMoney(d.cash_sales + d.gcash_sales) : "—")]
+  ];
+
+  const onHandRows = [
+    ["Replenished Petty Cash", dayInfos.map(d => d ? fmtMoney(d.petty_cash_fund) : "—")],
+    ["Cash on Hand", dayInfos.map(d => d ? fmtMoney(d.cash_sales - d.petty_cash_fund) : "—")],
+    ["GCash on Hand", dayInfos.map(d => d ? fmtMoney(d.gcash_sales) : "—")],
+    ["SUM TOTAL", dayInfos.map(d => d ? fmtMoney((d.cash_sales - d.petty_cash_fund) + d.gcash_sales) : "—")]
+  ];
+
+  const payrolledStaffIds = payrollWeek.rows.map(r => r.staff_id);
+
+  const payrollRowsHtml = payrollWeek.rows.length
+    ? payrollWeek.rows.map(r => `
+      <tr data-staff="${r.staff_id}">
+        <td>${r.first_name} ${r.last_name}</td>
+        <td><input type="number" class="pr-rate" value="${r.rate}"></td>
+        ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}" ${r[k] ? "checked" : ""}></td>`).join("")}
+        <td class="pr-total"><b>${fmtMoney(r.weekly_total)}</b></td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="9" class="set-empty-row">No staff added to this week yet — pick someone below</td></tr>`;
+
+  const deductionsRowsHtml = payrollWeek.deductions.length
+    ? payrollWeek.deductions.map(dd => `
+      <tr>
+        <td>${dd.first_name} ${dd.last_name}</td>
+        <td>${fmtMoney(dd.amount)}</td>
+        <td>${dd.notes || ""}</td>
+        <td><button class="btn-del-deduction" data-id="${dd.deduction_id}">✕</button></td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4" class="set-empty-row">No deductions this week</td></tr>`;
+
+  const expenseRows = [];
+  dayInfos.forEach((d, idx) => {
+    if (!d) return;
+    (d.expenses || []).forEach(e => {
+      expenseRows.push({ date: dayDates[idx], daily_id: d.daily_id, ...e });
+    });
+  });
+
+  const expensesHtml = expenseRows.length
+    ? expenseRows.map(e => `
+      <tr>
+        <td>${e.date}</td>
+        <td>${e.item || ""}</td>
+        <td>${e.description || ""}</td>
+        <td>${fmtMoney(e.amount)}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4" class="set-empty-row">No expenses logged this week</td></tr>`;
+
+  const dateOptions = dayDates
+    .map((ds, i) => dayInfos[i] ? `<option value="${ds}" data-daily-id="${dayInfos[i].daily_id}">${ds}</option>` : "")
+    .join("");
+
+  return `
+    <div class="set-section">
+      <h4 class="set-section-title">💰 Daily Sales</h4>
+      <p class="set-section-hint">Cash and GCash sales pulled automatically from POS orders each day.</p>
+      ${tableHtml(salesRows)}
+    </div>
+
+    <div class="set-section">
+      <h4 class="set-section-title">💵 Cash &amp; GCash On Hand</h4>
+      <p class="set-section-hint">What's left in the drawer after any petty cash top-up that day.</p>
+      ${tableHtml(onHandRows)}
+    </div>
+
+    <div class="set-section">
+      <h4 class="set-section-title">👥 Payroll</h4>
+      <p class="set-section-hint">Set each employee's daily rate and tick the days they worked. Weekly Total = Rate × days checked.</p>
+      <table class="set-table">
+        <thead>
+          <tr><th>Employee</th><th>Rate</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}<th>Weekly Total</th></tr>
+        </thead>
+        <tbody class="pr-body">${payrollRowsHtml}</tbody>
+      </table>
+      <div class="set-form-row">
+        <div>
+          <label>Add Employee</label><br>
+          <select class="pr-add-staff" style="min-width:180px">${staffOptionsHtml(payrolledStaffIds)}</select>
+        </div>
+        <button class="category-action-btn btn-add-staff-row" style="align-self:flex-end">+ Add</button>
+        <button class="category-action-btn btn-save-payroll" style="align-self:flex-end;margin-left:auto">💾 Save Week</button>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h4 class="set-section-title">➖ Payroll Deductions</h4>
+      <p class="set-section-hint">Cash advances or other amounts subtracted from an employee's pay this week.</p>
+      <table class="set-table">
+        <thead><tr><th>Employee</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+        <tbody class="pd-body">${deductionsRowsHtml}</tbody>
+      </table>
+      <div class="set-form-row">
+        <div>
+          <label>Employee</label><br>
+          <select class="pd-staff" style="min-width:160px">${staffOptionsHtml()}</select>
+        </div>
+        <div>
+          <label>Amount</label><br>
+          <input type="number" class="pd-amount" placeholder="0.00" style="width:100px">
+        </div>
+        <div style="flex:1;min-width:160px">
+          <label>Notes</label><br>
+          <input type="text" class="pd-notes" placeholder="e.g. Cash advance" style="width:100%">
+        </div>
+        <button class="category-action-btn btn-add-deduction" style="align-self:flex-end">Add</button>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h4 class="set-section-title">🧾 Listed Expenses</h4>
+      <p class="set-section-hint">Itemized purchases (supplies, ingredients, etc.) logged against a specific day.</p>
+      <table class="set-table">
+        <thead><tr><th>Date</th><th>Item</th><th>Description</th><th>Cost</th></tr></thead>
+        <tbody>${expensesHtml}</tbody>
+        <tfoot><tr><td colspan="3">Total</td><td>${fmtMoney(listedExpensesTotal)}</td></tr></tfoot>
+      </table>
+      ${dateOptions ? `
+        <div class="set-form-row">
+          <div>
+            <label>Date</label><br>
+            <select class="exp-date">${dateOptions}</select>
+          </div>
+          <div>
+            <label>Item</label><br>
+            <input type="text" class="exp-item" placeholder="e.g. Siomai pork">
+          </div>
+          <div style="flex:1;min-width:160px">
+            <label>Description (qty/unit)</label><br>
+            <input type="text" class="exp-desc" placeholder="e.g. 13 packs" style="width:100%">
+          </div>
+          <div>
+            <label>Cost</label><br>
+            <input type="number" class="exp-cost" placeholder="0.00" style="width:90px">
+          </div>
+          <button class="category-action-btn btn-add-expense" style="align-self:flex-end">Add</button>
+        </div>
+      ` : `<p class="set-section-hint">No open inventory day this week to log an expense against.</p>`}
+    </div>
+
+    <div class="set-rollup">
+      <div class="set-rollup-item"><div class="set-label">Payroll Total</div><div class="set-value">${fmtMoney(payrollTotal)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">Listed Expenses Total</div><div class="set-value">${fmtMoney(listedExpensesTotal)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">Overhead Subsidy</div><div class="set-value">${fmtMoney(overheadSubsidy)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">SUM Expenses Total</div><div class="set-value">${fmtMoney(sumExpenses)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">Total Cash Earned</div><div class="set-value">${fmtMoney(totalCash)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">Total GCash Earned</div><div class="set-value">${fmtMoney(totalGcash)}</div></div>
+      <div class="set-rollup-item"><div class="set-label">Gross Income</div><div class="set-value">${fmtMoney(grossIncome)}</div></div>
+    </div>
+  `;
+}
+
 function renderMonth(data, month, location) {
   const content = document.getElementById("setContent");
   if (!data || !data.success) {
@@ -301,214 +511,30 @@ function renderMonth(data, month, location) {
   const payrollMap = {};
   (data.payroll_weeks || []).forEach(w => { payrollMap[w.week_start_date] = w; });
 
+  // Cheap pass: compute every week's numbers (needed for the monthly
+  // totals regardless of which weeks are expanded). The expensive HTML
+  // build for a week's body is deferred to buildWeekBodyHtml, called only
+  // when that week is actually opened.
+  weekContexts = {};
   let monthlyPayroll = 0, monthlyListed = 0, monthlyOverhead = 0, monthlyCash = 0, monthlyGcash = 0;
 
   const weekBlocks = weeks.map(w => {
-    const weekStartStr = fmtDate(w.start);
-    const dayDates = DAY_KEYS.map((k, i) => {
-      const d = new Date(w.start);
-      d.setDate(d.getDate() + i);
-      return fmtDate(d);
-    });
+    const ctx = buildWeekContext(w, dayMap, payrollMap);
+    weekContexts[ctx.weekStartStr] = ctx;
 
-    const dayInfos = dayDates.map(ds => dayMap[ds] || null);
-    const payrollWeek = payrollMap[weekStartStr] || { rows: [], deductions: [] };
+    monthlyPayroll += ctx.payrollTotal;
+    monthlyListed += ctx.listedExpensesTotal;
+    monthlyOverhead += ctx.overheadSubsidy;
+    monthlyCash += ctx.totalCash;
+    monthlyGcash += ctx.totalGcash;
 
-    const totalCash = dayInfos.reduce((s, d) => s + (d ? d.cash_sales : 0), 0);
-    const totalGcash = dayInfos.reduce((s, d) => s + (d ? d.gcash_sales : 0), 0);
-    const listedExpensesTotal = dayInfos.reduce((s, d) => s + (d ? d.total_expenses : 0), 0);
-    const payrollGross = payrollWeek.rows.reduce((s, r) => s + (Number(r.weekly_total) || 0), 0);
-    const deductionsTotal = payrollWeek.deductions.reduce((s, dd) => s + (Number(dd.amount) || 0), 0);
-    const payrollTotal = payrollGross - deductionsTotal;
-    const overheadSubsidy = opexTotal / 4;
-    const sumExpenses = payrollTotal + listedExpensesTotal + overheadSubsidy;
-    const grossIncome = totalCash + totalGcash;
-
-    monthlyPayroll += payrollTotal;
-    monthlyListed += listedExpensesTotal;
-    monthlyOverhead += overheadSubsidy;
-    monthlyCash += totalCash;
-    monthlyGcash += totalGcash;
-
-    const weekLabel =
-      `${w.start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ` +
-      `${w.end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-
-    const containsToday = dayDates.includes(todayStr);
-
-    function tableHtml(rows) {
-      return `
-        <table class="set-table">
-          <thead><tr><th></th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}</tr></thead>
-          <tbody>
-            ${rows.map(([label, vals]) => `<tr><td>${label}</td>${vals.map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}
-          </tbody>
-        </table>
-      `;
-    }
-
-    const salesRows = [
-      ["Cash", dayInfos.map(d => d ? fmtMoney(d.cash_sales) : "—")],
-      ["GCash", dayInfos.map(d => d ? fmtMoney(d.gcash_sales) : "—")],
-      ["Petty Cash Remaining", dayInfos.map(d => d ? fmtMoney(d.remaining_petty_cash) : "—")],
-      ["SUM TOTAL", dayInfos.map(d => d ? fmtMoney(d.cash_sales + d.gcash_sales) : "—")]
-    ];
-
-    const onHandRows = [
-      ["Replenished Petty Cash", dayInfos.map(d => d ? fmtMoney(d.petty_cash_fund) : "—")],
-      ["Cash on Hand", dayInfos.map(d => d ? fmtMoney(d.cash_sales - d.petty_cash_fund) : "—")],
-      ["GCash on Hand", dayInfos.map(d => d ? fmtMoney(d.gcash_sales) : "—")],
-      ["SUM TOTAL", dayInfos.map(d => d ? fmtMoney((d.cash_sales - d.petty_cash_fund) + d.gcash_sales) : "—")]
-    ];
-
-    const payrolledStaffIds = payrollWeek.rows.map(r => r.staff_id);
-
-    const payrollRowsHtml = payrollWeek.rows.length
-      ? payrollWeek.rows.map(r => `
-        <tr data-staff="${r.staff_id}">
-          <td>${r.first_name} ${r.last_name}</td>
-          <td><input type="number" class="pr-rate" value="${r.rate}"></td>
-          ${DAY_KEYS.map(k => `<td><input type="checkbox" class="pr-day" data-day="${k}" ${r[k] ? "checked" : ""}></td>`).join("")}
-          <td class="pr-total"><b>${fmtMoney(r.weekly_total)}</b></td>
-        </tr>
-      `).join("")
-      : `<tr><td colspan="9" class="set-empty-row">No staff added to this week yet — pick someone below</td></tr>`;
-
-    const deductionsRowsHtml = payrollWeek.deductions.length
-      ? payrollWeek.deductions.map(dd => `
-        <tr>
-          <td>${dd.first_name} ${dd.last_name}</td>
-          <td>${fmtMoney(dd.amount)}</td>
-          <td>${dd.notes || ""}</td>
-          <td><button class="btn-del-deduction" data-id="${dd.deduction_id}">✕</button></td>
-        </tr>
-      `).join("")
-      : `<tr><td colspan="4" class="set-empty-row">No deductions this week</td></tr>`;
-
-    const expenseRows = [];
-    dayInfos.forEach((d, idx) => {
-      if (!d) return;
-      (d.expenses || []).forEach(e => {
-        expenseRows.push({ date: dayDates[idx], daily_id: d.daily_id, ...e });
-      });
-    });
-
-    const expensesHtml = expenseRows.length
-      ? expenseRows.map(e => `
-        <tr>
-          <td>${e.date}</td>
-          <td>${e.item || ""}</td>
-          <td>${e.description || ""}</td>
-          <td>${fmtMoney(e.amount)}</td>
-        </tr>
-      `).join("")
-      : `<tr><td colspan="4" class="set-empty-row">No expenses logged this week</td></tr>`;
-
-    const dateOptions = dayDates
-      .map((ds, i) => dayInfos[i] ? `<option value="${ds}" data-daily-id="${dayInfos[i].daily_id}">${ds}</option>` : "")
-      .join("");
+    const containsToday = ctx.dayDates.includes(todayStr);
 
     return `
-      <details class="set-week" ${containsToday ? "open" : ""} data-week="${weekStartStr}">
-        <summary>${weekLabel}</summary>
-
+      <details class="set-week" ${containsToday ? "open" : ""} data-week="${ctx.weekStartStr}" data-rendered="false">
+        <summary>${ctx.weekLabel}</summary>
         <div class="set-week-body">
-
-          <div class="set-section">
-            <h4 class="set-section-title">💰 Daily Sales</h4>
-            <p class="set-section-hint">Cash and GCash sales pulled automatically from POS orders each day.</p>
-            ${tableHtml(salesRows)}
-          </div>
-
-          <div class="set-section">
-            <h4 class="set-section-title">💵 Cash &amp; GCash On Hand</h4>
-            <p class="set-section-hint">What's left in the drawer after any petty cash top-up that day.</p>
-            ${tableHtml(onHandRows)}
-          </div>
-
-          <div class="set-section">
-            <h4 class="set-section-title">👥 Payroll</h4>
-            <p class="set-section-hint">Set each employee's daily rate and tick the days they worked. Weekly Total = Rate × days checked.</p>
-            <table class="set-table">
-              <thead>
-                <tr><th>Employee</th><th>Rate</th>${DAY_KEYS.map(k => `<th>${DAY_LABELS[k]}</th>`).join("")}<th>Weekly Total</th></tr>
-              </thead>
-              <tbody class="pr-body">${payrollRowsHtml}</tbody>
-            </table>
-            <div class="set-form-row">
-              <div>
-                <label>Add Employee</label><br>
-                <select class="pr-add-staff" style="min-width:180px">${staffOptionsHtml(payrolledStaffIds)}</select>
-              </div>
-              <button class="category-action-btn btn-add-staff-row" style="align-self:flex-end">+ Add</button>
-              <button class="category-action-btn btn-save-payroll" style="align-self:flex-end;margin-left:auto">💾 Save Week</button>
-            </div>
-          </div>
-
-          <div class="set-section">
-            <h4 class="set-section-title">➖ Payroll Deductions</h4>
-            <p class="set-section-hint">Cash advances or other amounts subtracted from an employee's pay this week.</p>
-            <table class="set-table">
-              <thead><tr><th>Employee</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
-              <tbody class="pd-body">${deductionsRowsHtml}</tbody>
-            </table>
-            <div class="set-form-row">
-              <div>
-                <label>Employee</label><br>
-                <select class="pd-staff" style="min-width:160px">${staffOptionsHtml()}</select>
-              </div>
-              <div>
-                <label>Amount</label><br>
-                <input type="number" class="pd-amount" placeholder="0.00" style="width:100px">
-              </div>
-              <div style="flex:1;min-width:160px">
-                <label>Notes</label><br>
-                <input type="text" class="pd-notes" placeholder="e.g. Cash advance" style="width:100%">
-              </div>
-              <button class="category-action-btn btn-add-deduction" style="align-self:flex-end">Add</button>
-            </div>
-          </div>
-
-          <div class="set-section">
-            <h4 class="set-section-title">🧾 Listed Expenses</h4>
-            <p class="set-section-hint">Itemized purchases (supplies, ingredients, etc.) logged against a specific day.</p>
-            <table class="set-table">
-              <thead><tr><th>Date</th><th>Item</th><th>Description</th><th>Cost</th></tr></thead>
-              <tbody>${expensesHtml}</tbody>
-              <tfoot><tr><td colspan="3">Total</td><td>${fmtMoney(listedExpensesTotal)}</td></tr></tfoot>
-            </table>
-            ${dateOptions ? `
-              <div class="set-form-row">
-                <div>
-                  <label>Date</label><br>
-                  <select class="exp-date">${dateOptions}</select>
-                </div>
-                <div>
-                  <label>Item</label><br>
-                  <input type="text" class="exp-item" placeholder="e.g. Siomai pork">
-                </div>
-                <div style="flex:1;min-width:160px">
-                  <label>Description (qty/unit)</label><br>
-                  <input type="text" class="exp-desc" placeholder="e.g. 13 packs" style="width:100%">
-                </div>
-                <div>
-                  <label>Cost</label><br>
-                  <input type="number" class="exp-cost" placeholder="0.00" style="width:90px">
-                </div>
-                <button class="category-action-btn btn-add-expense" style="align-self:flex-end">Add</button>
-              </div>
-            ` : `<p class="set-section-hint">No open inventory day this week to log an expense against.</p>`}
-          </div>
-
-          <div class="set-rollup">
-            <div class="set-rollup-item"><div class="set-label">Payroll Total</div><div class="set-value">${fmtMoney(payrollTotal)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">Listed Expenses Total</div><div class="set-value">${fmtMoney(listedExpensesTotal)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">Overhead Subsidy</div><div class="set-value">${fmtMoney(overheadSubsidy)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">SUM Expenses Total</div><div class="set-value">${fmtMoney(sumExpenses)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">Total Cash Earned</div><div class="set-value">${fmtMoney(totalCash)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">Total GCash Earned</div><div class="set-value">${fmtMoney(totalGcash)}</div></div>
-            <div class="set-rollup-item"><div class="set-label">Gross Income</div><div class="set-value">${fmtMoney(grossIncome)}</div></div>
-          </div>
+          <p class="set-week-placeholder">Loading…</p>
         </div>
       </details>
     `;
@@ -536,14 +562,31 @@ function renderMonth(data, month, location) {
   `;
 
   bindDataBoxScroll(document.querySelector(".tracker-card"));
-  wireWeekEvents(location);
+
+  // Render (and wire) each week's body the first time it's opened, not
+  // upfront — a weak tablet CPU/GPU only ever has to lay out one week's
+  // worth of tables and forms at a time.
+  document.querySelectorAll(".set-week").forEach(weekEl => {
+    weekEl.addEventListener("toggle", () => {
+      if (!weekEl.open || weekEl.dataset.rendered === "true") return;
+      renderWeekBody(weekEl, location);
+    });
+    if (weekEl.open) renderWeekBody(weekEl, location);
+  });
+}
+
+function renderWeekBody(weekEl, location) {
+  const ctx = weekContexts[weekEl.dataset.week];
+  if (!ctx) return;
+  weekEl.querySelector(".set-week-body").innerHTML = buildWeekBodyHtml(ctx);
+  weekEl.dataset.rendered = "true";
+  wireWeekEvents(weekEl, location);
 }
 
 /* ================= EVENT WIRING ================= */
 
-function wireWeekEvents(location) {
-  document.querySelectorAll(".set-week").forEach(weekEl => {
-    const weekStart = weekEl.dataset.week;
+function wireWeekEvents(weekEl, location) {
+  const weekStart = weekEl.dataset.week;
 
     weekEl.querySelector(".btn-add-staff-row")?.addEventListener("click", () => {
       const select = weekEl.querySelector(".pr-add-staff");
@@ -683,5 +726,4 @@ function wireWeekEvents(location) {
         hideLoader();
       }
     });
-  });
 }
