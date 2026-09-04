@@ -57,7 +57,7 @@ function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
     <div class="tracker-card" style="height:100%">
       <h3>📈 Sales and Expenses Tracker</h3>
-      <div id="setContent" style="padding:12px;text-align:center;color:#888">Loading…</div>
+      <div id="setContent" class="data-scroll" style="padding:12px;text-align:center;color:#888">Loading…</div>
     </div>
   `;
 }
