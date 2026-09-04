@@ -1,5 +1,16 @@
 
 /* ================= RESET ================= */
+:root {
+  --apple-blue: #007aff;
+  --apple-blue-dark: #0066d6;
+  --apple-red: #ff3b30;
+  --apple-green: #34c759;
+  --apple-gray-bg: #f5f5f7;
+  --apple-border: rgba(0,0,0,0.08);
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: #6e6e73;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,8 +21,8 @@
 }
 
 body {
-  background: #f4f6fb;
-  color: #2c2c2c;
+  background: var(--apple-gray-bg);
+  color: var(--apple-text);
   height: 100vh;
   overflow: hidden;
 }
@@ -21,10 +32,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #2f3457;
-  color: #fff;
+  background: #fff;
+  color: var(--apple-text);
   padding: 10px 16px;
   height: 52px;
+  border-bottom: 1px solid var(--apple-border);
 }
 
 .pos-title {
@@ -35,14 +47,14 @@ body {
 .top-actions button {
   background: transparent;
   border: none;
-  color: #cfd3ff;
+  color: var(--apple-text-secondary);
   margin: 0 6px;
   cursor: pointer;
   font-size: 13px;
 }
 
 .top-actions button.active {
-  color: #fff;
+  color: var(--apple-blue);
   font-weight: bold;
 }
 
@@ -201,7 +213,7 @@ body {
 .product-price {
   font-size: 14px;
   font-weight: 800;
-  color: #2f3457;
+  color: var(--apple-blue);
 }
 
 /* ================= RIGHT: CART ================= */
@@ -254,10 +266,15 @@ body {
 .cart-actions button {
   flex: 1;
   padding: 8px;
-  border-radius: 6px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   font-size: 13px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.cart-actions button:active {
+  transform: scale(0.97);
 }
 
 .btn-clear {
@@ -265,12 +282,12 @@ body {
 }
 
 .btn-checkout {
-  background: #2ecc71;
+  background: var(--apple-green);
   color: #fff;
 }
 
 .btn-print {
-  background: #3498db;
+  background: var(--apple-blue);
   color: #fff;
 }
 
@@ -299,7 +316,7 @@ body {
   width: 48px;
   height: 48px;
   border: 5px solid #dcdcdc;
-  border-top: 5px solid #2f3457;
+  border-top: 5px solid var(--apple-blue);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
@@ -308,7 +325,7 @@ body {
   margin-top: 12px;
   font-size: 14px;
   font-weight: 600;
-  color: #2f3457;
+  color: var(--apple-blue);
   letter-spacing: 0.5px;
 }
 
@@ -334,7 +351,7 @@ body {
 
 .modal-content {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -508,8 +525,8 @@ body {
   padding: 4px 8px;
   border-radius: 6px;
 }
-.net.offline { background:#c62828; color:white; }
-.net.online { background:#2e7d32; color:white; }
+.net.offline { background:var(--apple-red); color:white; }
+.net.online { background:var(--apple-green); color:white; }
 
 .product-card.low-stock {
   border: 2px solid #ff9800;
@@ -564,8 +581,9 @@ body {
 }
 
 .category-btn.active {
-  background: #111;
+  background: var(--apple-blue);
   color: #fff;
+  border-color: var(--apple-blue);
 }
 
 /* Search box */
@@ -960,7 +978,7 @@ body.sales-only .checkout {
   padding: 14px 18px;
   font-size: 1.1rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #1e40af, #2563eb);
+  background: linear-gradient(135deg, var(--apple-blue-dark), var(--apple-blue));
   color: #fff;
 }
 
@@ -1092,7 +1110,7 @@ body.sales-only .checkout {
 /* Cashier (ME) */
 .chat-msg.me {
   align-self: flex-end;
-  background: #2563eb;
+  background: var(--apple-blue);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -1119,26 +1137,36 @@ body.sales-only .checkout {
 }
 
 .top-btn {
-  background: #3b4066;
-  color: #fff;
+  background: rgba(0,0,0,0.06);
+  color: var(--apple-text);
   border: none;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: background-color 0.15s ease;
 }
 
 .top-btn:hover {
-  background: #4a4f78;
+  background: rgba(0,0,0,0.1);
+}
+
+#logoutBtn.top-btn {
+  background: var(--apple-red);
+  color: #fff;
+}
+
+#logoutBtn.top-btn:hover {
+  background: #e0352b;
 }
 
 /* Chat badge */
 .chat-badge {
-  background: #e53935;
+  background: var(--apple-red);
   color: white;
   font-size: 11px;
   font-weight: bold;
@@ -1175,9 +1203,8 @@ body.sales-only .checkout {
 
   background: linear-gradient(
     135deg,
-    #1e3a8a 0%,
-    #2563eb 50%,
-    #3b82f6 100%
+    var(--apple-blue-dark) 0%,
+    var(--apple-blue) 100%
   );
 
   color: #fff;
@@ -1196,8 +1223,10 @@ body.sales-only .checkout {
 }
 
 .chat-header::before {
-  content: "💬";
-  font-size: 16px;
+  content: "";
+  width: 16px;
+  height: 16px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-7.5-4L3 21l4-1a9 9 0 0 0 5 1z"/></svg>') no-repeat center / contain;
 }
 
 .chat-header::after {
@@ -1248,8 +1277,8 @@ body.sales-only .checkout {
 }
 
 .pos-chat-input input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 2px rgba(0,122,255,0.15);
 }
 
 .pos-chat-input button {
@@ -1260,20 +1289,20 @@ body.sales-only .checkout {
 
   background: linear-gradient(
     180deg,
-    #2563eb 0%,
-    #1e40af 100%
+    var(--apple-blue) 0%,
+    var(--apple-blue-dark) 100%
   );
 
   color: #fff;
   font-weight: 600;
   cursor: pointer;
 
-  box-shadow: 0 4px 10px rgba(37,99,235,0.35);
+  box-shadow: 0 4px 10px rgba(0,122,255,0.35);
 }
 
 .pos-chat-input button:active {
   transform: translateY(1px);
-  box-shadow: 0 2px 6px rgba(37,99,235,0.4);
+  box-shadow: 0 2px 6px rgba(0,122,255,0.4);
 }
 
 /* Message bubbles */
@@ -1293,8 +1322,8 @@ body.sales-only .checkout {
 
   background: linear-gradient(
     180deg,
-    #3b82f6 0%,
-    #2563eb 100%
+    var(--apple-blue) 0%,
+    var(--apple-blue-dark) 100%
   );
 
   color: #fff;
