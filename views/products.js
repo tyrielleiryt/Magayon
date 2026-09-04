@@ -1,4 +1,4 @@
-import { bindDataBoxScroll, getCached } from "../admin.js";
+import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
@@ -130,7 +130,7 @@ function renderTable() {
     // have no image_url set — fall back to a plain food emoji instead of
     // depending on a file that isn't there.
     const imgHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">`
+      ? `<img src="${p.image_url}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🍽️'}))">`
       : `<span>🍽️</span>`;
 
     card.innerHTML = `
@@ -179,9 +179,10 @@ function renderTable() {
 }
 
 async function loadProductRecipe(productId) {
-  const allRecipes = await fetch(API_URL + "?type=allProductRecipes")
-    .then(r => r.json());
-
+  // Cached — recipes rarely change, and re-fetching the whole map on every
+  // single Add/Edit modal open (previously a raw fetch) was wasteful.
+  // invalidateCache("allProductRecipes") after a save keeps this fresh.
+  const allRecipes = await getCached("allProductRecipes");
   return allRecipes[productId] || [];
 }
 
@@ -388,6 +389,8 @@ function saveProduct() {
     return;
   }
 
+  invalidateCache("products");
+  invalidateCache("allProductRecipes");
   closeModal();
   setTimeout(loadProducts, 300);
 })
@@ -421,6 +424,7 @@ function deleteProduct() {
   })
     .then(r => r.json())
     .then(() => {
+      invalidateCache("products");
       selected = null;      // ✅ reset state
       loadProducts();       // ✅ reload AFTER delete
     })
@@ -456,6 +460,7 @@ function toggleProductStatus(product) {
         throw new Error(res.error || "Update failed");
       }
 
+      invalidateCache("products");
       // ✅ refresh table
       loadProducts();
     })

@@ -93,7 +93,7 @@ function renderLayout() {
 
 /* ================= LOAD DATA ================= */
 async function loadProducts() {
-  products = await fetch(API_URL + "?type=products").then(r => r.json());
+  products = await getCached("products");
 }
 
 async function loadInventory() {
@@ -103,7 +103,7 @@ async function loadInventory() {
 }
 
 async function loadAllRecipes() {
-  recipesMap = await fetch(API_URL + "?type=allProductRecipes").then(r => r.json());
+  recipesMap = await getCached("allProductRecipes");
 }
 
 /* ================= CAPITAL LOGIC ================= */

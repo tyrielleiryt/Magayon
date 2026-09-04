@@ -1,4 +1,4 @@
-import { bindDataBoxScroll, getCached, showLoader, hideLoader } from "../admin.js";
+import { bindDataBoxScroll, getCached, invalidateCache, showLoader, hideLoader } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
 import { API_URL, firebaseConfig, db } from "../firebase-config.js";
@@ -338,6 +338,7 @@ async function saveStaff(existing) {
       });
     }
 
+    invalidateCache("staff");
     closeModal();
     await loadStaffView();
   } catch (err) {
@@ -399,6 +400,7 @@ function deactivateStaff() {
     .then(r => r.json())
     .then(data => {
       if (!data.success) throw new Error(data.error || "Failed");
+      invalidateCache("staff");
       return loadStaffView();
     })
     .catch(err => {

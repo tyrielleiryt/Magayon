@@ -298,6 +298,28 @@ if ("serviceWorker" in navigator) {
     .catch(err => console.warn("Service worker registration failed:", err));
 }
 
+  // Paint the product grid from whatever was cached on the last visit
+  // *before* waiting on the network — canSell() already fails safe (it
+  // returns false whenever `inventory` is still empty), so every item
+  // correctly shows as non-orderable until the real fetch below catches
+  // up. This just means a returning cashier sees the grid instantly
+  // instead of a blank loader on a slow tablet connection.
+  try {
+    const cachedCategories = JSON.parse(localStorage.getItem("categories") || "null");
+    const cachedProducts = JSON.parse(localStorage.getItem("products") || "null");
+    const cachedRecipes = JSON.parse(localStorage.getItem("recipes") || "null");
+
+    if (cachedCategories && cachedProducts && cachedRecipes) {
+      categories = cachedCategories;
+      products = cachedProducts;
+      recipes = cachedRecipes;
+      renderCategories();
+      renderProducts();
+    }
+  } catch (err) {
+    console.warn("Failed to read cached POS data", err);
+  }
+
   showLoader("Loading POS data…");
 
   try {
@@ -1634,12 +1656,18 @@ function loadPOSChat() {
 // 🔁 SINGLE poll — keeps polling even while the chat box is closed, so
 // the unread badge (which loadPOSChat() only sets when the box is
 // hidden) actually has a chance to fire instead of never running.
-setInterval(() => {
-  if (!POS_CHAT_ENABLED) return;
-  if (!chatBox) return;
-
-  loadPOSChat();
-}, 3000);
+// Self-rescheduling instead of a fixed setInterval so it can poll fast
+// (3s) while the chat is actually open/being watched, but back off to
+// 20s while it's closed — a tablet sitting idle doesn't need a chat
+// round-trip roughly every 1.5s just to catch an occasional message.
+function scheduleChatPoll() {
+  const isOpen = chatBox && !chatBox.classList.contains("hidden");
+  setTimeout(() => {
+    if (POS_CHAT_ENABLED && chatBox) loadPOSChat();
+    scheduleChatPoll();
+  }, isOpen ? 3000 : 20000);
+}
+scheduleChatPoll();
 
 function initChatUI() {
     if (!chatBox) return; // 🛑 safety guard
