@@ -223,8 +223,11 @@
 </div>
 
    <div id="salesModal" class="modal hidden">
-    <div class="modal-content sales-modal">
-      <h2>Today’s Sales</h2>
+    <div class="modal-content sales-modal pos-report-modal">
+      <div class="pos-modal-header">
+        <h2><i data-icon="receipt"></i> Today's Sales</h2>
+        <button type="button" class="modal-close-x" onclick="closeSales()"><i data-icon="x"></i></button>
+      </div>
 
           <!-- SCROLLABLE AREA -->
     <div class="sales-table-wrapper">
@@ -243,33 +246,41 @@
       </table>
       </div>
 
-      <div class="total">
-        Gross Sales: ₱<span id="sumGross">0.00</span>
+      <div class="pos-modal-footer pos-modal-footer-split">
+        <div class="total">
+          Gross Sales: ₱<span id="sumGross">0.00</span>
+        </div>
+        <button class="pos-modal-close-btn" onclick="closeSales()">Close</button>
       </div>
-
-      <button onclick="closeSales()">Close</button>
     </div>
   </div>
 
   <!-- ================= STOCKS MODAL ================= -->
 <div id="stocksModal" class="modal hidden">
-  <div class="modal-content">
-    <h2>Today’s Inventory</h2>
+  <div class="modal-content pos-report-modal">
+    <div class="pos-modal-header">
+      <h2><i data-icon="clipboard-list"></i> Today's Inventory</h2>
+      <button type="button" class="modal-close-x" onclick="closeStocks()"><i data-icon="x"></i></button>
+    </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Added</th>
-          <th>Remaining</th>
-        </tr>
-      </thead>
-      <tbody id="stocksTable">
-        <!-- injected by order.js -->
-      </tbody>
-    </table>
+    <div class="sales-table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Added</th>
+            <th>Remaining</th>
+          </tr>
+        </thead>
+        <tbody id="stocksTable">
+          <!-- injected by order.js -->
+        </tbody>
+      </table>
+    </div>
 
-    <button onclick="closeStocks()">Close</button>
+    <div class="pos-modal-footer">
+      <button class="pos-modal-close-btn" onclick="closeStocks()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -311,10 +322,14 @@
 </div>
 
 <div id="productTrackerModal" class="modal hidden">
-  <div class="modal-content sales-modal">
+  <div class="modal-content sales-modal pos-report-modal">
 
-    <h2><i data-icon="bar-chart-3"></i> Product Sale Tracker (Today)</h2>
+    <div class="pos-modal-header">
+      <h2><i data-icon="bar-chart-3"></i> Product Sale Tracker (Today)</h2>
+      <button type="button" class="modal-close-x" onclick="closeProductTracker()"><i data-icon="x"></i></button>
+    </div>
 
+    <div class="pos-modal-section-title"><i data-icon="bar-chart-3" data-icon-size="13"></i> Product Sales</div>
     <div class="sales-table-wrapper">
       <table>
         <thead>
@@ -329,7 +344,7 @@
       </table>
     </div>
 
-    <h2 style="margin-top:15px;"><i data-icon="package"></i> Inventory Reconciliation</h2>
+    <div class="pos-modal-section-title"><i data-icon="package" data-icon-size="13"></i> Inventory Reconciliation</div>
 
     <div class="sales-table-wrapper">
       <table>
@@ -346,7 +361,9 @@
       </table>
     </div>
 
-    <button onclick="closeProductTracker()">Close</button>
+    <div class="pos-modal-footer">
+      <button class="pos-modal-close-btn" onclick="closeProductTracker()">Close</button>
+    </div>
 
   </div>
 </div>

@@ -916,15 +916,22 @@ body.sales-only .checkout {
 }
 
 .sales-table-wrapper td {
-  padding: 6px;
-  border-bottom: 1px solid #eee;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--apple-border);
+}
+
+.sales-table-wrapper tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sales-table-wrapper tbody tr:nth-child(even) {
+  background: rgba(0,0,0,0.015);
 }
 
 /* Gross total */
 .sales-modal .total {
-  font-weight: bold;
+  font-weight: 700;
   font-size: 16px;
-  margin-top: 8px;
 }
 
 /* Tablet optimization */
@@ -937,6 +944,128 @@ body.sales-only .checkout {
   .sales-table-wrapper {
     font-size: 12px;
   }
+}
+
+/* ================= POS REPORT MODALS =================
+   Stocks List, Sales Report, Product Sale Tracker — a dedicated class
+   rather than styling the shared .modal-content directly, so this
+   can't affect the checkout (#paymentModal), which manages its own
+   padding/layout independently. */
+.pos-report-modal {
+  padding: 18px 20px;
+  width: 480px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
+  animation: modalPop 0.18s ease-out;
+}
+
+.pos-report-modal.sales-modal {
+  width: 700px;
+}
+
+.pos-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pos-modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  margin: 0;
+}
+
+.pos-report-modal .modal-close-x {
+  background: rgba(0,0,0,0.06);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--apple-text);
+  flex-shrink: 0;
+}
+
+.pos-report-modal .modal-close-x:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.pos-modal-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--apple-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 16px 0 8px;
+}
+
+.pos-modal-section-title:first-of-type {
+  margin-top: 0;
+}
+
+.pos-report-modal .sales-table-wrapper {
+  border-radius: 10px;
+  border-color: var(--apple-border);
+}
+
+.pos-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.pos-modal-footer-split {
+  justify-content: space-between;
+}
+
+.pos-modal-close-btn {
+  background: rgba(0,0,0,0.06);
+  color: var(--apple-text);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pos-modal-close-btn:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.sales-table-wrapper tbody tr.warning-row {
+  background: rgba(255,149,0,0.1);
+}
+
+.sales-table-wrapper tbody tr.warning-row td {
+  color: #b45309;
+}
+
+.sales-table-wrapper tbody tr.danger-row {
+  background: rgba(255,59,48,0.08);
+}
+
+.sales-table-wrapper tbody tr.danger-row td {
+  color: var(--apple-red);
+  font-weight: 600;
+}
+
+.pos-modal-empty {
+  text-align: center;
+  color: var(--apple-text-secondary);
+  padding: 24px 12px !important;
 }
 
 #netStatus {

@@ -477,18 +477,19 @@ if (inventoryResponse.status !== "OPEN") {
 }
 
 async function loadProductSales(date, location) {
+  const tbody = document.getElementById("productSalesBody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4" class="pos-modal-empty">Loading…</td></tr>`;
+
   const res = await fetch(
     `${API_URL}?type=productSalesTracker&date=${date}&location=${location}`
   );
   const data = await res.json();
 
-  const tbody = document.getElementById("productSalesBody");
-  if (!tbody) return;
-
   tbody.innerHTML = "";
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No sales</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="pos-modal-empty">${icon("bar-chart-3", { size: 20 })}<br>No sales</td></tr>`;
     return;
   }
 
@@ -509,18 +510,19 @@ async function loadProductSales(date, location) {
 ========================================================= */
 
 async function loadInventoryReconciliation(date, location) {
+  const tbody = document.getElementById("inventoryReconBody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">Loading…</td></tr>`;
+
   const res = await fetch(
     `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}&_=${Date.now()}`
   );
   const data = await res.json();
 
-  const tbody = document.getElementById("inventoryReconBody");
-  if (!tbody) return;
-
   tbody.innerHTML = "";
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No inventory</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">${icon("package", { size: 20 })}<br>No inventory</td></tr>`;
     return;
   }
 
@@ -1166,7 +1168,7 @@ document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
-  tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+  tbody.innerHTML = "<tr><td colspan='3' class='pos-modal-empty'>Loading…</td></tr>";
   document.getElementById("stocksModal").classList.remove("hidden");
 
   try {
@@ -1180,7 +1182,7 @@ async function openStocks() {
 
     if (data.status !== "OPEN") {
       tbody.innerHTML =
-        "<tr><td colspan='3'>Inventory is closed.</td></tr>";
+        `<tr><td colspan='3' class="pos-modal-empty">${icon("lock", { size: 20 })}<br>Inventory is closed.</td></tr>`;
       return;
     }
 
@@ -1190,7 +1192,7 @@ async function openStocks() {
 
     if (!rows.length) {
       tbody.innerHTML =
-        "<tr><td colspan='3'>No inventory data.</td></tr>";
+        `<tr><td colspan='3' class="pos-modal-empty">${icon("clipboard-list", { size: 20 })}<br>No inventory data.</td></tr>`;
       return;
     }
 
@@ -1207,7 +1209,7 @@ async function openStocks() {
   } catch (err) {
     console.error(err);
     tbody.innerHTML =
-      "<tr><td colspan='3'>Failed to load inventory.</td></tr>";
+      `<tr><td colspan='3' class="pos-modal-empty">${icon("alert-triangle", { size: 20 })}<br>Failed to load inventory.</td></tr>`;
   }
 }
 
@@ -1499,8 +1501,8 @@ function renderSalesTable(orders) {
   if (!orders.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align:center;color:#888">
-          No sales today
+        <td colspan="5" class="pos-modal-empty">
+          ${icon("receipt", { size: 20 })}<br>No sales today
         </td>
       </tr>`;
     totalEl.textContent = "0.00";
@@ -1815,8 +1817,8 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
 
   tbody.innerHTML = `
     <tr>
-      <td colspan="5" style="text-align:center;color:#888">
-        Loading today’s sales…
+      <td colspan="5" class="pos-modal-empty">
+        Loading today's sales…
       </td>
     </tr>`;
   totalEl.textContent = "0.00";
@@ -1838,8 +1840,8 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
     console.error("Sales report error:", err);
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align:center;color:red">
-          Failed to load sales
+        <td colspan="5" class="pos-modal-empty">
+          ${icon("alert-triangle", { size: 20, style: "color:var(--apple-red)" })}<br>Failed to load sales
         </td>
       </tr>`;
   } finally {
