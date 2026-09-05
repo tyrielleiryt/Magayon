@@ -412,10 +412,10 @@ openModal(
                 const remaining = Number(i.remaining) || 0;
                 const conv = conversionMap[i.item_id];
                 const addedEquiv = conv && conv.perServing
-                  ? `<br><small style="color:#888">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+                  ? ` <small style="color:#888">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
                   : "";
                 const remainingEquiv = conv && conv.perServing
-                  ? `<br><small style="color:#888">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+                  ? ` <small style="color:#888">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
                   : "";
 
                 return `

@@ -542,10 +542,10 @@ async function loadInventoryReconciliation(date, location) {
     const remaining = Number(i.remaining) || 0;
     const conv = inventoryConversionMap[i.item_id];
     const addedEquiv = conv && conv.perServing
-      ? `<br><small style="color:var(--apple-text-secondary)">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+      ? ` <small style="color:var(--apple-text-secondary)">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
       : "";
     const remainingEquiv = conv && conv.perServing
-      ? `<br><small style="color:var(--apple-text-secondary)">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+      ? ` <small style="color:var(--apple-text-secondary)">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
       : "";
 
     tbody.insertAdjacentHTML("beforeend", `
@@ -1211,10 +1211,10 @@ async function openStocks() {
       const remaining = Number(r.remaining) || 0;
       const conv = inventoryConversionMap[r.item_id];
       const addedEquiv = conv && conv.perServing
-        ? `<br><small style="color:var(--apple-text-secondary)">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+        ? ` <small style="color:var(--apple-text-secondary)">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
         : "";
       const remainingEquiv = conv && conv.perServing
-        ? `<br><small style="color:var(--apple-text-secondary)">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+        ? ` <small style="color:var(--apple-text-secondary)">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
         : "";
 
       tbody.insertAdjacentHTML("beforeend", `
