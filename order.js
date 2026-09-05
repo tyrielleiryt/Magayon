@@ -286,9 +286,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       posMenuBtn.setAttribute("aria-expanded", String(willOpen));
     });
 
-    // Close after picking an action, but not for the passive sync-status row.
+    // Close after picking any action.
     posMenuPanel.addEventListener("click", e => {
-      if (e.target.closest(".menu-item") && !e.target.closest(".menu-status")) {
+      if (e.target.closest(".menu-item")) {
         posMenuPanel.classList.add("hidden");
         posMenuBtn.setAttribute("aria-expanded", "false");
       }
@@ -1130,17 +1130,11 @@ function updateSyncCounter() {
   // 🔄 Sync in progress
   if (SYNC_IN_PROGRESS) {
     el.textContent = "⟳";
-    box.style.background = "#1e40af"; // blue
     return;
   }
 
   // 📦 Pending count
   el.textContent = pending.length;
-
-  box.style.background =
-    pending.length > 0
-      ? "#b45309"  // orange
-      : "#15803d"; // green
 
   box.onclick = () => {
     alert(
