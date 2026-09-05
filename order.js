@@ -181,6 +181,7 @@ let recipes = {};        // product_id → recipe[]
 let inventory = {};      // item_id → remaining
 let inventoryNames = {};  // item_id → item_name ✅ ADD THIS
 let inventoryReorderLevels = {}; // item_id → reorder_level (per-item low-stock threshold)
+let inventoryConversionMap = {}; // item_id → { unit, perServing } — for showing a quantity equivalent (e.g. "= 1,200g") next to raw counts
 let cart = [];
 let activeCategoryId = null;
 
@@ -441,10 +442,15 @@ async function loadAllData() {
   ]);
 
   inventoryReorderLevels = {};
+  inventoryConversionMap = {};
   (Array.isArray(inventoryItemsData) ? inventoryItemsData : []).forEach(i => {
     if (i.reorder_level !== undefined && i.reorder_level !== "") {
       inventoryReorderLevels[i.item_id] = Number(i.reorder_level);
     }
+    inventoryConversionMap[i.item_id] = {
+      unit: i.unit || "",
+      perServing: Number(i.quantity_per_serving) || 0
+    };
   });
 
   // 🔒 INVENTORY GATE
@@ -532,12 +538,22 @@ async function loadInventoryReconciliation(date, location) {
     if (i.remaining < 0) rowClass = "danger-row";
     else if (i.remaining <= 5) rowClass = "warning-row";
 
+    const added = Number(i.added) || 0;
+    const remaining = Number(i.remaining) || 0;
+    const conv = inventoryConversionMap[i.item_id];
+    const addedEquiv = conv && conv.perServing
+      ? `<br><small style="color:var(--apple-text-secondary)">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+      : "";
+    const remainingEquiv = conv && conv.perServing
+      ? `<br><small style="color:var(--apple-text-secondary)">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+      : "";
+
     tbody.insertAdjacentHTML("beforeend", `
   <tr class="${rowClass}">
     <td>${i.item_name}</td>
-    <td>${i.added}</td>
+    <td>${added}${addedEquiv}</td>
     <td>${i.consumed}</td>
-    <td><strong>${i.remaining}</strong></td>
+    <td><strong>${remaining}</strong>${remainingEquiv}</td>
     <td>
       <strong>${i.quantity_left_display || "0"}</strong>
     </td>
