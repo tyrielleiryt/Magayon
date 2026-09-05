@@ -1207,11 +1207,21 @@ async function openStocks() {
     }
 
     rows.forEach(r => {
+      const added = Number(r.qty_added) || 0;
+      const remaining = Number(r.remaining) || 0;
+      const conv = inventoryConversionMap[r.item_id];
+      const addedEquiv = conv && conv.perServing
+        ? `<br><small style="color:var(--apple-text-secondary)">= ${(added * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+        : "";
+      const remainingEquiv = conv && conv.perServing
+        ? `<br><small style="color:var(--apple-text-secondary)">= ${(remaining * conv.perServing).toLocaleString()} ${conv.unit}</small>`
+        : "";
+
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td>${r.item_name}</td>
-          <td>${r.qty_added}</td>
-          <td>${r.remaining}</td>
+          <td>${added}${addedEquiv}</td>
+          <td>${remaining}${remainingEquiv}</td>
         </tr>
       `);
     });
