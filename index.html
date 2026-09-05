@@ -55,6 +55,13 @@
       </button>
 
       <p id="errorMsg" class="error-message"></p>
+
+      <div class="login-divider"><span>or</span></div>
+
+      <button id="kioskClockInBtn" type="button" class="secondary-btn">
+        <i data-icon="clock"></i> Staff Clock In/Out
+      </button>
+
       <p class="version">Magayon SIS v1.0</p>
 
     </div>
@@ -63,7 +70,41 @@
   <div class="image-section"></div>
 </div>
 
+<!-- ================= KIOSK CLOCK IN/OUT ================= -->
+<div id="kioskClockInModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header-row">
+      <h2><i data-icon="clock"></i> Staff Clock In/Out</h2>
+      <button type="button" class="modal-close-btn" onclick="window.closeKioskClockIn()"><i data-icon="x"></i></button>
+    </div>
+    <p class="muted" style="margin:-8px 0 14px;font-size:13px">
+      Tap a name, then confirm with fingerprint/Face ID on this tablet.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="kioskClockInTable">
+        <!-- injected by kiosk-clockin.js -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <script type="module" src="app.js"></script>
+<script type="module">
+  import { openKioskClockIn, closeKioskClockIn } from "./kiosk-clockin.js";
+  import { renderIcons } from "./icons.js";
+
+  window.closeKioskClockIn = closeKioskClockIn;
+  document.getElementById("kioskClockInBtn").addEventListener("click", openKioskClockIn);
+  renderIcons();
+</script>
 <script>
   document.addEventListener("touchend", e => {
     const el = e.target;
