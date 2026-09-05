@@ -889,6 +889,7 @@ body.sales-only .checkout {
 /* Scroll container */
 .sales-table-wrapper {
   flex: 1;                     /* takes remaining height */
+  min-height: 0;                /* required for flex:1 to actually shrink and scroll instead of overflowing silently */
   overflow-y: auto;
   margin: 12px 0;
 
@@ -955,6 +956,7 @@ body.sales-only .checkout {
   padding: 18px 20px;
   width: 480px;
   max-width: 92vw;
+  max-height: 82vh;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
   animation: modalPop 0.18s ease-out;
 }
