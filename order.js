@@ -1167,6 +1167,7 @@ document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+  document.getElementById("stocksModal").classList.remove("hidden");
 
   try {
     const today = getPHDate();
@@ -1202,8 +1203,6 @@ async function openStocks() {
         </tr>
       `);
     });
-
-    document.getElementById("stocksModal").classList.remove("hidden");
 
   } catch (err) {
     console.error(err);
@@ -1821,6 +1820,7 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
       </td>
     </tr>`;
   totalEl.textContent = "0.00";
+  document.getElementById("salesModal").classList.remove("hidden");
 
   try {
     showLoader("Loading sales report…");
@@ -1833,7 +1833,6 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
     }
 
     renderSalesTable(orders);
-    document.getElementById("salesModal").classList.remove("hidden");
 
   } catch (err) {
     console.error("Sales report error:", err);
