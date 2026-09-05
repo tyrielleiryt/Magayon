@@ -45,7 +45,8 @@ const ICONS = {
   "flask-conical": `<path d="M9 2h6"/><path d="M10 2v6l-6 10a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3l-6-10V2"/><line x1="7" y1="15" x2="17" y2="15"/>`,
   "smartphone": `<rect x="6" y="2" width="12" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/>`,
   "dollar-sign": `<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6.5c0-2-2-3-5-3s-5 1.3-5 3.2c0 4 10 2 10 6.2 0 2-2 3.1-5 3.1s-5-1.3-5-3.3"/>`,
-  "calendar": `<rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/>`
+  "calendar": `<rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/>`,
+  "more-horizontal": `<circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/>`
 };
 
 export function icon(name, opts = {}) {

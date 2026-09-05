@@ -25,12 +25,15 @@ body {
   color: var(--apple-text);
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ================= TOP BAR ================= */
 .top-bar {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   background: #fff;
   color: var(--apple-text);
   border-bottom: 1px solid var(--apple-border);
@@ -40,31 +43,13 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
-}
-
-.top-bar-row-main {
-  padding-top: 8px;
-}
-
-.top-bar-row-tools {
-  padding-top: 0;
-  padding-bottom: 8px;
-  border-top: 1px solid var(--apple-border);
-  margin-top: 2px;
-  flex-wrap: wrap;
+  padding: 8px 16px;
 }
 
 .pos-title {
   font-size: 16px;
   font-weight: 700;
   margin-right: 2px;
-}
-
-.top-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .cashier-info {
@@ -86,7 +71,8 @@ body {
 .pos-container {
   display: grid;
   grid-template-columns: 1fr 300px; /* ⬅ smaller cart */
-  height: calc(100vh - 52px);
+  flex: 1;
+  min-height: 0;
 }
 
 /* ================= CENTER: PRODUCTS ================= */
@@ -1160,12 +1146,6 @@ body.sales-only .checkout {
 
 /* ================= TOP BAR CHAT TOGGLE ================= */
 
-.pos-top-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .top-btn {
   background: rgba(0,0,0,0.06);
   color: var(--apple-text);
@@ -1201,44 +1181,68 @@ body.sales-only .checkout {
   background: #e0352b;
 }
 
-.top-btn-accent {
-  background: var(--apple-blue);
-  color: #fff;
+/* ================= OVERFLOW MENU =================
+   Sync, Clock In/Out, sync status, Sync Inventory, and the report
+   buttons (Stocks List / Sales Report / Product Sale Tracker) all live
+   in one dropdown — they're used far less often than Chat/Logout, so
+   keeping them tucked away keeps the top bar itself sleek. */
+.menu-dropdown {
+  position: relative;
 }
 
-.top-btn-accent:hover {
-  background: var(--apple-blue-dark);
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.04);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
 }
 
-/* Secondary/report buttons (Stocks List, Sales Report, etc.) — quieter
-   than the primary actions, since they open a report rather than being
-   a frequent action. */
-.top-btn-ghost {
-  background: transparent;
-  color: var(--apple-text-secondary);
-  padding: 5px 9px;
+.menu-panel.hidden {
+  display: none;
 }
 
-.top-btn-ghost:hover {
-  background: rgba(0,0,0,0.05);
+.menu-item {
+  background: none;
+  border: none;
+  text-align: left;
   color: var(--apple-text);
-}
-
-.top-btn-ghost.active {
-  color: var(--apple-blue);
-  background: rgba(0,122,255,0.08);
-}
-
-.sync-status-chip {
-  font-size: 11px;
-  padding: 4px 9px;
-  background: rgba(0,0,0,0.06);
-  color: var(--apple-text);
-  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  white-space: nowrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.menu-item:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.menu-status {
+  color: var(--apple-text-secondary);
+  font-size: 12px;
+  cursor: default;
+}
+
+.menu-status:hover {
+  background: none;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--apple-border);
+  margin: 4px 2px;
 }
 
 /* Chat badge */

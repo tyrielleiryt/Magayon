@@ -270,6 +270,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   ?.addEventListener("click", toggleFullscreen);
   document.getElementById("productTrackerBtn")
   ?.addEventListener("click", loadPOSProductSaleTracker);
+
+  /* ================= OVERFLOW MENU =================
+     Sync / Clock In/Out / sync status / Sync Inventory / the report
+     buttons all live in one dropdown now (everything except Chat and
+     Logout, which stay visible since they're used far more often). */
+  const posMenuBtn = document.getElementById("posMenuBtn");
+  const posMenuPanel = document.getElementById("posMenuPanel");
+
+  if (posMenuBtn && posMenuPanel) {
+    posMenuBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      const willOpen = posMenuPanel.classList.contains("hidden");
+      posMenuPanel.classList.toggle("hidden", !willOpen);
+      posMenuBtn.setAttribute("aria-expanded", String(willOpen));
+    });
+
+    // Close after picking an action, but not for the passive sync-status row.
+    posMenuPanel.addEventListener("click", e => {
+      if (e.target.closest(".menu-item") && !e.target.closest(".menu-status")) {
+        posMenuPanel.classList.add("hidden");
+        posMenuBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("click", e => {
+      if (!posMenuPanel.classList.contains("hidden") &&
+          !posMenuPanel.contains(e.target) &&
+          !posMenuBtn.contains(e.target)) {
+        posMenuPanel.classList.add("hidden");
+        posMenuBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
 enableWakeLock();
 
 
