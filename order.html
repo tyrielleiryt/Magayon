@@ -22,66 +22,55 @@
 
   <!-- ================= TOP BAR ================= -->
   <div class="top-bar">
-    <div class="pos-title">POS</div>
-    <span id="netStatus" class="net online">ONLINE</span>
-    <div class="pos-top-actions">
-  <button id="syncBtn" class="top-btn"><i data-icon="refresh-cw"></i> Sync</button>
+    <div class="top-bar-row top-bar-row-main">
+      <div class="pos-title">POS</div>
+      <span id="netStatus" class="net online">ONLINE</span>
 
-  <button
-    id="posChatToggle"
-    class="top-btn chat-toggle"
-    aria-label="Open support chat"
-  >
-    <i data-icon="message-circle"></i> Chat
-    <span id="chatUnreadBadge" class="chat-badge hidden">1</span>
-  </button>
+      <div class="pos-top-actions">
+        <button id="syncBtn" class="top-btn"><i data-icon="refresh-cw"></i> Sync</button>
 
-  <button id="clockInOutBtn" class="top-btn" aria-label="Staff clock in/out">
-    <i data-icon="clock"></i> Clock In/Out
-  </button>
+        <button
+          id="posChatToggle"
+          class="top-btn chat-toggle"
+          aria-label="Open support chat"
+        >
+          <i data-icon="message-circle"></i> Chat
+          <span id="chatUnreadBadge" class="chat-badge hidden">1</span>
+        </button>
 
-  <button id="logoutBtn" class="top-btn" aria-label="Log out">
-    <i data-icon="log-out"></i> Logout
-  </button>
-</div>
-    <div id="syncStatus" style="
-  margin-left:auto;
-  font-size:13px;
-  padding:4px 10px;
-  background:rgba(0,0,0,0.06);
-  color:#1d1d1f;
-  border-radius:12px;
-">
-  <i data-icon="refresh-cw" data-icon-size="13" style="vertical-align:-2px"></i> Syncing: <span id="syncCount">0</span>
-</div>
-<button
-  id="syncInventoryBtn" aria-label="Sync inventory"
-  style="
-    margin-left:10px;
-    font-size:12px;
-    padding:4px 10px;
-    border-radius:12px;
-    background:#007aff;
-    color:#fff;
-    border:none;
-    cursor:pointer;
-  ">
-  <i data-icon="refresh-cw" data-icon-size="13" style="vertical-align:-2px"></i> Sync Inventory
-</button>
-    <div class="top-actions">
-      <!--<button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button> -->
-      <button id="stocksBtn">Stocks List</button>
-      <button id="salesBtn">Sales Report</button>
-      <button id="productTrackerBtn"><i data-icon="bar-chart-3"></i> Product Sale Tracker</button>
-      <button class="active">Main Page</button>
- 
+        <button id="clockInOutBtn" class="top-btn" aria-label="Staff clock in/out">
+          <i data-icon="clock"></i> Clock In/Out
+        </button>
+
+        <button id="logoutBtn" class="top-btn top-btn-danger" aria-label="Log out">
+          <i data-icon="log-out"></i> Logout
+        </button>
+      </div>
+
+      <div class="cashier-info">
+        <span><b>Cashier:</b> <span id="cashierName"></span></span>
+        <span><b>Position:</b> <span id="cashierPosition"></span></span>
+        <span><b>Location:</b> <span id="cashierLocation"></span></span>
+      </div>
     </div>
 
-    <div class="cashier-info">
-  <div><b>Cashier:</b> <span id="cashierName"></span></div>
-  <div><b>Position:</b> <span id="cashierPosition"></span></div>
-  <div><b>Location:</b> <span id="cashierLocation"></span></div>
-</div>
+    <div class="top-bar-row top-bar-row-tools">
+      <div id="syncStatus" class="sync-status-chip">
+        <i data-icon="refresh-cw" data-icon-size="12" style="vertical-align:-2px"></i> Syncing: <span id="syncCount">0</span>
+      </div>
+
+      <button id="syncInventoryBtn" class="top-btn top-btn-accent" aria-label="Sync inventory">
+        <i data-icon="refresh-cw" data-icon-size="12"></i> Sync Inventory
+      </button>
+
+      <div class="top-actions">
+        <!--<button id="fullscreenBtn" class="top-btn">⛶ Full Screen</button> -->
+        <button id="stocksBtn" class="top-btn top-btn-ghost">Stocks List</button>
+        <button id="salesBtn" class="top-btn top-btn-ghost">Sales Report</button>
+        <button id="productTrackerBtn" class="top-btn top-btn-ghost"><i data-icon="bar-chart-3"></i> Product Sale Tracker</button>
+        <button class="top-btn top-btn-ghost active">Main Page</button>
+      </div>
+    </div>
   </div>
 
   <!-- ================= MAIN LAYOUT ================= -->
