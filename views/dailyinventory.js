@@ -337,116 +337,133 @@ function renderTable() {
   });
 }
 
+/* ================= INVENTORY MODAL — SHARED HELPERS =================
+   View, Add, and Loading are all "screens" swapped within the SAME
+   open modal (via swapModalContent) instead of each being its own
+   openModal() call — reads as one window whose content updates,
+   rather than a jarring full modal replace. It also means any
+   in-progress loading state lives inside the still-open modal itself,
+   sidestepping the global loader (whose z-index sits below the modal
+   overlay, so showLoader() while a modal is open used to render
+   invisibly behind it). */
+function invHeader(iconName, title) {
+  return `
+    <div class="inv-modal-header">
+      <h2>${icon(iconName)} ${title}</h2>
+      <button type="button" class="inv-modal-close-x" onclick="closeModal()">${icon("x")}</button>
+    </div>
+  `;
+}
+
+function swapModalContent(html, afterSwap) {
+  const box = document.getElementById("modalBox");
+  if (!box) return;
+
+  box.classList.add("inv-modal-fade");
+  setTimeout(() => {
+    box.innerHTML = html;
+    requestAnimationFrame(() => box.classList.remove("inv-modal-fade"));
+    if (afterSwap) afterSwap();
+  }, 140);
+}
+
+function renderInvView(date, location, status, items, conversionMap) {
+  const rows = !items.length
+    ? `<tr><td colspan="3" class="inv-modal-empty-cell">No data</td></tr>`
+    : items.map(i => {
+        const added = Number(i.qty_added) || 0;
+        const remaining = Number(i.remaining) || 0;
+        const conv = conversionMap[i.item_id];
+        const addedEquiv = conv && conv.perServing
+          ? ` <small style="color:#888">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
+          : "";
+        const remainingEquiv = conv && conv.perServing
+          ? ` <small style="color:#888">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
+          : "";
+
+        return `
+          <tr>
+            <td>${i.item_name}</td>
+            <td>${added}${addedEquiv}</td>
+            <td>${remaining}${remainingEquiv}</td>
+          </tr>
+        `;
+      }).join("");
+
+  return `
+    ${invHeader("clipboard-list", `Inventory — ${date}`)}
+    <div class="inv-modal-scroll">
+      <table class="category-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Total Added</th>
+            <th>Remaining</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      ${String(status).toUpperCase() === "OPEN" ? `
+        <button class="category-action-btn"
+          onclick="openAddInventoryForDay('${date}','${location}')">
+          ${icon("plus")} Add Inventory
+        </button>
+      ` : ""}
+      <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  `;
+}
+
+async function fetchInvViewData(date, location) {
+  const [data, masterItems] = await Promise.all([
+    fetch(
+      `${API_URL}?type=dailyInventoryItems` +
+      `&date=${encodeURIComponent(date)}` +
+      `&location=${encodeURIComponent(location)}`
+    ).then(r => r.json()),
+    getCached("inventoryItems")
+  ]);
+
+  // item_id → conversion info, so we can show a quantity-equivalent
+  // alongside the raw Total Added / Remaining numbers.
+  const conversionMap = {};
+  (Array.isArray(masterItems) ? masterItems : []).forEach(i => {
+    conversionMap[i.item_id] = {
+      unit: i.unit || "",
+      perServing: Number(i.quantity_per_serving) || 0
+    };
+  });
+
+  return { data, conversionMap };
+}
+
 /* ================= VIEW DAILY INVENTORY ITEMS ================= */
 window.viewDailyInventory = async function (date, location, status) {
   showLoader("Loading inventory…");
 
   try {
-    const [data, masterItems] = await Promise.all([
-      fetch(
-        `${API_URL}?type=dailyInventoryItems` +
-        `&date=${encodeURIComponent(date)}` +
-        `&location=${encodeURIComponent(location)}`
-      ).then(r => r.json()),
-      getCached("inventoryItems")
-    ]);
+    const { data, conversionMap } = await fetchInvViewData(date, location);
 
-// item_id → conversion info, so we can show a quantity-equivalent
-// alongside the raw Total Added / Remaining numbers.
-const conversionMap = {};
-(Array.isArray(masterItems) ? masterItems : []).forEach(i => {
-  conversionMap[i.item_id] = {
-    unit: i.unit || "",
-    perServing: Number(i.quantity_per_serving) || 0
-  };
-});
+    // 🛑 NO ACTIVE INVENTORY
+    if (data.status === "NO_ACTIVE_INVENTORY") {
+      openModal(
+        `
+        ${invHeader("clipboard-list", `Inventory — ${date}`)}
+        <div class="inv-modal-empty-cell" style="padding:32px 12px">
+          No active inventory for today
+        </div>
+        <div class="modal-actions">
+          <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+        </div>
+        `,
+        true
+      );
+      return;
+    }
 
-// 🛑 NO ACTIVE INVENTORY
-if (data.status === "NO_ACTIVE_INVENTORY") {
-  openModal(
-    `
-    <div class="modal-header">
-      Inventory — ${date}
-    </div>
-
-    <div style="padding:16px;text-align:center;color:#888">
-      No active inventory for today
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-back" onclick="closeModal()">Close</button>
-    </div>
-    `,
-    true
-  );
-  return;
-}
-
-const items = data.items || [];
-
-openModal(
-  `
-  <div class="modal-header">
-    Inventory — ${date}
-  </div>
-
-  <div class="inventory-scroll">
-    <table class="inventory-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Total Added</th>
-          <th>Remaining</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          !items.length
-            ? `<tr>
-                 <td colspan="3" style="text-align:center;color:#888">
-                   No data
-                 </td>
-               </tr>`
-            : items.map(i => {
-                const added = Number(i.qty_added) || 0;
-                const remaining = Number(i.remaining) || 0;
-                const conv = conversionMap[i.item_id];
-                const addedEquiv = conv && conv.perServing
-                  ? ` <small style="color:#888">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-                  : "";
-                const remainingEquiv = conv && conv.perServing
-                  ? ` <small style="color:#888">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-                  : "";
-
-                return `
-                <tr>
-                  <td>${i.item_name}</td>
-                  <td>${added}${addedEquiv}</td>
-                  <td>${remaining}${remainingEquiv}</td>
-                </tr>
-              `;
-              }).join("")
-        }
-      </tbody>
-    </table>
-  </div>
-
-${String(status).toUpperCase() === "OPEN" ? `
-  <div class="modal-actions">
-    <button class="btn-primary"
-      onclick="openAddInventoryForDay('${date}','${location}')">
-      ${icon("plus")} Add Inventory
-    </button>
-    <button class="btn-back" onclick="closeModal()">Close</button>
-  </div>
-` : `
-  <div class="modal-actions">
-    <button class="btn-back" onclick="closeModal()">Close</button>
-  </div>
-`}
-    `,
-      true
-    );
+    openModal(renderInvView(date, location, status, data.items || [], conversionMap), true);
   } catch (err) {
     console.error(err);
     alert("Failed to load inventory");
@@ -457,9 +474,55 @@ ${String(status).toUpperCase() === "OPEN" ? `
 
 /* ================= NEW ADD TODAY INVENTORY ================= */
 
+function renderInvAdd(date, location, items, remainingMap) {
+  const rows = items.map(i => {
+    const unit = i.unit || "";
+    const perServing = Number(i.quantity_per_serving) || 0;
+    const remaining = remainingMap[i.item_id] ?? 0;
+
+    return `
+      <div class="inv-item-row">
+        <div class="inv-item-info">
+          <div class="inv-item-name">${i.item_name}${unit ? ` <span class="inv-item-unit">(${unit})</span>` : ""}</div>
+          <div class="inv-item-current">Currently: ${remaining}${unit ? " " + unit : ""}</div>
+        </div>
+        <input type="number" min="0"
+          data-id="${i.item_id}"
+          data-yield="${perServing}"
+          data-unit="${unit}"
+          class="add-inventory-qty"
+          placeholder="Qty">
+        <div class="add-inventory-yield">—</div>
+      </div>
+    `;
+  }).join("");
+
+  return `
+    ${invHeader("plus", `Add Inventory — ${date}`)}
+    <div class="inv-modal-scroll inv-modal-scroll-form">
+      ${rows}
+    </div>
+    <div id="invSaveError" class="inv-save-error hidden"></div>
+    <div class="modal-actions">
+      <button id="invSaveBtn" class="category-action-btn"
+        onclick="saveInventoryForDay('${date}','${location}')">
+        ${icon("save")} Save
+      </button>
+      <button class="inv-modal-btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+}
 
 window.openAddInventoryForDay = async function (date, location) {
-  showLoader("Loading data…");
+  // Swap to a lightweight loading screen INSIDE the still-open modal —
+  // no separate overlay, so nothing can render behind the modal, and
+  // it reads as the same window updating rather than a modal swap.
+  swapModalContent(`
+    ${invHeader("plus", `Add Inventory — ${date}`)}
+    <div class="inv-modal-empty-cell" style="padding:48px 12px">
+      ${icon("refresh-cw", { size: 20, class: "inv-spin" })}<br>Loading…
+    </div>
+  `);
 
   try {
     const [items, dailyData] = await Promise.all([
@@ -478,56 +541,21 @@ window.openAddInventoryForDay = async function (date, location) {
       remainingMap[r.item_id] = Number(r.remaining) || 0;
     });
 
-    openModal(
-      `
-      <div class="modal-header">
-        Add Inventory — ${date}
-      </div>
-
-      <div style="max-height:320px;overflow:auto;margin-top:12px">
-        ${inventoryItems.map(i => {
-          const unit = i.unit || "";
-          const perServing = Number(i.quantity_per_serving) || 0;
-          const remaining = remainingMap[i.item_id] ?? 0;
-
-          return `
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-            <div style="flex:1">
-              ${i.item_name}${unit ? ` <span style="color:#888">(${unit})</span>` : ""}
-              <div style="font-size:12px;color:#888">
-                Currently: ${remaining}${unit ? " " + unit : ""}
-              </div>
-            </div>
-            <input type="number" min="0"
-              data-id="${i.item_id}"
-              data-yield="${perServing}"
-              data-unit="${unit}"
-              class="add-inventory-qty"
-              style="width:90px"
-              placeholder="Qty">
-            <div class="add-inventory-yield" style="width:140px;font-size:12px;color:#555">—</div>
-          </div>
-        `;
-        }).join("")}
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-danger"
-          onclick="saveInventoryForDay('${date}','${location}')">
-          Save
-        </button>
-        <button class="btn-back" onclick="closeModal()">Cancel</button>
-      </div>
-      `,
-      true
+    swapModalContent(
+      renderInvAdd(date, location, inventoryItems, remainingMap),
+      bindAddInventoryYieldInputs
     );
-
-    bindAddInventoryYieldInputs();
   } catch (err) {
     console.error(err);
-    alert("Failed to load inventory");
-  } finally {
-    hideLoader();
+    swapModalContent(`
+      ${invHeader("plus", `Add Inventory — ${date}`)}
+      <div class="inv-modal-empty-cell" style="padding:32px 12px">
+        Failed to load inventory.
+      </div>
+      <div class="modal-actions">
+        <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+      </div>
+    `);
   }
 };
 
@@ -566,12 +594,30 @@ window.saveInventoryForDay = function (date, location) {
     }
   });
 
+  const errorEl = document.getElementById("invSaveError");
+  if (errorEl) errorEl.classList.add("hidden");
+
   if (!items.length) {
-    alert("No quantities entered");
+    if (errorEl) {
+      errorEl.textContent = "No quantities entered";
+      errorEl.classList.remove("hidden");
+    } else {
+      alert("No quantities entered");
+    }
     return;
   }
 
-  showLoader("Saving inventory…");
+  const saveBtn = document.getElementById("invSaveBtn");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `${icon("refresh-cw", { class: "inv-spin" })} Saving…`;
+  }
+
+  const resetSaveBtn = () => {
+    if (!saveBtn) return;
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = `${icon("save")} Save`;
+  };
 
   authFetch(
     `${API_URL}?action=addDailyInventory` +
@@ -581,13 +627,38 @@ window.saveInventoryForDay = function (date, location) {
     `&items=${encodeURIComponent(JSON.stringify(items))}`
   )
     .then(r => r.json())
-    .then(res => {
+    .then(async res => {
       if (!res.success) {
-        alert(res.error);
+        if (errorEl) {
+          errorEl.textContent = res.error || "Failed to save inventory";
+          errorEl.classList.remove("hidden");
+        } else {
+          alert(res.error);
+        }
+        resetSaveBtn();
         return;
       }
-      closeModal();
+
+      // Refresh the underlying admin table in the background — it's
+      // behind the modal, so this doesn't disturb what's on screen —
+      // then transition this same window back to the updated View
+      // screen instead of closing it.
       loadDailyInventory();
+
+      try {
+        const { data, conversionMap } = await fetchInvViewData(date, location);
+        swapModalContent(renderInvView(date, location, data.status, data.items || [], conversionMap));
+      } catch (err) {
+        console.error(err);
+        closeModal();
+      }
     })
-    .finally(hideLoader);
+    .catch(err => {
+      console.error(err);
+      if (errorEl) {
+        errorEl.textContent = "Failed to save inventory";
+        errorEl.classList.remove("hidden");
+      }
+      resetSaveBtn();
+    });
 };

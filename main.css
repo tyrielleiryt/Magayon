@@ -497,6 +497,15 @@ html, body {
   flex-direction: column;
   overflow-y: auto;     /* 🔥 modal scrolls */
   box-sizing: border-box;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+/* Used to crossfade #modalBox's content in place (e.g. Daily Inventory's
+   View → Add Inventory → View) instead of the modal fully closing and
+   reopening for every step. */
+#modalBox.inv-modal-fade {
+  opacity: 0;
+  transform: scale(0.98) translateY(4px);
 }
 
 /* Header */
@@ -536,6 +545,147 @@ html, body {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ================= DAILY INVENTORY — VIEW / ADD MODAL ================= */
+.inv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inv-modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  margin: 0;
+}
+
+.inv-modal-close-x {
+  background: rgba(0,0,0,0.06);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--apple-text);
+  flex-shrink: 0;
+}
+
+.inv-modal-close-x:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.inv-modal-scroll {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 14px 0;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+}
+
+.inv-modal-scroll-form {
+  border: none;
+  padding: 2px;
+}
+
+.inv-modal-empty-cell {
+  text-align: center;
+  color: var(--apple-text-secondary);
+  padding: 20px;
+}
+
+.inv-modal-btn-secondary {
+  background: rgba(0,0,0,0.06);
+  color: var(--apple-text);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inv-modal-btn-secondary:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.inv-item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.inv-item-row:last-child {
+  border-bottom: none;
+}
+
+.inv-item-row:nth-child(even) {
+  background: rgba(0,0,0,0.015);
+}
+
+.inv-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.inv-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--apple-text);
+}
+
+.inv-item-unit {
+  font-weight: 400;
+  color: var(--apple-text-secondary);
+}
+
+.inv-item-current {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+  margin-top: 2px;
+}
+
+.inv-item-row input.add-inventory-qty {
+  width: 80px !important;
+  flex-shrink: 0;
+  margin-top: 0 !important;
+}
+
+.add-inventory-yield {
+  width: 150px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--apple-blue);
+  font-weight: 600;
+  text-align: right;
+}
+
+.inv-save-error {
+  color: var(--apple-red);
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: right;
+}
+
+.inv-save-error.hidden {
+  display: none;
+}
+
+@keyframes inv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.inv-spin {
+  animation: inv-spin 0.8s linear infinite;
 }
 
 /* Static modals not built through modal.js (e.g. #closeDayModal) — without
