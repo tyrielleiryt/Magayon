@@ -158,24 +158,37 @@ document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async (
   }
 });
 
-/* ================= IMPORT VIEWS ================= */
-import loadCapitalCalculatorView from "./views/capital-calculator.js";
-import loadCategoriesView from "./views/categories.js";
-import loadInventoryItemsView from "./views/inventoryitems.js";
-import loadDailyInventoryView from "./views/dailyinventory.js";
-import loadProductsView from "./views/products.js";
-import loadDailySalesView from "./views/dailySales.js";
-import loadLocationsView from "./views/locations.js";
-import loadStaffView from "./views/staff.js";
-import loadAttendanceView from "./views/attendance.js";
-import loadDashboardView, { stopDashboardPolling } from "./views/dashboard.js";
-import loadPermissionsView from "./views/permissions.js";
-import loadPettyCashView from "./views/pettyCash.js";
-import loadSalesExpensesTrackerView from "./views/salesExpensesTracker.js";
+/* ================= LAZY-LOADED VIEWS =================
+   Was 13 static imports at the top of this file — every one of those
+   view files downloaded and parsed on every single admin page load,
+   regardless of which tab (if any) the admin actually visits. Loading
+   each view's JS only when its tab is clicked cuts that dead weight
+   off the initial page load, which matters most on a slow tablet
+   connection. import() results are cached after the first load, so
+   revisiting a tab doesn't re-fetch or re-parse anything. */
+const VIEW_LOADERS = {
+  capitalCalculator: () => import("./views/capital-calculator.js"),
+  categories: () => import("./views/categories.js"),
+  products: () => import("./views/products.js"),
+  inventory: () => import("./views/inventoryitems.js"),
+  dailyInventory: () => import("./views/dailyinventory.js"),
+  dailySales: () => import("./views/dailySales.js"),
+  pettyCash: () => import("./views/pettyCash.js"),
+  salesExpensesTracker: () => import("./views/salesExpensesTracker.js"),
+  locations: () => import("./views/locations.js"),
+  staff: () => import("./views/staff.js"),
+  attendance: () => import("./views/attendance.js"),
+  permissions: () => import("./views/permissions.js"),
+  dashboard: () => import("./views/dashboard.js")
+};
 
+// Only set once the dashboard has actually been loaded at least once —
+// stopDashboardPolling() is a named export from that module, so it
+// can't be referenced until the module itself has loaded.
+let dashboardModule = null;
 
 function clearView() {
-  stopDashboardPolling(); // stop the dashboard's live-sales polling when leaving it
+  dashboardModule?.stopDashboardPolling?.(); // stop the dashboard's live-sales polling when leaving it
   document.getElementById("actionBar")?.replaceChildren();
   document.getElementById("contentBox")?.replaceChildren();
 }
@@ -204,58 +217,15 @@ clearView();
     // no full-screen blocker here, so the page structure (sidebar,
     // buttons, headers) appears instantly instead of waiting behind a
     // spinner for every field to finish loading.
-    switch (btn.dataset.view) {
-      case "capitalCalculator":
-        loadCapitalCalculatorView();
-        break;
+    const view = btn.dataset.view || "dashboard";
+    const loadModule = VIEW_LOADERS[view] || VIEW_LOADERS.dashboard;
 
-      case "categories":
-        loadCategoriesView();
-        break;
-
-      case "products":
-        loadProductsView();
-        break;
-
-      case "inventory":
-        loadInventoryItemsView();
-        break;
-
-      case "dailyInventory":
-        loadDailyInventoryView();
-        break;
-
-      case "dailySales":
-        loadDailySalesView();
-        break;
-
-      case "pettyCash":
-        loadPettyCashView();
-        break;
-
-      case "salesExpensesTracker":
-        loadSalesExpensesTrackerView();
-        break;
-
-      case "locations":
-        loadLocationsView();
-        break;
-
-      case "staff":
-        loadStaffView();
-        break;
-
-      case "attendance":
-        loadAttendanceView();
-        break;
-
-      case "permissions":
-        loadPermissionsView();
-        break;
-
-      case "dashboard":
-      default:
-        loadDashboardView();
+    try {
+      const mod = await loadModule();
+      if (view === "dashboard") dashboardModule = mod;
+      mod.default();
+    } catch (err) {
+      console.error(`Failed to load view "${view}":`, err);
     }
   };
 });
@@ -460,9 +430,22 @@ document.getElementById("adminChatToggle")?.addEventListener("click", async () =
 
 //loadAdminChat();
 
-// 🔁 SINGLE poll — keeps polling even while the chat box is closed, so the
-// unread badge (set inside loadAdminChat() only while hidden) can fire.
-setInterval(loadAdminChat, 3000);
+// Self-rescheduling instead of a fixed setInterval, so it can poll fast
+// (3s) while the chat is actually open, but back off to 20s while it's
+// closed — this was hitting the backend every 3s for the entire time the
+// admin panel is open, regardless of whether anyone was watching chat,
+// competing with whatever view/data fetch the admin was actually waiting
+// on. Still keeps polling while closed (just slower) so the unread badge
+// (set inside loadAdminChat() only while hidden) can still fire.
+function scheduleAdminChatPoll() {
+  const box = document.getElementById("adminChatBox");
+  const isOpen = box && !box.classList.contains("hidden");
+  setTimeout(() => {
+    loadAdminChat();
+    scheduleAdminChatPoll();
+  }, isOpen ? 3000 : 20000);
+}
+scheduleAdminChatPoll();
 
 // 🔓 expose ONCE
 window.sendAdminChat = sendAdminChat;
