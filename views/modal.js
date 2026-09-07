@@ -32,6 +32,16 @@ export function closeModal() {
   overlay.classList.add("hidden");
 }
 
+// Every view's modal HTML calls closeModal()/openModal() via inline
+// onclick="..." attributes, which resolve against the global scope, not
+// this module's own imports — ES module bindings aren't visible to
+// window by default. Previously only views/products.js happened to set
+// window.closeModal as a side effect of its own unrelated code, so
+// Cancel/close buttons silently threw "closeModal is not defined" in
+// every other view unless Products had already been loaded this session.
+window.openModal = openModal;
+window.closeModal = closeModal;
+
 /* ================= HARD RESET (ON PAGE LOAD) ================= */
 overlay.classList.add("hidden");
 box.innerHTML = "";
