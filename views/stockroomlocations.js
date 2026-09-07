@@ -257,7 +257,7 @@ async function showBatchScreen(stockroom) {
   bindDataBoxScroll(document.querySelector(".data-box"));
 
   document.getElementById("backBtn").onclick = () => showListScreen();
-  document.getElementById("addBatchBtn").onclick = openAddBatchModal;
+  document.getElementById("addBatchBtn").onclick = showAddBatchScreen;
 
   await loadBatchAvailability();
 }
@@ -297,74 +297,153 @@ async function loadBatchAvailability() {
   }
 }
 
-/* ================= ADD BATCH MODAL ================= */
-async function openAddBatchModal() {
-  const items = (await getCached("inventoryItems")).filter(i => i.active !== false);
+/* =========================================================
+   ADD BATCH SCREEN — same list-of-items + single Save pattern
+   as "Add Inventory" in the Daily Inventory System: one shared
+   Good Until date for the batch, then every item gets its own
+   qty field, all saved together in one request.
+========================================================= */
+function renderAddBatchScreen(items, defaultGoodUntil) {
+  const rows = items.map(i => {
+    const unit = i.unit || "";
+    return `
+      <div class="inv-item-row">
+        <div class="inv-item-info">
+          <div class="inv-item-name">${i.item_name}${unit ? ` <span class="inv-item-unit">(${unit})</span>` : ""}</div>
+        </div>
+        <input type="number" min="0"
+          data-batch-item-id="${i.item_id}"
+          class="add-batch-qty"
+          placeholder="Qty">
+      </div>
+    `;
+  }).join("");
 
-  const defaultGoodUntil = new Date(Date.now() + 7 * 86400000)
-    .toISOString()
-    .slice(0, 10);
-
-  openModal(`
-    <div class="modal-header">${icon("plus")} Add Batch — ${currentStockroom.stockroom_name}</div>
-
-    <label>Item</label>
-    <select id="batchItem">
-      ${items.map(i => `<option value="${i.item_id}">${i.item_name}${i.unit ? ` (${i.unit})` : ""}</option>`).join("")}
-    </select>
-
-    <label>Quantity</label>
-    <input id="batchQty" type="number" min="1" placeholder="Qty">
-
-    <label>Good Until</label>
-    <input id="batchGoodUntil" type="date" value="${defaultGoodUntil}">
-
-    <div class="modal-actions">
-      <button class="btn-danger" id="saveBatchBtn">Save</button>
-      <button class="btn-back" onclick="closeModal()">Cancel</button>
+  return `
+    <div class="data-box">
+      ${batchHeader()}
+      <div style="display:flex;align-items:center;gap:10px;margin:0 0 12px">
+        <label style="margin:0;font-weight:600">Good Until</label>
+        <input type="date" id="batchGoodUntilAll" value="${defaultGoodUntil}">
+      </div>
+      <div id="addBatchError" class="inv-save-error hidden"></div>
+      <div class="data-scroll">
+        ${rows}
+      </div>
     </div>
-  `);
-
-  document.getElementById("saveBatchBtn").onclick = saveBatch;
+  `;
 }
 
-/* ================= SAVE BATCH ================= */
-async function saveBatch() {
-  const itemId = batchItem.value;
-  const qty = Number(batchQty.value);
-  const goodUntil = batchGoodUntil.value;
+async function showAddBatchScreen() {
+  const actionBar = document.getElementById("actionBar");
+  const contentBox = document.getElementById("contentBox");
 
-  if (!itemId) return alert("Pick an item");
-  if (!qty || qty <= 0) return alert("Quantity must be greater than 0");
-  if (!goodUntil) return alert("Good-until date required");
+  actionBar.innerHTML = `
+    <button class="category-action-btn" id="backBtn">← Back</button>
+    <button class="category-action-btn" id="saveBatchBtn">${icon("save")} Save</button>
+  `;
 
-  closeModal();
-  showLoader("Adding batch…");
+  contentBox.innerHTML = `
+    <div class="data-box">
+      ${batchHeader()}
+      <div class="inv-modal-empty-cell" style="padding:48px 12px">
+        ${icon("refresh-cw", { size: 20, class: "inv-spin" })}<br>Loading…
+      </div>
+    </div>
+  `;
+
+  document.getElementById("backBtn").onclick = () => showBatchScreen(currentStockroom);
+
+  const items = (await getCached("inventoryItems")).filter(i => i.active !== false);
+  const defaultGoodUntil = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+  contentBox.innerHTML = renderAddBatchScreen(items, defaultGoodUntil);
+  bindDataBoxScroll(document.querySelector(".data-box"));
+
+  document.getElementById("saveBatchBtn").onclick = saveBatches;
+}
+
+/* ================= SAVE BATCHES ================= */
+async function saveBatches() {
+  const inputs = document.querySelectorAll(".add-batch-qty");
+  const items = [];
+
+  inputs.forEach(i => {
+    const qty = Number(i.value);
+    if (qty > 0) {
+      items.push({ item_id: i.dataset.batchItemId, qty });
+    }
+  });
+
+  const errorEl = document.getElementById("addBatchError");
+  if (errorEl) errorEl.classList.add("hidden");
+
+  const goodUntil = document.getElementById("batchGoodUntilAll")?.value;
+
+  if (!items.length) {
+    if (errorEl) {
+      errorEl.textContent = "No quantities entered";
+      errorEl.classList.remove("hidden");
+    } else {
+      alert("No quantities entered");
+    }
+    return;
+  }
+
+  if (!goodUntil) {
+    if (errorEl) {
+      errorEl.textContent = "Good-until date required";
+      errorEl.classList.remove("hidden");
+    } else {
+      alert("Good-until date required");
+    }
+    return;
+  }
+
+  const saveBtn = document.getElementById("saveBatchBtn");
+  const resetSaveBtn = () => {
+    if (!saveBtn) return;
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = `${icon("save")} Save`;
+  };
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `${icon("refresh-cw", { class: "inv-spin" })} Saving…`;
+  }
 
   try {
     const res = await authFetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        action: "addStockroomBatch",
+        action: "addStockroomBatches",
         stockroom_id: currentStockroom.stockroom_id,
-        item_id: itemId,
-        qty,
-        good_until: goodUntil
+        good_until: goodUntil,
+        items: JSON.stringify(items)
       })
     });
     const result = await res.json();
     if (!result.success) {
-      hideLoader();
-      alert(result.error || "Failed to add batch");
+      if (errorEl) {
+        errorEl.textContent = result.error || "Failed to add batch";
+        errorEl.classList.remove("hidden");
+      } else {
+        alert(result.error || "Failed to add batch");
+      }
+      resetSaveBtn();
       return;
     }
   } catch (err) {
-    hideLoader();
-    alert("Failed to add batch");
+    if (errorEl) {
+      errorEl.textContent = "Failed to add batch";
+      errorEl.classList.remove("hidden");
+    }
+    resetSaveBtn();
     return;
   }
 
-  await loadBatchAvailability();
-  hideLoader();
+  // Back to the item-totals screen for this stockroom, now reflecting
+  // the batches just added.
+  await showBatchScreen(currentStockroom);
 }
