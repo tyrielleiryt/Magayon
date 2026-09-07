@@ -8,15 +8,23 @@ import { icon } from "../icons.js";
 /* ================= STATE ================= */
 let stockrooms = [];
 let selected = null;
+let currentStockroom = null; // set while the batch screen is open
 
 /* ================= ENTRY ================= */
 export default async function loadStockroomLocationsView() {
+  currentStockroom = null;
+  await showListScreen();
+}
+
+/* ================= LIST SCREEN ================= */
+async function showListScreen() {
   const actionBar = document.getElementById("actionBar");
   const contentBox = document.getElementById("contentBox");
 
   actionBar.innerHTML = `
     <button class="category-action-btn" id="addBtn">${icon("plus")} Add Stockroom</button>
     <button class="category-action-btn" id="editBtn" disabled>${icon("pencil")} Edit</button>
+    <button class="category-action-btn" id="batchesBtn" disabled>${icon("archive")} View Batches</button>
     <button class="category-action-btn" id="deleteBtn" disabled>${icon("trash-2")} Delete</button>
   `;
 
@@ -47,6 +55,8 @@ export default async function loadStockroomLocationsView() {
   document.getElementById("addBtn").onclick = () => openStockroomModal();
   document.getElementById("editBtn").onclick = () =>
     selected && openStockroomModal(selected);
+  document.getElementById("batchesBtn").onclick = () =>
+    selected && showBatchScreen(selected);
   document.getElementById("deleteBtn").onclick = deleteStockroom;
 
   await loadStockrooms();
@@ -58,6 +68,7 @@ async function loadStockrooms() {
   selected = null;
 
   document.getElementById("editBtn").disabled = true;
+  document.getElementById("batchesBtn").disabled = true;
   document.getElementById("deleteBtn").disabled = true;
 
   renderTable();
@@ -96,6 +107,7 @@ function renderTable() {
 
       selected = s;
       document.getElementById("editBtn").disabled = false;
+      document.getElementById("batchesBtn").disabled = false;
       document.getElementById("deleteBtn").disabled = false;
     };
 
@@ -103,7 +115,7 @@ function renderTable() {
   });
 }
 
-/* ================= MODAL ================= */
+/* ================= STOCKROOM MODAL ================= */
 function openStockroomModal(loc = {}) {
   openModal(`
     <div class="modal-header">
@@ -195,5 +207,164 @@ async function deleteStockroom() {
 
   invalidateCache("stockroomLocations");
   await loadStockrooms();
+  hideLoader();
+}
+
+/* =========================================================
+   BATCH SCREEN — drills into one stockroom, swap-in-place
+   (same content-box, not a nested modal), matching the
+   dailyinventory.js renderInvView/renderInvAdd pattern.
+========================================================= */
+function batchHeader() {
+  return `
+    <div class="inv-modal-header" style="margin-bottom:14px">
+      <h2 style="margin:0;font-size:18px">${icon("archive")} ${currentStockroom.stockroom_name}</h2>
+    </div>
+    ${currentStockroom.address ? `<p class="set-section-hint" style="margin:-8px 0 10px">${currentStockroom.address}</p>` : ""}
+  `;
+}
+
+async function showBatchScreen(stockroom) {
+  currentStockroom = stockroom;
+
+  const actionBar = document.getElementById("actionBar");
+  const contentBox = document.getElementById("contentBox");
+
+  actionBar.innerHTML = `
+    <button class="category-action-btn" id="backBtn">← Back to Stockrooms</button>
+    <button class="category-action-btn" id="addBatchBtn">${icon("plus")} Add Batch</button>
+  `;
+
+  contentBox.innerHTML = `
+    <div class="data-box">
+      ${batchHeader()}
+      <div class="data-scroll">
+        <table class="category-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Available Qty</th>
+              <th>Batches</th>
+              <th>Oldest Good-Until</th>
+            </tr>
+          </thead>
+          <tbody id="batchBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  bindDataBoxScroll(document.querySelector(".data-box"));
+
+  document.getElementById("backBtn").onclick = () => showListScreen();
+  document.getElementById("addBatchBtn").onclick = openAddBatchModal;
+
+  await loadBatchAvailability();
+}
+
+/* ================= LOAD BATCH DATA =================
+   Bypasses getCached() on purpose — this changes on every daily
+   inventory save, so caching it would actively serve stale numbers. */
+async function loadBatchAvailability() {
+  const tbody = document.getElementById("batchBody");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(
+      `${API_URL}?type=stockroomAvailability&stockroom_id=${encodeURIComponent(currentStockroom.stockroom_id)}`
+    );
+    const items = await res.json();
+
+    if (!Array.isArray(items) || !items.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No batches in this stockroom yet</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items
+      .sort((a, b) => a.item_name.localeCompare(b.item_name))
+      .map(i => `
+        <tr>
+          <td>${i.item_name}</td>
+          <td>${i.available_qty.toLocaleString()}</td>
+          <td>${i.batch_count}</td>
+          <td>${i.oldest_good_until || "—"}</td>
+        </tr>
+      `)
+      .join("");
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Failed to load batches</td></tr>`;
+  }
+}
+
+/* ================= ADD BATCH MODAL ================= */
+async function openAddBatchModal() {
+  const items = (await getCached("inventoryItems")).filter(i => i.active !== false);
+
+  const defaultGoodUntil = new Date(Date.now() + 7 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+
+  openModal(`
+    <div class="modal-header">${icon("plus")} Add Batch — ${currentStockroom.stockroom_name}</div>
+
+    <label>Item</label>
+    <select id="batchItem">
+      ${items.map(i => `<option value="${i.item_id}">${i.item_name}${i.unit ? ` (${i.unit})` : ""}</option>`).join("")}
+    </select>
+
+    <label>Quantity</label>
+    <input id="batchQty" type="number" min="1" placeholder="Qty">
+
+    <label>Good Until</label>
+    <input id="batchGoodUntil" type="date" value="${defaultGoodUntil}">
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="saveBatchBtn">Save</button>
+      <button class="btn-back" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+
+  document.getElementById("saveBatchBtn").onclick = saveBatch;
+}
+
+/* ================= SAVE BATCH ================= */
+async function saveBatch() {
+  const itemId = batchItem.value;
+  const qty = Number(batchQty.value);
+  const goodUntil = batchGoodUntil.value;
+
+  if (!itemId) return alert("Pick an item");
+  if (!qty || qty <= 0) return alert("Quantity must be greater than 0");
+  if (!goodUntil) return alert("Good-until date required");
+
+  closeModal();
+  showLoader("Adding batch…");
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        action: "addStockroomBatch",
+        stockroom_id: currentStockroom.stockroom_id,
+        item_id: itemId,
+        qty,
+        good_until: goodUntil
+      })
+    });
+    const result = await res.json();
+    if (!result.success) {
+      hideLoader();
+      alert(result.error || "Failed to add batch");
+      return;
+    }
+  } catch (err) {
+    hideLoader();
+    alert("Failed to add batch");
+    return;
+  }
+
+  await loadBatchAvailability();
   hideLoader();
 }
