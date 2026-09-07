@@ -27,24 +27,6 @@ function hideLoader() {
   document.getElementById("globalLoader")?.classList.add("hidden");
 }
 
-/* ================= STOCKROOM AVAILABILITY =================
-   Aggregated across every active stockroom (no picker yet — there's
-   only one stockroom today; a per-stockroom picker can be added later
-   without changing this call site). Bypasses getCached() on purpose —
-   this changes on every daily-inventory save, so caching it would
-   actively serve stale numbers. */
-async function fetchStockroomAvailMap() {
-  try {
-    const items = await fetch(`${API_URL}?type=stockroomAvailability`).then(r => r.json());
-    const map = {};
-    (Array.isArray(items) ? items : []).forEach(i => { map[i.item_id] = i.available_qty; });
-    return map;
-  } catch (err) {
-    console.warn("Failed to load stockroom availability", err);
-    return {};
-  }
-}
-
 /* ================= STATE ================= */
 let dailyInventory = [];
 let inventoryItems = [];
@@ -157,10 +139,9 @@ async function loadCarryOverReview(location) {
   showLoader("Loading yesterday's remaining stock…");
 
   try {
-    const [days, masterItems, stockroomAvailMap] = await Promise.all([
+    const [days, masterItems] = await Promise.all([
       fetch(`${API_URL}?type=dailyInventory`).then(r => r.json()),
-      getCached("inventoryItems"),
-      fetchStockroomAvailMap()
+      getCached("inventoryItems")
     ]);
 
     const unitMap = {};
@@ -195,29 +176,25 @@ async function loadCarryOverReview(location) {
       </div>
       <p style="padding:4px 0;color:#666">
         Choose how much of yesterday's remaining stock to carry over. Set an item to 0 to leave it out.
-        Anything above what's carried over is pulled from the stockroom.
       </p>
 
       <div style="max-height:340px;overflow:auto;margin-top:8px">
         ${prevItems.map(i => {
           const unit = unitMap[i.item_id] || "";
           const remaining = Number(i.remaining) || 0;
-          const avail = stockroomAvailMap[i.item_id] || 0;
-          const cap = remaining + avail;
           return `
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
             <div style="flex:1">
               ${i.item_name}${unit ? ` <span style="color:#888">(${unit})</span>` : ""}
-              <div style="font-size:12px;color:#888">Remaining: ${remaining} · In stockroom: ${avail}</div>
+              <div style="font-size:12px;color:#888">Remaining: ${remaining}</div>
             </div>
             <button type="button" class="btn-back"
               onclick="this.nextElementSibling.value = 0"
               style="padding:4px 10px;font-size:12px;white-space:nowrap">
               NONE
             </button>
-            <input type="number" min="0" max="${cap}"
+            <input type="number" min="0"
               data-carry-id="${i.item_id}"
-              data-cap="${cap}"
               value="${remaining}"
               style="width:90px">
           </div>
@@ -232,8 +209,6 @@ async function loadCarryOverReview(location) {
       </div>
     `, true);
 
-    bindCarryOverClamp();
-
   } catch (err) {
     console.error(err);
     alert("❌ Failed to load yesterday's stock");
@@ -247,17 +222,6 @@ window.zeroAllCarryOver = function () {
     input.value = 0;
   });
 };
-
-// max="" alone doesn't stop every browser from accepting a typed/pasted
-// value above it — this is the real hard cap.
-function bindCarryOverClamp() {
-  document.querySelectorAll("[data-carry-id]").forEach(input => {
-    input.addEventListener("input", () => {
-      const cap = Number(input.dataset.cap) || 0;
-      if (Number(input.value) > cap) input.value = cap;
-    });
-  });
-}
 
 window.confirmCarryOverStart = function () {
   const items = [];
@@ -403,9 +367,9 @@ function swapModalContent(html, afterSwap) {
   }, 140);
 }
 
-function renderInvView(date, location, status, items, conversionMap, stockroomTotalMap = {}) {
+function renderInvView(date, location, status, items, conversionMap) {
   const rows = !items.length
-    ? `<tr><td colspan="4" class="inv-modal-empty-cell">No data</td></tr>`
+    ? `<tr><td colspan="3" class="inv-modal-empty-cell">No data</td></tr>`
     : items.map(i => {
         const added = Number(i.qty_added) || 0;
         const remaining = Number(i.remaining) || 0;
@@ -417,17 +381,11 @@ function renderInvView(date, location, status, items, conversionMap, stockroomTo
           ? ` <small style="color:#888">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
           : "";
 
-        const inStockroom = stockroomTotalMap[i.item_id] || 0;
-        const inStockroomEquiv = conv && conv.perServing
-          ? ` <small style="color:#888">(${(inStockroom * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-          : "";
-
         return `
           <tr>
             <td>${i.item_name}</td>
             <td>${added}${addedEquiv}</td>
             <td>${remaining}${remainingEquiv}</td>
-            <td>${inStockroom}${inStockroomEquiv}</td>
           </tr>
         `;
       }).join("");
@@ -441,7 +399,6 @@ function renderInvView(date, location, status, items, conversionMap, stockroomTo
             <th>Item</th>
             <th>Total Added</th>
             <th>Remaining</th>
-            <th>In Stockroom</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -460,14 +417,13 @@ function renderInvView(date, location, status, items, conversionMap, stockroomTo
 }
 
 async function fetchInvViewData(date, location) {
-  const [data, masterItems, stockroomTotalMap] = await Promise.all([
+  const [data, masterItems] = await Promise.all([
     fetch(
       `${API_URL}?type=dailyInventoryItems` +
       `&date=${encodeURIComponent(date)}` +
       `&location=${encodeURIComponent(location)}`
     ).then(r => r.json()),
-    getCached("inventoryItems"),
-    fetchStockroomAvailMap()
+    getCached("inventoryItems")
   ]);
 
   // item_id → conversion info, so we can show a quantity-equivalent
@@ -480,7 +436,7 @@ async function fetchInvViewData(date, location) {
     };
   });
 
-  return { data, conversionMap, stockroomTotalMap };
+  return { data, conversionMap };
 }
 
 /* ================= VIEW DAILY INVENTORY ITEMS ================= */
@@ -488,7 +444,7 @@ window.viewDailyInventory = async function (date, location, status) {
   showLoader("Loading inventory…");
 
   try {
-    const { data, conversionMap, stockroomTotalMap } = await fetchInvViewData(date, location);
+    const { data, conversionMap } = await fetchInvViewData(date, location);
 
     // 🛑 NO ACTIVE INVENTORY
     if (data.status === "NO_ACTIVE_INVENTORY") {
@@ -507,7 +463,7 @@ window.viewDailyInventory = async function (date, location, status) {
       return;
     }
 
-    openModal(renderInvView(date, location, status, data.items || [], conversionMap, stockroomTotalMap), true);
+    openModal(renderInvView(date, location, status, data.items || [], conversionMap), true);
   } catch (err) {
     console.error(err);
     alert("Failed to load inventory");
@@ -518,24 +474,22 @@ window.viewDailyInventory = async function (date, location, status) {
 
 /* ================= NEW ADD TODAY INVENTORY ================= */
 
-function renderInvAdd(date, location, items, remainingMap, stockroomAvailMap) {
+function renderInvAdd(date, location, items, remainingMap) {
   const rows = items.map(i => {
     const unit = i.unit || "";
     const perServing = Number(i.quantity_per_serving) || 0;
     const remaining = remainingMap[i.item_id] ?? 0;
-    const avail = stockroomAvailMap[i.item_id] || 0;
 
     return `
       <div class="inv-item-row">
         <div class="inv-item-info">
           <div class="inv-item-name">${i.item_name}${unit ? ` <span class="inv-item-unit">(${unit})</span>` : ""}</div>
-          <div class="inv-item-current">Currently: ${remaining}${unit ? " " + unit : ""} · In stockroom: ${avail}${unit ? " " + unit : ""}</div>
+          <div class="inv-item-current">Currently: ${remaining}${unit ? " " + unit : ""}</div>
         </div>
-        <input type="number" min="0" max="${avail}"
+        <input type="number" min="0"
           data-id="${i.item_id}"
           data-yield="${perServing}"
           data-unit="${unit}"
-          data-cap="${avail}"
           class="add-inventory-qty"
           placeholder="Qty">
         <div class="add-inventory-yield">—</div>
@@ -571,13 +525,12 @@ window.openAddInventoryForDay = async function (date, location) {
   `);
 
   try {
-    const [items, dailyData, stockroomAvailMap] = await Promise.all([
+    const [items, dailyData] = await Promise.all([
       getCached("inventoryItems"),
       fetch(
         `${API_URL}?type=dailyInventoryItems` +
         `&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}`
-      ).then(r => r.json()),
-      fetchStockroomAvailMap()
+      ).then(r => r.json())
     ]);
 
     inventoryItems = items;
@@ -589,7 +542,7 @@ window.openAddInventoryForDay = async function (date, location) {
     });
 
     swapModalContent(
-      renderInvAdd(date, location, inventoryItems, remainingMap, stockroomAvailMap),
+      renderInvAdd(date, location, inventoryItems, remainingMap),
       bindAddInventoryYieldInputs
     );
   } catch (err) {
@@ -615,13 +568,8 @@ function bindAddInventoryYieldInputs() {
     const yieldEl = input.nextElementSibling;
     const perServing = Number(input.dataset.yield) || 0;
     const unit = input.dataset.unit || "";
-    const cap = Number(input.dataset.cap) || 0;
 
     input.addEventListener("input", () => {
-      // max="" alone doesn't stop every browser from accepting a typed/
-      // pasted value above it — this is the real hard cap.
-      if (Number(input.value) > cap) input.value = cap;
-
       const qty = Number(input.value) || 0;
 
       if (!perServing || !qty) {
@@ -698,8 +646,8 @@ window.saveInventoryForDay = function (date, location) {
       loadDailyInventory();
 
       try {
-        const { data, conversionMap, stockroomTotalMap } = await fetchInvViewData(date, location);
-        swapModalContent(renderInvView(date, location, data.status, data.items || [], conversionMap, stockroomTotalMap));
+        const { data, conversionMap } = await fetchInvViewData(date, location);
+        swapModalContent(renderInvView(date, location, data.status, data.items || [], conversionMap));
       } catch (err) {
         console.error(err);
         closeModal();

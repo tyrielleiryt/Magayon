@@ -182,7 +182,6 @@ let inventory = {};      // item_id → remaining
 let inventoryNames = {};  // item_id → item_name ✅ ADD THIS
 let inventoryReorderLevels = {}; // item_id → reorder_level (per-item low-stock threshold)
 let inventoryConversionMap = {}; // item_id → { unit, perServing } — for showing a quantity equivalent (e.g. "= 1,200g") next to raw counts
-let stockroomTotalMap = {}; // item_id → total available across every active stockroom
 let cart = [];
 let activeCategoryId = null;
 
@@ -460,16 +459,14 @@ async function loadAllData() {
     productsData,
     recipesData,
     inventoryResponse,
-    inventoryItemsData,
-    stockroomAvailData
+    inventoryItemsData
   ] = await Promise.all([
     fetch(`${API_URL}?type=categories`).then(r => r.json()),
     fetch(`${API_URL}?type=products`).then(r => r.json()),
     fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
     fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
       .then(r => r.json()),
-    fetch(`${API_URL}?type=inventoryItems`).then(r => r.json()),
-    fetch(`${API_URL}?type=stockroomAvailability`).then(r => r.json())
+    fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
   ]);
 
   inventoryReorderLevels = {};
@@ -482,13 +479,6 @@ async function loadAllData() {
       unit: i.unit || "",
       perServing: Number(i.quantity_per_serving) || 0
     };
-  });
-
-  // Aggregated across every active stockroom — the POS has no concept of
-  // "which stockroom," it just needs "how much exists somewhere."
-  stockroomTotalMap = {};
-  (Array.isArray(stockroomAvailData) ? stockroomAvailData : []).forEach(i => {
-    stockroomTotalMap[i.item_id] = Number(i.available_qty) || 0;
   });
 
   // 🔒 INVENTORY GATE
@@ -556,7 +546,7 @@ async function loadProductSales(date, location) {
 async function loadInventoryReconciliation(date, location) {
   const tbody = document.getElementById("inventoryReconBody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" class="pos-modal-empty">Loading…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">Loading…</td></tr>`;
 
   const res = await fetch(
     `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}&_=${Date.now()}`
@@ -566,7 +556,7 @@ async function loadInventoryReconciliation(date, location) {
   tbody.innerHTML = "";
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="pos-modal-empty">${icon("package", { size: 20 })}<br>No inventory</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">${icon("package", { size: 20 })}<br>No inventory</td></tr>`;
     return;
   }
 
@@ -586,18 +576,12 @@ async function loadInventoryReconciliation(date, location) {
       ? ` <small style="color:var(--apple-text-secondary)">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
       : "";
 
-    const inStockroom = stockroomTotalMap[i.item_id] || 0;
-    const inStockroomEquiv = conv && conv.perServing
-      ? ` <small style="color:var(--apple-text-secondary)">(${(inStockroom * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-      : "";
-
     tbody.insertAdjacentHTML("beforeend", `
   <tr class="${rowClass}">
     <td>${i.item_name}</td>
     <td>${added}${addedEquiv}</td>
     <td>${i.consumed}</td>
     <td><strong>${remaining}</strong>${remainingEquiv}</td>
-    <td>${inStockroom}${inStockroomEquiv}</td>
     <td>
       <strong>${i.quantity_left_display || "0"}</strong>
     </td>
@@ -1222,7 +1206,7 @@ document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
-  tbody.innerHTML = "<tr><td colspan='4' class='pos-modal-empty'>Loading…</td></tr>";
+  tbody.innerHTML = "<tr><td colspan='3' class='pos-modal-empty'>Loading…</td></tr>";
   document.getElementById("stocksModal").classList.remove("hidden");
 
   try {
@@ -1236,7 +1220,7 @@ async function openStocks() {
 
     if (data.status !== "OPEN") {
       tbody.innerHTML =
-        `<tr><td colspan='4' class="pos-modal-empty">${icon("lock", { size: 20 })}<br>Inventory is closed.</td></tr>`;
+        `<tr><td colspan='3' class="pos-modal-empty">${icon("lock", { size: 20 })}<br>Inventory is closed.</td></tr>`;
       return;
     }
 
@@ -1246,7 +1230,7 @@ async function openStocks() {
 
     if (!rows.length) {
       tbody.innerHTML =
-        `<tr><td colspan='4' class="pos-modal-empty">${icon("clipboard-list", { size: 20 })}<br>No inventory data.</td></tr>`;
+        `<tr><td colspan='3' class="pos-modal-empty">${icon("clipboard-list", { size: 20 })}<br>No inventory data.</td></tr>`;
       return;
     }
 
@@ -1261,17 +1245,11 @@ async function openStocks() {
         ? ` <small style="color:var(--apple-text-secondary)">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
         : "";
 
-      const inStockroom = stockroomTotalMap[r.item_id] || 0;
-      const inStockroomEquiv = conv && conv.perServing
-        ? ` <small style="color:var(--apple-text-secondary)">(${(inStockroom * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-        : "";
-
       tbody.insertAdjacentHTML("beforeend", `
         <tr>
           <td>${r.item_name}</td>
           <td>${added}${addedEquiv}</td>
           <td>${remaining}${remainingEquiv}</td>
-          <td>${inStockroom}${inStockroomEquiv}</td>
         </tr>
       `);
     });
