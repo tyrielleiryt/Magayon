@@ -8,6 +8,13 @@ window.API_URL = API_URL; // kept for admin-close-day.js
 
 renderIcons();
 
+// Cache-busting for the lazy-loaded view modules below — GitHub Pages and
+// browsers will otherwise happily keep serving a stale views/*.js after a
+// push. Bump this whenever a views/*.js file changes (paired with bumping
+// the same value in main.html's <link>/<script> tags for main.css/admin.js
+// themselves).
+const ASSET_VERSION = "20260907a";
+
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
    load. Replaces the old `localStorage.isLoggedIn === "true"` check, which
@@ -195,19 +202,19 @@ document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async (
    connection. import() results are cached after the first load, so
    revisiting a tab doesn't re-fetch or re-parse anything. */
 const VIEW_LOADERS = {
-  capitalCalculator: () => import("./views/capital-calculator.js"),
-  categories: () => import("./views/categories.js"),
-  products: () => import("./views/products.js"),
-  inventory: () => import("./views/inventoryitems.js"),
-  dailyInventory: () => import("./views/dailyinventory.js"),
-  dailySales: () => import("./views/dailySales.js"),
-  pettyCash: () => import("./views/pettyCash.js"),
-  salesExpensesTracker: () => import("./views/salesExpensesTracker.js"),
-  locations: () => import("./views/locations.js"),
-  staff: () => import("./views/staff.js"),
-  attendance: () => import("./views/attendance.js"),
-  permissions: () => import("./views/permissions.js"),
-  dashboard: () => import("./views/dashboard.js")
+  capitalCalculator: () => import(`./views/capital-calculator.js?v=${ASSET_VERSION}`),
+  categories: () => import(`./views/categories.js?v=${ASSET_VERSION}`),
+  products: () => import(`./views/products.js?v=${ASSET_VERSION}`),
+  inventory: () => import(`./views/inventoryitems.js?v=${ASSET_VERSION}`),
+  dailyInventory: () => import(`./views/dailyinventory.js?v=${ASSET_VERSION}`),
+  dailySales: () => import(`./views/dailySales.js?v=${ASSET_VERSION}`),
+  pettyCash: () => import(`./views/pettyCash.js?v=${ASSET_VERSION}`),
+  salesExpensesTracker: () => import(`./views/salesExpensesTracker.js?v=${ASSET_VERSION}`),
+  locations: () => import(`./views/locations.js?v=${ASSET_VERSION}`),
+  staff: () => import(`./views/staff.js?v=${ASSET_VERSION}`),
+  attendance: () => import(`./views/attendance.js?v=${ASSET_VERSION}`),
+  permissions: () => import(`./views/permissions.js?v=${ASSET_VERSION}`),
+  dashboard: () => import(`./views/dashboard.js?v=${ASSET_VERSION}`)
 };
 
 // Only set once the dashboard has actually been loaded at least once —
