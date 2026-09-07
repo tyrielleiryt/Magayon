@@ -14,7 +14,9 @@ export default async function loadDashboardView() {
   await Promise.all([
     loadTopSellers(today),
     loadDailyAnalytics(today),
-    loadLowStockAlerts(today)
+    loadLowStockAlerts(today),
+    loadLaborCost(today),
+    loadStockDaysRemaining(today)
   ]);
 
   startLiveSalesPolling(today);
@@ -157,6 +159,27 @@ function renderLayout() {
   </div>
 
 </div>
+
+<div class="dashboard-grid-2">
+
+  <!-- Days of Stock Remaining -->
+  <div class="dashboard-card">
+    <h3>${icon("package")} Days of Stock Remaining</h3>
+    <div id="stockDaysBody"><div class="stock-empty">Loading…</div></div>
+  </div>
+
+  <!-- Labor Cost % -->
+  <div class="dashboard-card kpi-tile">
+    <div class="kpi-label">
+      ${icon("banknote")} Labor Cost
+      <span class="status-chip" id="laborCostChip">—</span>
+    </div>
+    <div class="kpi-value" id="laborCostValue">—</div>
+    <div class="kpi-sub" id="laborCostSub">Loading…</div>
+    <div class="bar-compare"><span id="laborCostBar" style="width:0%;background:#cbd5e1"></span></div>
+  </div>
+
+</div>
   `;
 }
 
@@ -257,6 +280,198 @@ async function loadLowStockAlerts(date) {
   } catch (err) {
     console.error("Low stock failed", err);
   }
+}
+
+/* ================= LABOR COST % ================= */
+const LABOR_COST_GOOD_MAX = 25; // <=25% of gross = healthy for food service
+const LABOR_COST_WARN_MAX = 35; // 25-35% = watch, >35% = high
+
+async function loadLaborCost(date) {
+  const chip = document.getElementById("laborCostChip");
+  const valueEl = document.getElementById("laborCostValue");
+  const subEl = document.getElementById("laborCostSub");
+  const barEl = document.getElementById("laborCostBar");
+
+  try {
+    const [staffList, attendance, sales] = await Promise.all([
+      safeFetchJSON(`${API_URL}?type=staff`),
+      safeFetchJSON(`${API_URL}?type=attendanceOverview&date=${date}`),
+      safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${date}`)
+    ]);
+
+    const rateByStaffId = {};
+    (Array.isArray(staffList) ? staffList : []).forEach(s => {
+      if (s.active) rateByStaffId[s.staff_id] = Number(s.rate) || 0;
+    });
+
+    const attendanceRows = Array.isArray(attendance?.staff) ? attendance.staff : [];
+    let laborCost = 0;
+    let workedCount = 0;
+    attendanceRows.forEach(row => {
+      // A day rate is earned by anyone who clocked in today, whether or not
+      // they've clocked out yet — clock_in_time is empty for staff who
+      // never clocked in at all today.
+      if (row.clock_in_time && rateByStaffId[row.staff_id] != null) {
+        laborCost += rateByStaffId[row.staff_id];
+        workedCount++;
+      }
+    });
+
+    const gross = Number(sales?.gross || 0);
+
+    if (gross <= 0) {
+      valueEl.textContent = "—";
+      subEl.textContent = workedCount
+        ? `₱${laborCost.toFixed(0)} labor logged, no sales yet today`
+        : "No sales recorded yet today";
+      chip.textContent = "—";
+      chip.className = "status-chip";
+      barEl.style.width = "0%";
+      return;
+    }
+
+    const pct = (laborCost / gross) * 100;
+    const tier =
+      pct <= LABOR_COST_GOOD_MAX ? "good" :
+      pct <= LABOR_COST_WARN_MAX ? "warn" : "crit";
+    const tierLabel = tier === "good" ? "Healthy" : tier === "warn" ? "Watch" : "High";
+    const tierColor = tier === "good" ? "#16a34a" : tier === "warn" ? "#d97706" : "#dc2626";
+
+    valueEl.textContent = `${pct.toFixed(1)}%`;
+    subEl.textContent = `₱${laborCost.toFixed(0)} labor (${workedCount} clocked in) on ₱${gross.toFixed(0)} sales`;
+    chip.textContent = tierLabel;
+    chip.className = `status-chip ${tier}`;
+    barEl.style.width = `${Math.min(100, pct)}%`;
+    barEl.style.background = tierColor;
+  } catch (err) {
+    console.error("Labor cost failed", err);
+    valueEl.textContent = "—";
+    subEl.textContent = "Failed to load";
+    chip.textContent = "—";
+  }
+}
+
+/* ================= DAYS OF STOCK REMAINING =================
+   Estimates how many days each item has left by averaging how much was
+   actually consumed (qty_added - remaining) on each of the last few CLOSED
+   inventory days, then dividing today's current remaining by that average.
+   Aggregated across every active location — there's usually just one, but
+   this keeps working unchanged if a second one is added. */
+const STOCK_DAYS_HISTORY = 4;
+const STOCK_DAYS_ROWS_SHOWN = 6;
+
+async function loadStockDaysRemaining(date) {
+  const body = document.getElementById("stockDaysBody");
+
+  try {
+    const [inventoryItems, dailyList, locations] = await Promise.all([
+      safeFetchJSON(`${API_URL}?type=inventoryItems`),
+      safeFetchJSON(`${API_URL}?type=dailyInventory`),
+      safeFetchJSON(`${API_URL}?type=locations`)
+    ]);
+
+    const itemMeta = {};
+    (Array.isArray(inventoryItems) ? inventoryItems : [])
+      .filter(i => i.active)
+      .forEach(i => { itemMeta[i.item_id] = i; });
+
+    const activeLocationIds = (Array.isArray(locations) ? locations : [])
+      .filter(l => l.active)
+      .map(l => l.location_id);
+
+    // Most recent CLOSED days strictly before today, per location.
+    const historyRequests = [];
+    activeLocationIds.forEach(locId => {
+      const closedDates = (Array.isArray(dailyList) ? dailyList : [])
+        .filter(d => d.location === locId && d.status === "CLOSED" && d.date.slice(0, 10) < date)
+        .map(d => d.date.slice(0, 10))
+        .sort()
+        .slice(-STOCK_DAYS_HISTORY);
+
+      closedDates.forEach(d => {
+        historyRequests.push(
+          safeFetchJSON(`${API_URL}?type=dailyInventoryItems&date=${d}&location=${locId}`)
+        );
+      });
+    });
+
+    const todayRequests = activeLocationIds.map(locId =>
+      safeFetchJSON(`${API_URL}?type=dailyInventoryItems&date=${date}&location=${locId}`)
+    );
+
+    const [historyDays, todayDays] = await Promise.all([
+      Promise.all(historyRequests),
+      Promise.all(todayRequests)
+    ]);
+
+    // Average daily usage per item, across every day it was actually stocked.
+    const usage = {};
+    historyDays.forEach(day => {
+      (day?.items || []).forEach(it => {
+        const added = Number(it.qty_added) || 0;
+        if (added <= 0) return;
+        const remaining = Number(it.remaining) || 0;
+        const used = Math.max(0, added - remaining);
+        if (!usage[it.item_id]) usage[it.item_id] = { totalUsed: 0, days: 0 };
+        usage[it.item_id].totalUsed += used;
+        usage[it.item_id].days += 1;
+      });
+    });
+
+    // Current remaining, summed across locations.
+    const currentRemaining = {};
+    todayDays.forEach(day => {
+      (day?.items || []).forEach(it => {
+        const remaining = Number(it.remaining) || 0;
+        currentRemaining[it.item_id] = (currentRemaining[it.item_id] || 0) + remaining;
+      });
+    });
+
+    const rows = Object.keys(currentRemaining)
+      .map(itemId => {
+        const meta = itemMeta[itemId];
+        const u = usage[itemId];
+        if (!meta || !u || u.days === 0) return null;
+
+        const avgDaily = u.totalUsed / u.days;
+        if (avgDaily <= 0) return null;
+
+        return {
+          name: meta.item_name,
+          unit: meta.unit || "",
+          remaining: currentRemaining[itemId],
+          days: currentRemaining[itemId] / avgDaily
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.days - b.days)
+      .slice(0, STOCK_DAYS_ROWS_SHOWN);
+
+    renderStockDaysRemaining(rows);
+  } catch (err) {
+    console.error("Stock days remaining failed", err);
+    body.innerHTML = `<div class="stock-empty">Failed to load</div>`;
+  }
+}
+
+function renderStockDaysRemaining(rows) {
+  const body = document.getElementById("stockDaysBody");
+  if (!body) return;
+
+  if (!rows.length) {
+    body.innerHTML = `<div class="stock-empty">Not enough inventory history yet to estimate days remaining</div>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(r => {
+    const tier = r.days < 1 ? "crit" : r.days < 3 ? "warn" : "ok";
+    return `
+      <div class="stock-row">
+        <div class="stock-item">${r.name} <span class="stock-unit">· ${r.remaining.toLocaleString()} ${r.unit} left</span></div>
+        <span class="days-pill ${tier}">${r.days.toFixed(1)} days</span>
+      </div>
+    `;
+  }).join("");
 }
 
 /* ================= LIVE SALES FEED ================= */

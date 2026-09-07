@@ -1489,3 +1489,113 @@ html, body {
 .trend.up { color: #16a34a; }    /* green */
 .trend.down { color: #dc2626; }  /* red */
 .trend.flat { color: #64748b; }  /* gray */
+
+/* ================= DASHBOARD — SECONDARY ROW (Stock Days Remaining, Labor Cost) ================= */
+.dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stock-row:last-child { border-bottom: none; }
+
+.stock-item {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  min-width: 0;
+}
+
+.stock-unit {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.days-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.days-pill.crit { background: #fff5f5; color: #b91c1c; }
+.days-pill.warn { background: #fffbeb; color: #b45309; }
+.days-pill.ok   { background: #f0fdf4; color: #15803d; }
+
+.kpi-tile { justify-content: center; }
+
+.kpi-label {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-chip {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.status-chip.good { background: #f0fdf4; color: #15803d; }
+.status-chip.warn { background: #fffbeb; color: #b45309; }
+.status-chip.crit { background: #fff5f5; color: #b91c1c; }
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0 6px;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.bar-compare {
+  margin-top: 10px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.bar-compare > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.stock-empty, .kpi-empty {
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 18px 0;
+}
