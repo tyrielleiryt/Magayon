@@ -1185,12 +1185,25 @@ html, body {
 
 /* ================= DASHBOARD CLEAN LAYOUT ================= */
 
+/* Scrolls the whole dashboard body (both widget rows) within the fixed
+   .data-box height, since .data-box itself never scrolls — only a
+   .data-scroll-style child does. Without this, anything past the first
+   .dashboard-grid row is clipped and unreachable. */
+.dashboard-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 14px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1.4fr;
   gap: 18px;
-  margin-top: 14px;
-  height: 100%;
+  flex-shrink: 0;
 }
 
 /* Card */
@@ -1495,7 +1508,7 @@ html, body {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 18px;
-  margin-top: 18px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 1100px) {

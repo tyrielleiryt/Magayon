@@ -79,6 +79,8 @@ function renderLayout() {
     <div class="data-box">
       <h2>${icon("layout-dashboard")} Dashboard Overview</h2>
 
+      <div class="dashboard-scroll">
+
       <div class="dashboard-grid">
 
   <!-- Left: Top Sellers -->
@@ -180,6 +182,9 @@ function renderLayout() {
   </div>
 
 </div>
+
+      </div>
+    </div>
   `;
 }
 
