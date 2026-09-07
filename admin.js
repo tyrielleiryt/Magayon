@@ -13,7 +13,7 @@ renderIcons();
 // push. Bump this whenever a views/*.js file changes (paired with bumping
 // the same value in main.html's <link>/<script> tags for main.css/admin.js
 // themselves).
-const ASSET_VERSION = "20260907b";
+const ASSET_VERSION = "20260907c";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
