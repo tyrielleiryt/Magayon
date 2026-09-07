@@ -242,6 +242,34 @@ function disableWakeLock() {
   }
 }
 
+/* ================= LOGOUT CONFIRM ================= */
+function confirmLogout() {
+  const overlay = document.getElementById("logoutConfirmOverlay");
+  if (!overlay) return Promise.resolve(confirm("Log out?"));
+
+  return new Promise(resolve => {
+    overlay.classList.remove("hidden");
+
+    const cancelBtn = document.getElementById("logoutConfirmCancel");
+    const okBtn = document.getElementById("logoutConfirmOk");
+
+    function cleanup(result) {
+      overlay.classList.add("hidden");
+      cancelBtn.removeEventListener("click", onCancel);
+      okBtn.removeEventListener("click", onOk);
+      overlay.removeEventListener("click", onOverlayClick);
+      resolve(result);
+    }
+    function onCancel() { cleanup(false); }
+    function onOk() { cleanup(true); }
+    function onOverlayClick(e) { if (e.target === overlay) cleanup(false); }
+
+    cancelBtn.addEventListener("click", onCancel);
+    okBtn.addEventListener("click", onOk);
+    overlay.addEventListener("click", onOverlayClick);
+  });
+}
+
 
 
 /* =========================================================
@@ -392,8 +420,8 @@ if ("serviceWorker" in navigator) {
 
   
 
-  document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    if (!confirm("Log out?")) return;
+  document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+    if (!(await confirmLogout())) return;
     logout();
   });
 

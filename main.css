@@ -714,6 +714,93 @@ html, body {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
+/* ================= LOGOUT CONFIRM ================= */
+.logout-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.logout-confirm-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px 22px;
+  width: 300px;
+  max-width: 90vw;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  animation: logout-confirm-pop 0.16s ease;
+}
+
+@keyframes logout-confirm-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.logout-confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--apple-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.logout-confirm-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--apple-text);
+}
+
+.logout-confirm-text {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--apple-text-secondary);
+  line-height: 1.4;
+}
+
+.logout-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.logout-confirm-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.logout-confirm-btn-cancel {
+  background: var(--apple-gray-bg);
+  color: var(--apple-text);
+}
+
+.logout-confirm-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.logout-confirm-btn-danger {
+  background: var(--apple-red);
+  color: #fff;
+}
+
+.logout-confirm-btn-danger:hover {
+  background: #e0352b;
+}
+
 /* Inventory table row UX */
 .category-table tbody tr {
   cursor: pointer;
