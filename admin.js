@@ -13,7 +13,7 @@ renderIcons();
 // push. Bump this whenever a views/*.js file changes (paired with bumping
 // the same value in main.html's <link>/<script> tags for main.css/admin.js
 // themselves).
-const ASSET_VERSION = "20260907a";
+const ASSET_VERSION = "20260907b";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -211,6 +211,7 @@ const VIEW_LOADERS = {
   pettyCash: () => import(`./views/pettyCash.js?v=${ASSET_VERSION}`),
   salesExpensesTracker: () => import(`./views/salesExpensesTracker.js?v=${ASSET_VERSION}`),
   locations: () => import(`./views/locations.js?v=${ASSET_VERSION}`),
+  stockroomLocations: () => import(`./views/stockroomlocations.js?v=${ASSET_VERSION}`),
   staff: () => import(`./views/staff.js?v=${ASSET_VERSION}`),
   attendance: () => import(`./views/attendance.js?v=${ASSET_VERSION}`),
   permissions: () => import(`./views/permissions.js?v=${ASSET_VERSION}`),
