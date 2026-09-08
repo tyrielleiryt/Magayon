@@ -73,6 +73,26 @@ html, body {
   padding: 2px 6px;
 }
 
+/* Hidden on desktop/tablet — only shown at the mobile breakpoint below,
+   where it opens the sidebar as a slide-in drawer instead. */
+.sidebar-toggle-btn {
+  display: none;
+  background: rgba(0,0,0,0.06);
+  border: none;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  color: var(--apple-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(0,0,0,0.1);
+}
+
 /* ================= LAYOUT ================= */
 .admin-layout {
   display: flex;
@@ -120,6 +140,12 @@ html, body {
   background: var(--apple-blue);
   color: white;
   font-weight: bold;
+}
+
+/* Click-catching backdrop behind the mobile drawer — only ever visible
+   at the mobile breakpoint below, alongside .sidebar.open. */
+.sidebar-overlay {
+  display: none;
 }
 
 /* ================= CONTENT ================= */
@@ -180,6 +206,7 @@ html, body {
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
+  min-height: 44px;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
   display: inline-flex;
   align-items: center;
@@ -1611,4 +1638,86 @@ html, body {
   color: #94a3b8;
   text-align: center;
   padding: 18px 0;
+}
+
+/* =========================================================
+   MOBILE (admin) — phone-width layout. Nothing here changes
+   anything above these breakpoints; desktop/tablet stay exactly
+   as they were.
+========================================================= */
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  /* Sidebar becomes a slide-in drawer instead of a static column —
+     .admin-layout no longer needs to make room for it in-flow. */
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    left: -240px;
+    bottom: 0;
+    width: 240px;
+    z-index: 200;
+    transition: left 0.2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 150;
+  }
+
+  /* Least essential top-bar element — drop it first to keep the row
+     from overflowing next to the new hamburger button. */
+  #datetime {
+    display: none;
+  }
+
+  /* Stacked, full-width controls are more reliable on a narrow screen
+     than a wrapped row of oddly-sized inputs/buttons. */
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-bar input,
+  .action-bar select,
+  .action-bar .category-action-btn {
+    width: 100%;
+  }
+
+  /* Tables scroll sideways instead of squeezing illegible — one shared
+     fix for every admin view built on .data-box > .data-scroll > table. */
+  .data-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* #adminChatBox is inline-styled in main.html (fixed 360x480px panel) —
+     !important is required to win over those inline styles. */
+  #adminChatBox {
+    width: 92vw !important;
+    height: 70vh !important;
+    right: 4vw !important;
+    bottom: 10px !important;
+  }
 }

@@ -439,6 +439,13 @@ if ("serviceWorker" in navigator) {
     renderProducts();
   });
 
+  // Mobile-only cart bottom sheet — tapping the peek bar expands/
+  // collapses the cart. No-op above the phone breakpoint, where the
+  // cart is always fully visible and this bar stays hidden.
+  document.getElementById("cartPeekBar")?.addEventListener("click", () => {
+    document.getElementById("cartPanel")?.classList.toggle("expanded");
+  });
+
   document.getElementById("searchInput")?.addEventListener("input", e => {
     renderProducts(e.target.value.toLowerCase());
   });
@@ -856,6 +863,14 @@ function renderCart() {
 
   tbody.innerHTML = rows;
   sumEl.textContent = sum.toFixed(2);
+
+  // Mobile-only cart peek bar — no-op above the phone breakpoint, where
+  // this element doesn't exist in a rendered/visible state.
+  const peekText = document.getElementById("cartPeekText");
+  if (peekText) {
+    const itemCount = cart.reduce((n, i) => n + (Number(i.qty) || 0), 0);
+    peekText.textContent = `${itemCount} item${itemCount === 1 ? "" : "s"} · ₱${sum.toFixed(2)}`;
+  }
 }
 
 function loadPOSProductSaleTracker() {

@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <title>Magayon Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="main.css?v=20260907a">
+  <link rel="stylesheet" href="main.css?v=20260908a">
 </head>
 <body>
 
 <header class="top-bar">
+  <button id="sidebarToggle" class="sidebar-toggle-btn" aria-label="Open menu"><i data-icon="menu"></i></button>
+
   <div class="brand">
     <span class="icon" data-icon="utensils"></span>
     <span class="title">POS</span>
@@ -41,6 +43,8 @@
     <button class="nav-btn" data-view="salesExpensesTracker"><i data-icon="trending-up"></i> Sales and Expenses Tracker</button>
     <button class="nav-btn" data-view="permissions"><i data-icon="shield"></i> Permissions</button>
   </aside>
+
+  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
 
 <main class="content">
 
@@ -178,7 +182,7 @@
 </div>
 
 <script type="module" src="admin-close-day.js?v=20260907a"></script>
-<script type="module" src="admin.js?v=20260907e"></script>
+<script type="module" src="admin.js?v=20260908a"></script>
 
 </body>
 </html>

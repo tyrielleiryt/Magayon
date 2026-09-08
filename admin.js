@@ -13,7 +13,7 @@ renderIcons();
 // push. Bump this whenever a views/*.js file changes (paired with bumping
 // the same value in main.html's <link>/<script> tags for main.css/admin.js
 // themselves).
-const ASSET_VERSION = "20260907e";
+const ASSET_VERSION = "20260908a";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -51,6 +51,35 @@ if (allowedPages !== null) {
 
 document.querySelectorAll('.nav-btn[data-view="permissions"]').forEach(btn => {
   if (currentUser.role !== ROLES.IT_ADMIN) btn.remove();
+});
+
+/* ================= MOBILE SIDEBAR DRAWER =================
+   The hamburger button and overlay only render/matter at the mobile
+   breakpoint (see main.css) — on desktop the sidebar is never
+   position:fixed, so .open/.hidden toggles here are harmless no-ops. */
+const sidebarEl = document.querySelector(".sidebar");
+const sidebarOverlayEl = document.getElementById("sidebarOverlay");
+
+function openSidebar() {
+  sidebarEl?.classList.add("open");
+  sidebarOverlayEl?.classList.remove("hidden");
+}
+
+function closeSidebar() {
+  sidebarEl?.classList.remove("open");
+  sidebarOverlayEl?.classList.add("hidden");
+}
+
+document.getElementById("sidebarToggle")?.addEventListener("click", () => {
+  sidebarEl?.classList.contains("open") ? closeSidebar() : openSidebar();
+});
+
+sidebarOverlayEl?.addEventListener("click", closeSidebar);
+
+// Picking a page closes the drawer too, so the next screen isn't hidden
+// behind it.
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", closeSidebar);
 });
 
 /* ================= LOADER HELPERS ================= */

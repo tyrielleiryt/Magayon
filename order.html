@@ -101,7 +101,15 @@
 </main>
 
     <!-- ========== RIGHT : CART ========== -->
-    <aside class="cart-panel">
+    <aside class="cart-panel" id="cartPanel">
+  <!-- Mobile-only "peek" bar — tapping it expands/collapses the cart,
+       which becomes a bottom sheet at phone widths. Hidden above that
+       breakpoint, where the cart is always fully visible as today. -->
+  <button type="button" class="cart-peek-bar" id="cartPeekBar">
+    <span id="cartPeekText">0 items · ₱0.00</span>
+    <span class="cart-peek-arrow" aria-hidden="true">▲</span>
+  </button>
+
   <div class="cart-table-wrapper">
     <table class="cart-table">
       <thead>
