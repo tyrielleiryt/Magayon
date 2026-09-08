@@ -10,9 +10,17 @@ renderIcons();
 
 // Cache-busting for the lazy-loaded view modules below — GitHub Pages and
 // browsers will otherwise happily keep serving a stale views/*.js after a
-// push. Bump this whenever a views/*.js file changes (paired with bumping
-// the same value in main.html's <link>/<script> tags for main.css/admin.js
-// themselves).
+// push. Bump this whenever a views/*.js file changes (also bump main.css's
+// own ?v= in main.html when it changes — that one's independent of this).
+//
+// Deliberately does NOT extend to admin.js or admin-close-day.js's own
+// <script> tags in main.html: every view does an unversioned
+// `import {...} from "../admin.js"`, and ES modules are identified by
+// their exact URL — a versioned script tag here would load a SECOND,
+// separate module instance alongside that one, double-registering every
+// top-level listener in this file. Learned the hard way: this is exactly
+// what broke the Chat button and the sidebar drawer (each click fired
+// twice — once per instance — silently canceling itself out).
 const ASSET_VERSION = "20260908b";
 
 /* ================= AUTH GUARD =================

@@ -181,8 +181,19 @@
 
 </div>
 
-<script type="module" src="admin-close-day.js?v=20260907a"></script>
-<script type="module" src="admin.js?v=20260908b"></script>
+<!-- No ?v= here on purpose: every view file does
+     `import {...} from "../admin.js"` (and "../admin-close-day.js")
+     with no version string — ES modules are cached/identified by their
+     exact URL, so a versioned script tag here would load a SECOND,
+     separate instance of this module alongside the unversioned one
+     every view already imports. That silently double-registers every
+     top-level event listener in this file (which is exactly what broke
+     the Chat and sidebar-drawer buttons — each fired twice per click).
+     If this file changes, a hard refresh (or waiting out the browser's
+     normal cache) is required — there is no version-string shortcut
+     available here without breaking module identity. -->
+<script type="module" src="admin-close-day.js"></script>
+<script type="module" src="admin.js"></script>
 
 </body>
 </html>
