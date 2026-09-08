@@ -13,7 +13,7 @@ renderIcons();
 // push. Bump this whenever a views/*.js file changes (paired with bumping
 // the same value in main.html's <link>/<script> tags for main.css/admin.js
 // themselves).
-const ASSET_VERSION = "20260908a";
+const ASSET_VERSION = "20260908b";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -56,9 +56,28 @@ document.querySelectorAll('.nav-btn[data-view="permissions"]').forEach(btn => {
 /* ================= MOBILE SIDEBAR DRAWER =================
    The hamburger button and overlay only render/matter at the mobile
    breakpoint (see main.css) — on desktop the sidebar is never
-   position:fixed, so .open/.hidden toggles here are harmless no-ops. */
+   position:fixed, so .open/.hidden toggles here are harmless no-ops.
+
+   sidebarBusy guards against a real mobile-browser quirk: tapping the
+   hamburger makes the drawer slide in right under the same spot the
+   finger is touching, and some mobile browsers respond to that by
+   firing a second "phantom" click at those same coordinates — which
+   lands on the button again and immediately closes what just opened,
+   making it look like the button "does nothing". Ignoring any click
+   that arrives within 350ms of the last one (well past the drawer's
+   own 0.2s slide animation) absorbs that phantom click. */
 const sidebarEl = document.querySelector(".sidebar");
 const sidebarOverlayEl = document.getElementById("sidebarOverlay");
+let sidebarBusy = false;
+
+function guardSidebarClick(fn) {
+  return () => {
+    if (sidebarBusy) return;
+    sidebarBusy = true;
+    fn();
+    setTimeout(() => { sidebarBusy = false; }, 350);
+  };
+}
 
 function openSidebar() {
   sidebarEl?.classList.add("open");
@@ -70,16 +89,19 @@ function closeSidebar() {
   sidebarOverlayEl?.classList.add("hidden");
 }
 
-document.getElementById("sidebarToggle")?.addEventListener("click", () => {
-  sidebarEl?.classList.contains("open") ? closeSidebar() : openSidebar();
-});
+document.getElementById("sidebarToggle")?.addEventListener(
+  "click",
+  guardSidebarClick(() => {
+    sidebarEl?.classList.contains("open") ? closeSidebar() : openSidebar();
+  })
+);
 
-sidebarOverlayEl?.addEventListener("click", closeSidebar);
+sidebarOverlayEl?.addEventListener("click", guardSidebarClick(closeSidebar));
 
 // Picking a page closes the drawer too, so the next screen isn't hidden
 // behind it.
 document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.addEventListener("click", closeSidebar);
+  btn.addEventListener("click", guardSidebarClick(closeSidebar));
 });
 
 /* ================= LOADER HELPERS ================= */
