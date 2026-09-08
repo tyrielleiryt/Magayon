@@ -1696,14 +1696,86 @@ html, body {
   }
 
   /* Tables scroll sideways instead of squeezing illegible — one shared
-     fix for every admin view built on .data-box > .data-scroll > table. */
+     fix for every admin view built on .data-box > .data-scroll > table.
+     Scoped to .data-scroll specifically — the Dashboard's own small
+     tables sit in .dashboard-table-wrap instead (no horizontal scroll
+     there), and get shrunk to fit rather than widened, below. */
+  .data-scroll .category-table {
+    min-width: 600px;
+  }
+
   .data-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  .category-table {
-    min-width: 600px;
+  /* Dashboard — shrink to fit instead of scrolling. Its cards, tables,
+     and stat tiles are already narrow (3-5 columns at most), so there's
+     more value in fitting the whole screen than in preserving desktop
+     spacing/type sizes. */
+  .dashboard-card {
+    padding: 10px;
+    max-height: 220px;
+  }
+
+  .dashboard-card h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-card table,
+  .dashboard-card td,
+  .dashboard-card th {
+    font-size: 11px;
+  }
+
+  .dashboard-card th,
+  .dashboard-card td {
+    padding: 4px;
+  }
+
+  .analytics-box {
+    padding: 6px;
+  }
+
+  .analytics-box .label {
+    font-size: 10px;
+  }
+
+  .analytics-box .value {
+    font-size: 15px;
+  }
+
+  .trend {
+    font-size: 13px;
+  }
+
+  .live-sales-item {
+    padding: 6px 8px;
+  }
+
+  .live-sales-item-top {
+    font-size: 10.5px;
+  }
+
+  .live-sales-contents,
+  .live-sales-total {
+    font-size: 11px;
+  }
+
+  .stock-item {
+    font-size: 11px;
+  }
+
+  .stock-unit,
+  .days-pill,
+  .kpi-label,
+  .kpi-sub {
+    font-size: 10px;
+  }
+
+  .kpi-value {
+    font-size: 20px;
   }
 }
 
