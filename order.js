@@ -461,20 +461,20 @@ if ("serviceWorker" in navigator) {
 async function loadAllData() {
   const today = getPHDate();
 
-  const [
-    categoriesData,
-    productsData,
-    recipesData,
-    inventoryResponse,
-    inventoryItemsData
-  ] = await Promise.all([
-    fetch(`${API_URL}?type=categories`).then(r => r.json()),
-    fetch(`${API_URL}?type=products`).then(r => r.json()),
-    fetch(`${API_URL}?type=allProductRecipes`).then(r => r.json()),
-    fetch(`${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`)
-      .then(r => r.json()),
-    fetch(`${API_URL}?type=inventoryItems`).then(r => r.json())
-  ]);
+  // One combined call instead of 5 separate ones — each type= request
+  // used to pay its own Apps Script startup cost and compete for the
+  // script's concurrent-execution slots, which occasionally left one
+  // of them (inventoryItems, in testing) stuck for 30-60+ seconds and
+  // stalled the whole POS load since everything waited on Promise.all.
+  const data = await fetch(
+    `${API_URL}?type=posInit&date=${today}&location=${LOCATION}`
+  ).then(r => r.json());
+
+  const categoriesData = data.categories;
+  const productsData = data.products;
+  const recipesData = data.recipes;
+  const inventoryResponse = data.dailyInventory;
+  const inventoryItemsData = data.inventoryItems;
 
   inventoryReorderLevels = {};
   inventoryConversionMap = {};
