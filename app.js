@@ -14,6 +14,18 @@ const loginBtn = document.getElementById("loginBtn");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("errorMsg");
+const togglePasswordBtn = document.getElementById("togglePassword");
+const eyeIcon = document.getElementById("eyeIcon");
+
+/* ================= PASSWORD VISIBILITY TOGGLE ================= */
+const EYE_OPEN_ICON = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>`;
+const EYE_OFF_ICON = `<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+
+togglePasswordBtn?.addEventListener("click", () => {
+  const willShow = passwordInput.type === "password";
+  passwordInput.type = willShow ? "text" : "password";
+  eyeIcon.innerHTML = willShow ? EYE_OFF_ICON : EYE_OPEN_ICON;
+});
 
 /* ================= LOGIN ================= */
 async function handleLogin() {
@@ -68,7 +80,20 @@ async function handleLogin() {
 
   } catch (err) {
     console.error(err);
-    errorMsg.textContent = err.message;
+
+    const WRONG_CREDENTIAL_CODES = [
+      "auth/invalid-credential",
+      "auth/wrong-password",
+      "auth/user-not-found",
+      "auth/invalid-email"
+    ];
+
+    if (WRONG_CREDENTIAL_CODES.includes(err.code)) {
+      alert("Email or password is wrong, please check again.");
+    } else {
+      errorMsg.textContent = err.message;
+    }
+
     loginBtn.disabled = false;
     loginBtn.textContent = "Sign In";
   }
