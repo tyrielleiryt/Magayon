@@ -5,18 +5,35 @@ import { icon } from "../icons.js";
 
 
 /* ================= ENTRY ================= */
+// One AbortController per visit to this view — aborted from admin.js's
+// clearView() the moment the admin navigates away, so any of these
+// requests still in flight stop competing for the browser's ~6-per-site
+// connection limit with whatever the NEXT tab needs to load.
+let dashboardAbort = null;
+
+export function abortDashboardRequests() {
+  dashboardAbort?.abort();
+}
+
 export default async function loadDashboardView() {
   renderLayout();
   bindDataBoxScroll(document.querySelector(".data-box"));
 
   const today = new Date().toISOString().slice(0, 10);
+  dashboardAbort = new AbortController();
+  const signal = dashboardAbort.signal;
+
+  // Today's gross/orders/average is needed by both Daily Performance and
+  // Labor Cost — fetched once here and shared, instead of each widget
+  // independently re-fetching the exact same data.
+  const todaySalesPromise = safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${today}`, signal);
 
   await Promise.all([
-    loadTopSellers(today),
-    loadDailyAnalytics(today),
-    loadLowStockAlerts(today),
-    loadLaborCost(today),
-    loadStockDaysRemaining(today)
+    loadTopSellers(today, signal),
+    loadDailyAnalytics(today, todaySalesPromise, signal),
+    loadLowStockAlerts(today, signal),
+    loadLaborCost(today, todaySalesPromise, signal),
+    loadStockDaysRemaining(today, signal)
   ]);
 
   startLiveSalesPolling(today);
@@ -43,8 +60,8 @@ export function stopDashboardPolling() {
 }
 
 /* ================= SAFE JSON FETCH ================= */
-async function safeFetchJSON(url) {
-  const res = await fetch(url);
+async function safeFetchJSON(url, signal) {
+  const res = await fetch(url, signal ? { signal } : undefined);
   const text = await res.text();
 
   try {
@@ -189,10 +206,10 @@ function renderLayout() {
 }
 
 /* ================= TOP SELLERS ================= */
-async function loadTopSellers(date) {
+async function loadTopSellers(date, signal) {
   try {
     const url = `${API_URL}?type=topSellers&date=${date}`;
-    const data = await safeFetchJSON(url);
+    const data = await safeFetchJSON(url, signal);
 
     const tbody = document.getElementById("topSellersBody");
     tbody.innerHTML = "";
@@ -213,15 +230,14 @@ async function loadTopSellers(date) {
       `);
     });
   } catch (err) {
+    if (err.name === "AbortError") return;
     console.error("Top sellers failed", err);
   }
 }
 
 /* ================= DAILY ANALYTICS ================= */
-async function loadDailyAnalytics(date) {
+async function loadDailyAnalytics(date, todaySalesPromise, signal) {
   try {
-    const todayURL = `${API_URL}?type=dailySalesAnalytics&date=${date}`;
-
     const yesterday = new Date(date);
     yesterday.setDate(yesterday.getDate() - 1);
     const yDate = yesterday.toISOString().slice(0, 10);
@@ -229,8 +245,8 @@ async function loadDailyAnalytics(date) {
     const yesterdayURL = `${API_URL}?type=dailySalesAnalytics&date=${yDate}`;
 
     const [todayData, yesterdayData] = await Promise.all([
-      safeFetchJSON(todayURL),
-      safeFetchJSON(yesterdayURL)
+      todaySalesPromise,
+      safeFetchJSON(yesterdayURL, signal)
     ]);
 
     const grossToday = Number(todayData?.gross || 0);
@@ -256,15 +272,16 @@ async function loadDailyAnalytics(date) {
     applyTrend(document.getElementById("trendAvg"), avgToday, avgYesterday);
 
   } catch (err) {
+    if (err.name === "AbortError") return;
     console.error("Analytics failed", err);
   }
 }
 
 /* ================= LOW STOCK ================= */
-async function loadLowStockAlerts(date) {
+async function loadLowStockAlerts(date, signal) {
   try {
     const url = `${API_URL}?type=lowStockAlerts&date=${date}`;
-    const data = await safeFetchJSON(url);
+    const data = await safeFetchJSON(url, signal);
 
     const tbody = document.getElementById("lowStockBody");
     tbody.innerHTML = "";
@@ -283,6 +300,7 @@ async function loadLowStockAlerts(date) {
       `);
     });
   } catch (err) {
+    if (err.name === "AbortError") return;
     console.error("Low stock failed", err);
   }
 }
@@ -291,7 +309,7 @@ async function loadLowStockAlerts(date) {
 const LABOR_COST_GOOD_MAX = 25; // <=25% of gross = healthy for food service
 const LABOR_COST_WARN_MAX = 35; // 25-35% = watch, >35% = high
 
-async function loadLaborCost(date) {
+async function loadLaborCost(date, todaySalesPromise, signal) {
   const chip = document.getElementById("laborCostChip");
   const valueEl = document.getElementById("laborCostValue");
   const subEl = document.getElementById("laborCostSub");
@@ -299,9 +317,9 @@ async function loadLaborCost(date) {
 
   try {
     const [staffList, attendance, sales] = await Promise.all([
-      safeFetchJSON(`${API_URL}?type=staff`),
-      safeFetchJSON(`${API_URL}?type=attendanceOverview&date=${date}`),
-      safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${date}`)
+      safeFetchJSON(`${API_URL}?type=staff`, signal),
+      safeFetchJSON(`${API_URL}?type=attendanceOverview&date=${date}`, signal),
+      todaySalesPromise
     ]);
 
     const rateByStaffId = {};
@@ -349,6 +367,7 @@ async function loadLaborCost(date) {
     barEl.style.width = `${Math.min(100, pct)}%`;
     barEl.style.background = tierColor;
   } catch (err) {
+    if (err.name === "AbortError") return;
     console.error("Labor cost failed", err);
     valueEl.textContent = "—";
     subEl.textContent = "Failed to load";
@@ -357,107 +376,27 @@ async function loadLaborCost(date) {
 }
 
 /* ================= DAYS OF STOCK REMAINING =================
-   Estimates how many days each item has left by averaging how much was
-   actually consumed (qty_added - remaining) on each of the last few CLOSED
-   inventory days, then dividing today's current remaining by that average.
-   Aggregated across every active location — there's usually just one, but
-   this keeps working unchanged if a second one is added. */
-const STOCK_DAYS_HISTORY = 4;
-const STOCK_DAYS_ROWS_SHOWN = 6;
-
-async function loadStockDaysRemaining(date) {
+   Was up to 8 client-side requests (inventoryItems + dailyInventory +
+   locations, then up to 4 history-day requests and 1 today request per
+   active location) fanned out to average consumption and compute this
+   client-side. Now a single request — the same math (average daily
+   usage over the last few CLOSED days, divided into today's current
+   remaining, aggregated across active locations) runs once server-side
+   in getStockDaysRemaining() instead. */
+async function loadStockDaysRemaining(date, signal) {
   const body = document.getElementById("stockDaysBody");
 
   try {
-    const [inventoryItems, dailyList, locations] = await Promise.all([
-      safeFetchJSON(`${API_URL}?type=inventoryItems`),
-      safeFetchJSON(`${API_URL}?type=dailyInventory`),
-      safeFetchJSON(`${API_URL}?type=locations`)
-    ]);
-
-    const itemMeta = {};
-    (Array.isArray(inventoryItems) ? inventoryItems : [])
-      .filter(i => i.active)
-      .forEach(i => { itemMeta[i.item_id] = i; });
-
-    const activeLocationIds = (Array.isArray(locations) ? locations : [])
-      .filter(l => l.active)
-      .map(l => l.location_id);
-
-    // Most recent CLOSED days strictly before today, per location.
-    const historyRequests = [];
-    activeLocationIds.forEach(locId => {
-      const closedDates = (Array.isArray(dailyList) ? dailyList : [])
-        .filter(d => d.location === locId && d.status === "CLOSED" && d.date.slice(0, 10) < date)
-        .map(d => d.date.slice(0, 10))
-        .sort()
-        .slice(-STOCK_DAYS_HISTORY);
-
-      closedDates.forEach(d => {
-        historyRequests.push(
-          safeFetchJSON(`${API_URL}?type=dailyInventoryItems&date=${d}&location=${locId}`)
-        );
-      });
-    });
-
-    const todayRequests = activeLocationIds.map(locId =>
-      safeFetchJSON(`${API_URL}?type=dailyInventoryItems&date=${date}&location=${locId}`)
-    );
-
-    const [historyDays, todayDays] = await Promise.all([
-      Promise.all(historyRequests),
-      Promise.all(todayRequests)
-    ]);
-
-    // Average daily usage per item, across every day it was actually stocked.
-    const usage = {};
-    historyDays.forEach(day => {
-      (day?.items || []).forEach(it => {
-        const added = Number(it.qty_added) || 0;
-        if (added <= 0) return;
-        const remaining = Number(it.remaining) || 0;
-        const used = Math.max(0, added - remaining);
-        if (!usage[it.item_id]) usage[it.item_id] = { totalUsed: 0, days: 0 };
-        usage[it.item_id].totalUsed += used;
-        usage[it.item_id].days += 1;
-      });
-    });
-
-    // Current remaining, summed across locations.
-    const currentRemaining = {};
-    todayDays.forEach(day => {
-      (day?.items || []).forEach(it => {
-        const remaining = Number(it.remaining) || 0;
-        currentRemaining[it.item_id] = (currentRemaining[it.item_id] || 0) + remaining;
-      });
-    });
-
-    const rows = Object.keys(currentRemaining)
-      .map(itemId => {
-        const meta = itemMeta[itemId];
-        const u = usage[itemId];
-        if (!meta || !u || u.days === 0) return null;
-
-        const avgDaily = u.totalUsed / u.days;
-        if (avgDaily <= 0) return null;
-
-        return {
-          name: meta.item_name,
-          unit: meta.unit || "",
-          remaining: currentRemaining[itemId],
-          days: currentRemaining[itemId] / avgDaily
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.days - b.days)
-      .slice(0, STOCK_DAYS_ROWS_SHOWN);
-
-    renderStockDaysRemaining(rows);
+    const rows = await safeFetchJSON(`${API_URL}?type=stockDaysRemaining&date=${date}`, signal);
+    renderStockDaysRemaining(Array.isArray(rows) ? rows.slice(0, STOCK_DAYS_ROWS_SHOWN) : []);
   } catch (err) {
+    if (err.name === "AbortError") return;
     console.error("Stock days remaining failed", err);
     body.innerHTML = `<div class="stock-empty">Failed to load</div>`;
   }
 }
+
+const STOCK_DAYS_ROWS_SHOWN = 6;
 
 function renderStockDaysRemaining(rows) {
   const body = document.getElementById("stockDaysBody");

@@ -283,6 +283,12 @@ let dashboardModule = null;
 
 function clearView() {
   dashboardModule?.stopDashboardPolling?.(); // stop the dashboard's live-sales polling when leaving it
+  // Cancel any of the dashboard's own widget requests still in flight —
+  // without this, navigating away right after landing on the dashboard
+  // left a backlog of pending fetches competing with whatever the next
+  // tab needed to load, since browsers cap concurrent connections per
+  // site (~6) and the dashboard alone could have 15+ requests in flight.
+  dashboardModule?.abortDashboardRequests?.();
   document.getElementById("actionBar")?.replaceChildren();
   document.getElementById("contentBox")?.replaceChildren();
 }
