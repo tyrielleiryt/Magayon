@@ -1,5 +1,5 @@
 import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
-import { openModal, closeModal } from "./modal.js";
+import { openModal, closeModal, showModalLoader, hideModalLoader } from "./modal.js";
  
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
@@ -37,12 +37,15 @@ export default async function loadProductsView() {
   renderActionBar();
   renderTableLayout();
 
-  // Categories are cached (they rarely change) and products are fetched
-  // fresh in parallel — no full-screen blocker, the table headers are
-  // already visible while this resolves.
+  // Both cached (like inventoryItems/recipes) — products used to be
+  // re-fetched fresh from Apps Script on every single visit to this tab,
+  // which is what made it feel slow. invalidateCache("products") already
+  // ran after every add/edit/delete/status-toggle below, so this now
+  // behaves exactly the same on the visit right after a change (fresh
+  // data) while every other visit is instant from cache.
   const [cats, prods] = await Promise.all([
     getCached("categories"),
-    fetch(API_URL + "?type=products").then(r => r.json())
+    getCached("products")
   ]);
 
   categories = cats;
@@ -104,7 +107,7 @@ function renderTableLayout() {
 
 /* ================= LOAD DATA ================= */
 async function loadProducts() {
-  products = await fetch(API_URL + "?type=products").then(r => r.json());
+  products = await getCached("products");
 
   selected = null;
   document.getElementById("editBtn").disabled = true;
@@ -198,32 +201,42 @@ async function openProductModal(product = {}) {
 
       <div class="modal-body">
 
-    <label>Product Code</label>
-    <input id="productCode" value="${product.product_code || ""}">
-
     <label>Product Name</label>
     <input id="productName" value="${product.product_name || ""}">
 
-    <label>Category</label>
-    <select id="categorySelect">
-      ${categories
-        .map(
-          c => `
-        <option value="${c.category_id}" ${
-            c.category_id === product.category_id ? "selected" : ""
-          }>
-          ${c.category_name}
-        </option>
-      `
-        )
-        .join("")}
-    </select>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Product Code</label>
+        <input id="productCode" value="${product.product_code || ""}">
+      </div>
+      <div class="form-field">
+        <label>Price</label>
+        <input type="number" id="priceInput" value="${product.price || ""}">
+      </div>
+    </div>
 
-    <label>Price</label>
-    <input type="number" id="priceInput" value="${product.price || ""}">
-
-    <label>Image URL</label>
-    <input id="imageInput" value="${product.image_url || ""}">
+    <div class="form-row">
+      <div class="form-field">
+        <label>Category</label>
+        <select id="categorySelect">
+          ${categories
+            .map(
+              c => `
+            <option value="${c.category_id}" ${
+                c.category_id === product.category_id ? "selected" : ""
+              }>
+              ${c.category_name}
+            </option>
+          `
+            )
+            .join("")}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Image URL</label>
+        <input id="imageInput" value="${product.image_url || ""}">
+      </div>
+    </div>
 
     <div class="recipe-section">
       <strong>Product Recipe</strong>
@@ -241,7 +254,7 @@ async function openProductModal(product = {}) {
     </div>
   `);
 
-  showLoader("Loading inventory…");
+  showModalLoader("Loading inventory…");
 
   try {
     await loadInventory();
@@ -256,7 +269,7 @@ document.getElementById("saveProductBtn").onclick = saveProduct;
   addRecipeRow();
 }
   } finally {
-    hideLoader();
+    hideModalLoader();
   }
 }
 
@@ -349,8 +362,6 @@ function bindRecipeEvents(row) {
 
 /* ================= SAVE ================= */
 function saveProduct() {
-  showLoader("Saving product…");
-
   const code = productCode.value.trim();
   const name = productName.value.trim();
   const category = categorySelect.value;
@@ -359,7 +370,6 @@ function saveProduct() {
 
   if (!code || !name || !price) {
     alert("Product Code, Name, and Price are required.");
-    hideLoader();
     return;
   }
 
@@ -368,6 +378,9 @@ function saveProduct() {
     qty_used: Number(r.querySelector(".recipe-qty").value)
   }));
 
+  showModalLoader("Saving product…");
+  const saveBtn = document.getElementById("saveProductBtn");
+  if (saveBtn) saveBtn.disabled = true;
 
   authFetch(API_URL, {
   method: "POST",
@@ -401,7 +414,10 @@ function saveProduct() {
   console.error(err);
   alert("❌ Failed to save product");
 })
-.finally(hideLoader);
+.finally(() => {
+  hideModalLoader();
+  if (saveBtn) saveBtn.disabled = false;
+});
 }
 
 /* ================= DELETE ================= */
