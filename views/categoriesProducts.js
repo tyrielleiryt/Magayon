@@ -30,7 +30,6 @@ function hideLoader() {
 let products = [];
 let categories = [];
 let inventoryMap = {};
-let selected = null;
 
 // Which categories are currently expanded — collapsed by default, same
 // "nothing shown until asked for" spirit as the Dashboard's widgets.
@@ -39,9 +38,14 @@ const expandedCategoryIds = new Set();
 
 const UNCATEGORIZED_ID = "__uncategorized__";
 
-/* ================= ENTRY ================= */
+/* ================= ENTRY =================
+   No top action bar — Add/Edit/Delete Product all live inside the grid
+   itself now: an "Add Product" tile inside each expanded category,
+   clicking a product card opens it straight into Edit, and a small
+   delete icon sits on each card (same pattern as the category chips'
+   edit/delete icons). */
 export default async function loadCategoriesProductsView() {
-  renderActionBar();
+  document.getElementById("actionBar").innerHTML = "";
   renderLayout();
 
   const [cats, prods] = await Promise.all([
@@ -51,42 +55,7 @@ export default async function loadCategoriesProductsView() {
 
   categories = cats;
   products = prods;
-  selected = null;
-  document.getElementById("editBtn").disabled = true;
-  document.getElementById("deleteBtn").disabled = true;
   renderCategoryGrid();
-}
-
-/* ================= ACTION BAR (products) =================
-   Category add/edit/delete live on the chips themselves now — this bar
-   stays scoped to products, unchanged from before. */
-function renderActionBar() {
-  const bar = document.getElementById("actionBar");
-
-  bar.innerHTML = `
-    <button id="addBtn" class="category-action-btn">${icon("plus")} Add Product</button>
-    <button id="editBtn" class="category-action-btn" disabled>${icon("pencil")} Edit</button>
-    <button id="deleteBtn" class="category-action-btn" disabled>${icon("trash-2")} Delete</button>
-  `;
-
-  document.getElementById("addBtn").onclick = () => {
-    selected = null;
-    openProductModal();
-  };
-
-  document.getElementById("editBtn").onclick = () => {
-    if (!selected) {
-      alert("Please select a product first.");
-      return;
-    }
-    if (!selected.active) {
-      alert("Inactive products cannot be edited.");
-      return;
-    }
-    openProductModal(selected);
-  };
-
-  document.getElementById("deleteBtn").onclick = deleteProduct;
 }
 
 /* ================= LAYOUT ================= */
@@ -114,9 +83,6 @@ async function reloadCategories() {
 
 async function reloadProducts() {
   products = await getCached("products");
-  selected = null;
-  document.getElementById("editBtn").disabled = true;
-  document.getElementById("deleteBtn").disabled = true;
   renderCategoryGrid();
 }
 
@@ -196,8 +162,21 @@ function renderCategoryChip(grid, category, categoryProducts) {
     const panel = document.createElement("div");
     panel.className = "category-expanded-panel";
 
+    // Adds straight into this category — skipped for the synthetic
+    // Uncategorized bucket, which has no real category_id to add into.
+    if (isReal) {
+      const addTile = document.createElement("button");
+      addTile.type = "button";
+      addTile.className = "admin-product-card admin-product-card-add";
+      addTile.innerHTML = `${icon("plus", { size: 22 })}<span>Add Product</span>`;
+      addTile.onclick = () => openProductModal({}, category.category_id);
+      panel.appendChild(addTile);
+    }
+
     if (!categoryProducts.length) {
-      panel.innerHTML = `<p style="text-align:center;color:#888;padding:16px">No products in this category</p>`;
+      if (!isReal) {
+        panel.innerHTML = `<p style="text-align:center;color:#888;padding:16px">No products in this category</p>`;
+      }
     } else {
       categoryProducts.forEach(p => panel.appendChild(renderProductCard(p)));
     }
@@ -207,10 +186,10 @@ function renderCategoryChip(grid, category, categoryProducts) {
 }
 
 /* ================= PRODUCT CARD =================
-   Same markup/behavior as the old flat Products grid — clicking selects
-   the product (enabling Edit/Delete above), the status pill toggles
-   active/inactive. Just built inside a per-category panel now instead
-   of one flat list. */
+   No more select-then-click-Edit — clicking the card opens it straight
+   into Edit, and a small delete icon on the card handles delete
+   directly (mirrors the category chips' own edit/delete icons). The
+   status pill still toggles active/inactive in place. */
 function renderProductCard(p) {
   const card = document.createElement("div");
   card.className = "admin-product-card" + (!p.active ? " inactive" : "");
@@ -222,6 +201,7 @@ function renderProductCard(p) {
     : placeholderIcon;
 
   card.innerHTML = `
+    <button class="admin-product-delete-btn" title="Delete product">${icon("trash-2", { size: 13 })}</button>
     <div class="admin-product-img">${imgHtml}</div>
     <div class="admin-product-info">
       <div class="admin-product-code">${p.product_code || ""}</div>
@@ -237,14 +217,16 @@ function renderProductCard(p) {
   `;
 
   card.onclick = () => {
-    document
-      .querySelectorAll(".admin-product-card")
-      .forEach(c => c.classList.remove("selected"));
-    card.classList.add("selected");
-    selected = p;
+    if (!p.active) {
+      alert("Inactive products cannot be edited.");
+      return;
+    }
+    openProductModal(p);
+  };
 
-    document.getElementById("editBtn").disabled = !p.active;
-    document.getElementById("deleteBtn").disabled = false;
+  card.querySelector(".admin-product-delete-btn").onclick = e => {
+    e.stopPropagation();
+    deleteProductConfirm(p);
   };
 
   const statusBtn = card.querySelector(".status-toggle");
@@ -345,7 +327,7 @@ async function loadProductRecipe(productId) {
 }
 
 /* ================= PRODUCT MODAL ================= */
-async function openProductModal(product = {}) {
+async function openProductModal(product = {}, presetCategoryId = null) {
   openModal(`
     <div class="modal-header">
     <h2>${product.product_id ? "Edit" : "Add"} Product</h2>
@@ -375,7 +357,7 @@ async function openProductModal(product = {}) {
             .map(
               c => `
             <option value="${c.category_id}" ${
-                c.category_id === product.category_id ? "selected" : ""
+                c.category_id === (product.category_id || presetCategoryId) ? "selected" : ""
               }>
               ${c.category_name}
             </option>
@@ -413,7 +395,7 @@ async function openProductModal(product = {}) {
     document.getElementById("recipeList").innerHTML = "";
 
     document.getElementById("addIngredientBtn").onclick = addRecipeRow;
-    document.getElementById("saveProductBtn").onclick = saveProduct;
+    document.getElementById("saveProductBtn").onclick = () => saveProduct(product.product_id || null);
     if (product.product_id) {
       const recipe = await loadProductRecipe(product.product_id);
       recipe.forEach(r => addRecipeRowWithData(r));
@@ -513,7 +495,7 @@ function bindRecipeEvents(row) {
 }
 
 /* ================= PRODUCT SAVE ================= */
-function saveProduct() {
+function saveProduct(productId) {
   const code = productCode.value.trim();
   const name = productName.value.trim();
   const category = categorySelect.value;
@@ -541,7 +523,7 @@ function saveProduct() {
     },
     body: new URLSearchParams({
       action: "saveProduct",
-      product_id: selected?.product_id || "",
+      product_id: productId || "",
       product_code: code,
       product_name: name,
       category_id: category,
@@ -573,13 +555,8 @@ function saveProduct() {
 }
 
 /* ================= PRODUCT DELETE ================= */
-function deleteProduct() {
-  if (!selected) {
-    alert("Please select a product first.");
-    return;
-  }
-
-  if (!confirm(`Delete ${selected.product_name}?`)) return;
+function deleteProductConfirm(product) {
+  if (!confirm(`Delete ${product.product_name}?`)) return;
 
   showLoader("Deleting product…");
 
@@ -590,13 +567,12 @@ function deleteProduct() {
     },
     body: new URLSearchParams({
       action: "deleteProduct",
-      product_id: selected.product_id
+      product_id: product.product_id
     })
   })
     .then(r => r.json())
     .then(() => {
       invalidateCache("products");
-      selected = null;
       reloadProducts();
     })
     .finally(hideLoader);
