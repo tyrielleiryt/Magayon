@@ -261,13 +261,11 @@ document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async (
    connection. import() results are cached after the first load, so
    revisiting a tab doesn't re-fetch or re-parse anything. */
 const VIEW_LOADERS = {
-  capitalCalculator: () => import(`./views/capital-calculator.js?v=${ASSET_VERSION}`),
   categories: () => import(`./views/categories.js?v=${ASSET_VERSION}`),
   products: () => import(`./views/products.js?v=${ASSET_VERSION}`),
   inventory: () => import(`./views/inventoryitems.js?v=${ASSET_VERSION}`),
   dailyInventory: () => import(`./views/dailyinventory.js?v=${ASSET_VERSION}`),
   dailySales: () => import(`./views/dailySales.js?v=${ASSET_VERSION}`),
-  pettyCash: () => import(`./views/pettyCash.js?v=${ASSET_VERSION}`),
   salesExpensesTracker: () => import(`./views/salesExpensesTracker.js?v=${ASSET_VERSION}`),
   locations: () => import(`./views/locations.js?v=${ASSET_VERSION}`),
   staff: () => import(`./views/staff.js?v=${ASSET_VERSION}`),

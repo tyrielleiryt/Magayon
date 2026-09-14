@@ -4,12 +4,16 @@ import { API_URL } from "../firebase-config.js";
 import { icon } from "../icons.js";
 
 
-/* ================= ENTRY ================= */
-// One AbortController per visit to this view — aborted from admin.js's
-// clearView() the moment the admin navigates away, so any of these
-// requests still in flight stop competing for the browser's ~6-per-site
-// connection limit with whatever the NEXT tab needs to load.
+/* ================= ENTRY =================
+   Every widget below is collapsed on landing and loads nothing until
+   the cashier/admin actually opens it — a visit that only checks one
+   number no longer pays the network cost of the other five. Opening a
+   widget a second time just re-shows what was already fetched; nothing
+   re-fetches unless the whole Dashboard tab is re-entered. */
 let dashboardAbort = null;
+let loadedWidgets = new Set();
+let todaySalesPromise = null;
+let liveSalesExpanded = false;
 
 export function abortDashboardRequests() {
   dashboardAbort?.abort();
@@ -19,31 +23,59 @@ export default async function loadDashboardView() {
   renderLayout();
   bindDataBoxScroll(document.querySelector(".data-box"));
 
-  const today = new Date().toISOString().slice(0, 10);
   dashboardAbort = new AbortController();
+  loadedWidgets = new Set();
+  todaySalesPromise = null;
+  liveSalesExpanded = false;
+
+  wireWidgetToggles();
+}
+
+/* ================= WIDGET TOGGLE (click to load / click again to hide) ================= */
+const WIDGET_LOADERS = {
+  topSellers: (date, signal) => loadTopSellers(date, signal),
+  dailyPerformance: (date, signal) => loadDailyAnalytics(date, signal),
+  lowStock: (date, signal) => loadLowStockAlerts(date, signal),
+  laborCost: (date, signal) => loadLaborCost(date, signal),
+  stockDays: (date, signal) => loadStockDaysRemaining(date, signal)
+  // liveSales is handled separately below — it's a poller, not a one-shot fetch
+};
+
+function wireWidgetToggles() {
+  const today = new Date().toISOString().slice(0, 10);
   const signal = dashboardAbort.signal;
 
-  // Today's gross/orders/average is needed by both Daily Performance and
-  // Labor Cost — fetched once here and shared, instead of each widget
-  // independently re-fetching the exact same data.
-  const todaySalesPromise = safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${today}`, signal);
+  document.querySelectorAll(".dashboard-card-toggle").forEach(toggle => {
+    const card = toggle.closest(".dashboard-card");
+    const widget = card?.dataset.widget;
+    if (!card || !widget) return;
 
-  await Promise.all([
-    loadTopSellers(today, signal),
-    loadDailyAnalytics(today, todaySalesPromise, signal),
-    loadLowStockAlerts(today, signal),
-    loadLaborCost(today, todaySalesPromise, signal),
-    loadStockDaysRemaining(today, signal)
-  ]);
+    toggle.addEventListener("click", () => {
+      const nowExpanded = !card.classList.contains("expanded");
+      card.classList.toggle("expanded", nowExpanded);
 
-  startLiveSalesPolling(today);
+      if (widget === "liveSales") {
+        liveSalesExpanded = nowExpanded;
+        if (nowExpanded) {
+          startLiveSalesPolling(today);
+        } else {
+          stopDashboardPolling();
+        }
+        return;
+      }
+
+      if (nowExpanded && !loadedWidgets.has(widget)) {
+        loadedWidgets.add(widget);
+        WIDGET_LOADERS[widget]?.(today, signal);
+      }
+    });
+  });
 }
 
 /* ================= LIVE SALES FEED (POLLING) =================
-   Re-fetches today's sales report every few seconds and re-renders the
-   feed, latest sale on top. Polling stops when the dashboard is left
-   (see stopDashboardPolling, called from admin.js on view switch) so it
-   doesn't keep hitting the backend in the background. */
+   Only runs while the Live Sales card is expanded — starts on expand,
+   stops on collapse, and stops entirely when the admin leaves the
+   Dashboard (see stopDashboardPolling, called from admin.js). */
 const LIVE_SALES_POLL_MS = 15000;
 const LIVE_SALES_LIMIT = 8;
 let liveSalesTimer = null;
@@ -72,6 +104,16 @@ async function safeFetchJSON(url, signal) {
   }
 }
 
+/* Today's gross/orders/average is needed by both Daily Performance and
+   Labor Cost — whichever widget is opened first fetches it, the other
+   reuses that same in-flight/resolved promise instead of re-fetching. */
+function getTodaySales(date, signal) {
+  if (!todaySalesPromise) {
+    todaySalesPromise = safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${date}`, signal);
+  }
+  return todaySalesPromise;
+}
+
 /* ================= Add Trend Logic Function ================= */
 function applyTrend(el, today, yesterday) {
   el.className = "trend";
@@ -89,6 +131,10 @@ function applyTrend(el, today, yesterday) {
 }
 
 /* ================= LAYOUT ================= */
+function toggleHeader(iconName, title) {
+  return `${icon(iconName)} ${title} ${icon("chevron-down", { size: 16, class: "widget-chevron" })}`;
+}
+
 function renderLayout() {
   document.getElementById("actionBar").innerHTML = "";
 
@@ -101,8 +147,9 @@ function renderLayout() {
       <div class="dashboard-grid">
 
   <!-- Left: Top Sellers -->
-  <div class="dashboard-card">
-    <h3>${icon("trophy")} Top 5 Best Sellers</h3>
+  <div class="dashboard-card" data-widget="topSellers">
+    <h3 class="dashboard-card-toggle">${toggleHeader("trophy", "Top 5 Best Sellers")}</h3>
+    <div class="dashboard-card-body">
     <div class="dashboard-table-wrap">
       <table class="category-table">
         <thead>
@@ -116,13 +163,16 @@ function renderLayout() {
         <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
       </table>
     </div>
+    </div>
   </div>
 
   <!-- Live Sales Feed -->
-  <div class="dashboard-card live-sales-card">
-    <h3><span class="live-dot"></span> Live Sales Feed</h3>
+  <div class="dashboard-card live-sales-card" data-widget="liveSales">
+    <h3 class="dashboard-card-toggle"><span class="live-dot"></span> Live Sales Feed ${icon("chevron-down", { size: 16, class: "widget-chevron" })}</h3>
+    <div class="dashboard-card-body">
     <div class="live-sales-list" id="liveSalesList">
       <div style="text-align:center;color:#888;padding:12px">Loading…</div>
+    </div>
     </div>
   </div>
 
@@ -130,8 +180,9 @@ function renderLayout() {
   <div class="dashboard-right-column">
 
     <!-- Daily Performance -->
-    <div class="dashboard-card">
-      <h3>${icon("trending-up")} Daily Performance</h3>
+    <div class="dashboard-card" data-widget="dailyPerformance">
+      <h3 class="dashboard-card-toggle">${toggleHeader("trending-up", "Daily Performance")}</h3>
+      <div class="dashboard-card-body">
       <div class="analytics-grid">
         <div class="analytics-box">
           <div class="label">Gross Sales</div>
@@ -157,11 +208,13 @@ function renderLayout() {
           </div>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Low Stock -->
-    <div class="dashboard-card danger">
-      <h3>${icon("alert-triangle")} Low Stock Warnings</h3>
+    <div class="dashboard-card danger" data-widget="lowStock">
+      <h3 class="dashboard-card-toggle">${toggleHeader("alert-triangle", "Low Stock Warnings")}</h3>
+      <div class="dashboard-card-body">
       <div class="dashboard-table-wrap">
         <table class="category-table">
           <thead>
@@ -173,6 +226,7 @@ function renderLayout() {
           <tbody id="lowStockBody"><tr><td colspan="2" style="text-align:center;color:#888">Loading…</td></tr></tbody>
         </table>
       </div>
+      </div>
     </div>
 
   </div>
@@ -182,20 +236,26 @@ function renderLayout() {
 <div class="dashboard-grid-2">
 
   <!-- Days of Stock Remaining -->
-  <div class="dashboard-card">
-    <h3>${icon("package")} Days of Stock Remaining</h3>
+  <div class="dashboard-card" data-widget="stockDays">
+    <h3 class="dashboard-card-toggle">${toggleHeader("package", "Days of Stock Remaining")}</h3>
+    <div class="dashboard-card-body">
     <div id="stockDaysBody"><div class="stock-empty">Loading…</div></div>
+    </div>
   </div>
 
   <!-- Labor Cost % -->
-  <div class="dashboard-card kpi-tile">
+  <div class="dashboard-card kpi-tile" data-widget="laborCost">
+    <h3 class="dashboard-card-toggle kpi-toggle">
+      ${icon("banknote")} Labor Cost ${icon("chevron-down", { size: 16, class: "widget-chevron" })}
+    </h3>
+    <div class="dashboard-card-body">
     <div class="kpi-label">
-      ${icon("banknote")} Labor Cost
       <span class="status-chip" id="laborCostChip">—</span>
     </div>
     <div class="kpi-value" id="laborCostValue">—</div>
     <div class="kpi-sub" id="laborCostSub">Loading…</div>
     <div class="bar-compare"><span id="laborCostBar" style="width:0%;background:#cbd5e1"></span></div>
+    </div>
   </div>
 
 </div>
@@ -236,7 +296,7 @@ async function loadTopSellers(date, signal) {
 }
 
 /* ================= DAILY ANALYTICS ================= */
-async function loadDailyAnalytics(date, todaySalesPromise, signal) {
+async function loadDailyAnalytics(date, signal) {
   try {
     const yesterday = new Date(date);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -245,7 +305,7 @@ async function loadDailyAnalytics(date, todaySalesPromise, signal) {
     const yesterdayURL = `${API_URL}?type=dailySalesAnalytics&date=${yDate}`;
 
     const [todayData, yesterdayData] = await Promise.all([
-      todaySalesPromise,
+      getTodaySales(date, signal),
       safeFetchJSON(yesterdayURL, signal)
     ]);
 
@@ -309,7 +369,7 @@ async function loadLowStockAlerts(date, signal) {
 const LABOR_COST_GOOD_MAX = 25; // <=25% of gross = healthy for food service
 const LABOR_COST_WARN_MAX = 35; // 25-35% = watch, >35% = high
 
-async function loadLaborCost(date, todaySalesPromise, signal) {
+async function loadLaborCost(date, signal) {
   const chip = document.getElementById("laborCostChip");
   const valueEl = document.getElementById("laborCostValue");
   const subEl = document.getElementById("laborCostSub");
@@ -319,7 +379,7 @@ async function loadLaborCost(date, todaySalesPromise, signal) {
     const [staffList, attendance, sales] = await Promise.all([
       safeFetchJSON(`${API_URL}?type=staff`, signal),
       safeFetchJSON(`${API_URL}?type=attendanceOverview&date=${date}`, signal),
-      todaySalesPromise
+      getTodaySales(date, signal)
     ]);
 
     const rateByStaffId = {};
@@ -375,14 +435,7 @@ async function loadLaborCost(date, todaySalesPromise, signal) {
   }
 }
 
-/* ================= DAYS OF STOCK REMAINING =================
-   Was up to 8 client-side requests (inventoryItems + dailyInventory +
-   locations, then up to 4 history-day requests and 1 today request per
-   active location) fanned out to average consumption and compute this
-   client-side. Now a single request — the same math (average daily
-   usage over the last few CLOSED days, divided into today's current
-   remaining, aggregated across active locations) runs once server-side
-   in getStockDaysRemaining() instead. */
+/* ================= DAYS OF STOCK REMAINING ================= */
 async function loadStockDaysRemaining(date, signal) {
   const body = document.getElementById("stockDaysBody");
 

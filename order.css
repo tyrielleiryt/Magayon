@@ -1135,6 +1135,165 @@ body.sales-only .checkout {
   background: rgba(0,0,0,0.1);
 }
 
+.pos-modal-save-btn {
+  background: var(--apple-blue);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pos-modal-save-btn:hover {
+  background: var(--apple-blue-dark);
+}
+
+.pos-modal-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= PETTY CASH (POS popup) ================= */
+.pc-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.pc-box {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(0,0,0,0.03);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.pc-box label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.pc-box input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--apple-border);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.pc-remaining-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.pc-expense-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.pc-expense-form .pc-field {
+  flex: 1;
+  min-width: 120px;
+}
+
+.pc-expense-form label {
+  font-size: 11px;
+  color: var(--apple-text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.pc-expense-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--apple-border);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* ================= ADD INVENTORY (POS popup) =================
+   Same field set as admin's Daily Inventory System "Add Inventory"
+   form, restyled to match this POS modal's own look instead of
+   reusing admin's CSS. */
+.inv-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--apple-border);
+}
+
+.inv-item-row:last-child {
+  border-bottom: none;
+}
+
+.inv-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.inv-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--apple-text);
+}
+
+.inv-item-unit {
+  font-weight: 400;
+  color: var(--apple-text-secondary);
+}
+
+.inv-item-current {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+  margin-top: 2px;
+}
+
+.add-inventory-qty {
+  width: 64px;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--apple-border);
+  font-size: 14px;
+  text-align: center;
+}
+
+.add-inventory-yield {
+  width: 110px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--apple-blue);
+  font-weight: 600;
+  text-align: right;
+}
+
+.inv-save-error {
+  color: var(--apple-red);
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: right;
+}
+
+.inv-save-error.hidden {
+  display: none;
+}
+
 .sales-table-wrapper tbody tr.warning-row {
   background: rgba(255,149,0,0.1);
 }

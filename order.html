@@ -46,6 +46,11 @@
           <button id="stocksBtn" class="menu-item"><i data-icon="clipboard-list"></i> Stocks List</button>
           <button id="salesBtn" class="menu-item"><i data-icon="receipt"></i> Sales Report</button>
           <button id="productTrackerBtn" class="menu-item"><i data-icon="bar-chart-3"></i> Product Sale Tracker</button>
+
+          <div class="menu-divider"></div>
+
+          <button id="pettyCashBtn" class="menu-item"><i data-icon="banknote"></i> Petty Cash Fund / Expenses</button>
+          <button id="addInventoryBtn" class="menu-item"><i data-icon="plus"></i> Add Inventory</button>
         </div>
       </div>
 
@@ -301,6 +306,53 @@
 
     <div class="pos-modal-footer">
       <button class="pos-modal-close-btn" onclick="closeStocks()">Close</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ================= PETTY CASH MODAL =================
+       Today's petty cash fund + expenses for this cashier's own
+       location — a popup like Stocks List/Sales Report above, so it
+       never disturbs the order screen or cart underneath it. -->
+<div id="pettyCashModal" class="modal hidden">
+  <div class="modal-content pos-report-modal">
+    <div class="pos-modal-header">
+      <h2><i data-icon="banknote"></i> Petty Cash Fund / Expenses</h2>
+      <button type="button" class="modal-close-x" onclick="closePettyCash()"><i data-icon="x"></i></button>
+    </div>
+
+    <div id="pettyCashContent">
+      <!-- injected by order.js -->
+    </div>
+
+    <div class="pos-modal-footer">
+      <button class="pos-modal-close-btn" onclick="closePettyCash()">Close</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ================= ADD INVENTORY MODAL =================
+       Same top-up flow as admin's Daily Inventory System "Add
+       Inventory" button, ported so a cashier can restock mid-shift
+       without pulling in an admin. -->
+<div id="addInventoryModal" class="modal hidden">
+  <div class="modal-content pos-report-modal">
+    <div class="pos-modal-header">
+      <h2><i data-icon="plus"></i> Add Inventory</h2>
+      <button type="button" class="modal-close-x" onclick="closeAddInventory()"><i data-icon="x"></i></button>
+    </div>
+
+    <div class="sales-table-wrapper" id="addInventoryList">
+      <!-- injected by order.js -->
+    </div>
+
+    <div id="addInventorySaveError" class="inv-save-error hidden"></div>
+
+    <div class="pos-modal-footer pos-modal-footer-split">
+      <button class="pos-modal-close-btn" onclick="closeAddInventory()">Cancel</button>
+      <button id="addInventorySaveBtn" class="pos-modal-save-btn" onclick="saveAddInventory()">
+        <i data-icon="save"></i> Save
+      </button>
     </div>
   </div>
 </div>

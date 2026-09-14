@@ -11,7 +11,6 @@ import { icon } from "../icons.js";
    decide which nav buttons to show that role. */
 const PAGES = [
   { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
-  { key: "capitalCalculator", label: `${icon("calculator")} Capital Calculator` },
   { key: "categories", label: `${icon("tag")} Categories` },
   { key: "products", label: `${icon("package")} Products` },
   { key: "locations", label: `${icon("store")} Locations` },
@@ -20,7 +19,6 @@ const PAGES = [
   { key: "inventory", label: `${icon("archive")} Inventory` },
   { key: "dailyInventory", label: `${icon("clipboard-list")} Daily Inventory System` },
   { key: "dailySales", label: `${icon("receipt")} Daily Sales` },
-  { key: "pettyCash", label: `${icon("banknote")} Petty Cash Fund / Expenses` },
   { key: "salesExpensesTracker", label: `${icon("trending-up")} Sales and Expenses Tracker` }
 ];
 

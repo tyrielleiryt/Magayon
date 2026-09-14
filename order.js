@@ -1217,6 +1217,8 @@ function saveOrderLocally(order) {
 }
 
 document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
+document.getElementById("pettyCashBtn")?.addEventListener("click", openPettyCash);
+document.getElementById("addInventoryBtn")?.addEventListener("click", openAddInventory);
 
 
 async function openStocks() {
@@ -1350,6 +1352,308 @@ function lockPosUI() {
 function closeStocks() {
   document.getElementById("stocksModal").classList.add("hidden");
 }
+
+/* =========================================================
+   PETTY CASH FUND / EXPENSES (POS popup)
+   Same fields/actions as the admin-side view it replaced — always
+   today + this cashier's own LOCATION, no date/location pickers
+   needed since a cashier only ever reconciles their own register.
+   Just an overlay like Stocks List/Sales Report above, so it never
+   touches the cart or product grid underneath it.
+========================================================= */
+let lastPettyCashSummary = null;
+
+async function openPettyCash() {
+  const content = document.getElementById("pettyCashContent");
+  content.innerHTML = `<div class="pos-modal-empty">Loading…</div>`;
+  document.getElementById("pettyCashModal").classList.remove("hidden");
+
+  try {
+    const today = getPHDate();
+    const res = await fetch(
+      `${API_URL}?type=pettyCashSummary&date=${today}&location=${LOCATION}`
+    );
+    const data = await res.json();
+    renderPettyCash(data);
+  } catch (err) {
+    console.error(err);
+    content.innerHTML =
+      `<div class="pos-modal-empty">${icon("alert-triangle", { size: 20 })}<br>Failed to load petty cash.</div>`;
+  }
+}
+
+function renderPettyCash(data) {
+  lastPettyCashSummary = data;
+  const content = document.getElementById("pettyCashContent");
+
+  if (!data || !data.success) {
+    content.innerHTML =
+      `<div class="pos-modal-empty">${data?.error || "No inventory day found for today"}</div>`;
+    return;
+  }
+
+  const expenses = data.expenses || [];
+
+  content.innerHTML = `
+    <div class="pc-row">
+      <div class="pc-box">
+        <label>Petty Cash Fund</label>
+        <div style="display:flex;gap:8px">
+          <input id="pcFund" type="number" min="0" step="0.01" value="${data.petty_cash_fund}">
+          <button id="pcSaveFundBtn" class="pos-modal-save-btn">${icon("save", { size: 14 })} Save</button>
+        </div>
+      </div>
+      <div class="pc-box">
+        <label>Remaining PCF</label>
+        <div class="pc-remaining-value">₱${Number(data.remaining_petty_cash).toFixed(2)}</div>
+      </div>
+    </div>
+
+    <div class="pos-modal-section-title">${icon("plus", { size: 12 })} Add Expense</div>
+    <div class="pc-expense-form">
+      <div class="pc-field">
+        <label>Description</label>
+        <input id="pcExpDescription" placeholder="e.g. Gas for delivery">
+      </div>
+      <div class="pc-field" style="max-width:110px">
+        <label>Amount</label>
+        <input id="pcExpAmount" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="pc-field">
+        <label>Remarks</label>
+        <input id="pcExpRemarks" placeholder="Optional">
+      </div>
+      <button id="pcSaveExpenseBtn" class="pos-modal-save-btn">Save</button>
+    </div>
+
+    <div class="pos-modal-section-title">Expenses Today</div>
+    <div class="sales-table-wrapper" style="max-height:180px">
+      <table>
+        <thead>
+          <tr><th>Description</th><th>Amount</th><th>Remarks</th></tr>
+        </thead>
+        <tbody>
+          ${!expenses.length
+            ? `<tr><td colspan="3" class="pos-modal-empty">No expenses logged for today</td></tr>`
+            : expenses.map(e => `
+              <tr>
+                <td>${e.description}</td>
+                <td>₱${Number(e.amount).toFixed(2)}</td>
+                <td>${e.remarks || ""}</td>
+              </tr>
+            `).join("")
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById("pcSaveFundBtn").onclick = savePettyCashFund;
+  document.getElementById("pcSaveExpenseBtn").onclick = saveExpense;
+}
+
+async function savePettyCashFund() {
+  if (!lastPettyCashSummary?.daily_id) return;
+
+  const fund = Number(document.getElementById("pcFund").value) || 0;
+  const btn = document.getElementById("pcSaveFundBtn");
+  btn.disabled = true;
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "updateDailyFinance",
+        daily_id: lastPettyCashSummary.daily_id,
+        petty_cash_fund: fund
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || "Save failed");
+    openPettyCash();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+    btn.disabled = false;
+  }
+}
+
+async function saveExpense() {
+  if (!lastPettyCashSummary?.daily_id) return;
+
+  const description = document.getElementById("pcExpDescription").value.trim();
+  const amount = Number(document.getElementById("pcExpAmount").value);
+  const remarks = document.getElementById("pcExpRemarks").value.trim();
+
+  if (!description) {
+    alert("Expense description is required");
+    return;
+  }
+  if (!amount || amount <= 0) {
+    alert("Amount must be greater than 0");
+    return;
+  }
+
+  const btn = document.getElementById("pcSaveExpenseBtn");
+  btn.disabled = true;
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "addExpense",
+        daily_id: lastPettyCashSummary.daily_id,
+        description,
+        amount,
+        remarks
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || "Save failed");
+    openPettyCash();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+    btn.disabled = false;
+  }
+}
+
+function closePettyCash() {
+  document.getElementById("pettyCashModal").classList.add("hidden");
+}
+window.closePettyCash = closePettyCash;
+
+/* =========================================================
+   ADD INVENTORY (POS popup)
+   Ports admin's Daily Inventory System "Add Inventory" flow so a
+   cashier can top up stock mid-shift without pulling in an admin.
+   Builds the form straight from the inventory data already sitting
+   in memory (inventory/inventoryNames/inventoryConversionMap, loaded
+   once via posInit) — no extra fetch needed just to open it.
+========================================================= */
+async function openAddInventory() {
+  if (POS_CLOSED) {
+    alert("Today's inventory isn't open yet — ask an admin/manager to start it before adding stock.");
+    return;
+  }
+
+  const list = document.getElementById("addInventoryList");
+  const errorEl = document.getElementById("addInventorySaveError");
+  errorEl.classList.add("hidden");
+
+  const itemIds = Object.keys(inventoryNames);
+
+  list.innerHTML = !itemIds.length
+    ? `<div class="pos-modal-empty">No inventory items found.</div>`
+    : itemIds.map(id => {
+        const name = inventoryNames[id];
+        const remaining = inventory[id] || 0;
+        const conv = inventoryConversionMap[id] || {};
+        const unit = conv.unit || "";
+
+        return `
+          <div class="inv-item-row">
+            <div class="inv-item-info">
+              <div class="inv-item-name">${name}${unit ? ` <span class="inv-item-unit">(${unit})</span>` : ""}</div>
+              <div class="inv-item-current">Currently: ${remaining}${unit ? " " + unit : ""}</div>
+            </div>
+            <input type="number" min="0"
+              data-id="${id}"
+              data-yield="${conv.perServing || 0}"
+              data-unit="${unit}"
+              class="add-inventory-qty"
+              placeholder="Qty">
+            <div class="add-inventory-yield">—</div>
+          </div>
+        `;
+      }).join("");
+
+  if (itemIds.length) bindAddInventoryYieldInputs();
+
+  document.getElementById("addInventoryModal").classList.remove("hidden");
+}
+
+function bindAddInventoryYieldInputs() {
+  document.querySelectorAll("#addInventoryList .add-inventory-qty").forEach(input => {
+    const yieldEl = input.nextElementSibling;
+    const perServing = Number(input.dataset.yield) || 0;
+    const unit = input.dataset.unit || "";
+
+    input.addEventListener("input", () => {
+      const qty = Number(input.value) || 0;
+
+      if (!perServing || !qty) {
+        yieldEl.textContent = "—";
+        return;
+      }
+
+      const total = qty * perServing;
+      yieldEl.textContent = `= ${total.toLocaleString()}${unit} total`;
+    });
+  });
+}
+
+function saveAddInventory() {
+  const inputs = document.querySelectorAll("#addInventoryList [data-id]");
+  const items = [];
+
+  inputs.forEach(i => {
+    const qty = Number(i.value);
+    if (qty > 0) items.push({ item_id: i.dataset.id, qty });
+  });
+
+  const errorEl = document.getElementById("addInventorySaveError");
+  errorEl.classList.add("hidden");
+
+  if (!items.length) {
+    errorEl.textContent = "No quantities entered";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  const saveBtn = document.getElementById("addInventorySaveBtn");
+  saveBtn.disabled = true;
+
+  authFetch(API_URL, {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "addDailyInventory",
+      date: getPHDate(),
+      location: LOCATION,
+      created_by: CASHIER_NAME || STAFF_ID,
+      items: JSON.stringify(items)
+    })
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) {
+        errorEl.textContent = res.error || "Failed to save inventory";
+        errorEl.classList.remove("hidden");
+        saveBtn.disabled = false;
+        return;
+      }
+
+      // Refresh the in-memory inventory (already used elsewhere for the
+      // manual "Sync Inventory" menu item) so the product grid's
+      // canSell() reflects the new stock immediately.
+      return refreshInventoryOnly().then(closeAddInventory);
+    })
+    .catch(err => {
+      console.error(err);
+      errorEl.textContent = "Failed to save inventory";
+      errorEl.classList.remove("hidden");
+      saveBtn.disabled = false;
+    })
+    .finally(() => {
+      saveBtn.disabled = false;
+    });
+}
+
+function closeAddInventory() {
+  document.getElementById("addInventoryModal").classList.add("hidden");
+}
+window.closeAddInventory = closeAddInventory;
+window.saveAddInventory = saveAddInventory;
 
 /* =========================================================
    STAFF CLOCK IN/OUT (biometric, local-gate only)
