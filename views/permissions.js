@@ -12,9 +12,7 @@ import { icon } from "../icons.js";
 const PAGES = [
   { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
   { key: "categoriesProducts", label: `${icon("tag")} Categories & Products` },
-  { key: "locations", label: `${icon("store")} Locations` },
-  { key: "staff", label: `${icon("users")} Staff` },
-  { key: "attendance", label: `${icon("clock")} Attendance` },
+  { key: "locationStaffAttendance", label: `${icon("store")} Location, Staff, and Attendance` },
   { key: "inventory", label: `${icon("archive")} Inventory` },
   { key: "dailyInventory", label: `${icon("clipboard-list")} Daily Inventory System` },
   { key: "dailySales", label: `${icon("receipt")} Daily Sales` },

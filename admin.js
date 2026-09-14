@@ -21,7 +21,7 @@ renderIcons();
 // top-level listener in this file. Learned the hard way: this is exactly
 // what broke the Chat button and the sidebar drawer (each click fired
 // twice — once per instance — silently canceling itself out).
-const ASSET_VERSION = "20260915a";
+const ASSET_VERSION = "20260915b";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -165,10 +165,33 @@ function writePersistedCache(type, data) {
   }
 }
 
+// Apps Script's web-app redirect chain occasionally comes back with an
+// HTML error page instead of JSON — a transient Google-side glitch,
+// confirmed multiple times this session (most recently: a fresh view
+// hanging on "Loading…" forever, with no error shown at all, because
+// the single bad response rejected straight through an un-caught
+// Promise.all). Retries a couple of times before actually giving up —
+// same fix already shipped for Daily Inventory's reads.
+async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export async function getCached(type) {
   if (!dataCache[type]) {
-    const fetchPromise = fetch(`${API_URL}?type=${type}`)
-      .then(r => r.json())
+    const fetchPromise = fetchJSONWithRetry(`${API_URL}?type=${type}`)
       .then(data => {
         writePersistedCache(type, data);
         dataCache[type] = Promise.resolve(data); // fresh for the next caller
@@ -313,9 +336,7 @@ const VIEW_LOADERS = {
   dailyInventory: () => import(`./views/dailyinventory.js?v=${ASSET_VERSION}`),
   dailySales: () => import(`./views/dailySales.js?v=${ASSET_VERSION}`),
   salesExpensesTracker: () => import(`./views/salesExpensesTracker.js?v=${ASSET_VERSION}`),
-  locations: () => import(`./views/locations.js?v=${ASSET_VERSION}`),
-  staff: () => import(`./views/staff.js?v=${ASSET_VERSION}`),
-  attendance: () => import(`./views/attendance.js?v=${ASSET_VERSION}`),
+  locationStaffAttendance: () => import(`./views/locationStaffAttendance.js?v=${ASSET_VERSION}`),
   permissions: () => import(`./views/permissions.js?v=${ASSET_VERSION}`),
   dashboard: () => import(`./views/dashboard.js?v=${ASSET_VERSION}`)
 };

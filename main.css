@@ -455,6 +455,87 @@ html, body {
   margin-top: -6px;
 }
 
+/* ================= STAFF CARD (Location, Staff, and Attendance) =================
+   Sits in a .category-expanded-panel grid alongside the "Add Staff"
+   tile — same visual language as .category-chip, sized like a product
+   card. Click toggles its own DTR panel (third accordion level). */
+.staff-card {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  position: relative;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.staff-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+}
+
+.staff-card.expanded {
+  border-color: var(--apple-blue);
+}
+
+.staff-card.inactive {
+  opacity: 0.55;
+}
+
+.staff-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--apple-text);
+  margin-top: 6px;
+}
+
+.staff-card-position {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+}
+
+.staff-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+.staff-live-badge.in {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.staff-live-badge.out {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.staff-live-badge.none {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+/* Third accordion level — a staff member's DTR, full width under their
+   card, same grid-break technique as .category-expanded-panel. */
+.staff-dtr-panel {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px solid var(--apple-border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: default;
+}
+
 .admin-product-img {
   width: 100%;
   height: 120px;

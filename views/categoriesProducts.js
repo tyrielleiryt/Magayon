@@ -48,14 +48,21 @@ export default async function loadCategoriesProductsView() {
   document.getElementById("actionBar").innerHTML = "";
   renderLayout();
 
-  const [cats, prods] = await Promise.all([
-    getCached("categories"),
-    getCached("products")
-  ]);
+  const grid = document.getElementById("categoryGrid");
 
-  categories = cats;
-  products = prods;
-  renderCategoryGrid();
+  try {
+    const [cats, prods] = await Promise.all([
+      getCached("categories"),
+      getCached("products")
+    ]);
+
+    categories = cats;
+    products = prods;
+    renderCategoryGrid();
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:#888;padding:24px">Failed to load. Please try reloading this tab.</p>`;
+  }
 }
 
 /* ================= LAYOUT ================= */
