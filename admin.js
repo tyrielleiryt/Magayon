@@ -21,7 +21,7 @@ renderIcons();
 // top-level listener in this file. Learned the hard way: this is exactly
 // what broke the Chat button and the sidebar drawer (each click fired
 // twice — once per instance — silently canceling itself out).
-const ASSET_VERSION = "20260908b";
+const ASSET_VERSION = "20260915a";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
