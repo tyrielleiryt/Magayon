@@ -45,7 +45,7 @@ export default async function loadStaffView() {
   try {
     const [locs, staff] = await Promise.all([
       getCached("locations"),
-      fetch(API_URL + "?type=staff").then(r => r.json())
+      getCached("staff")
     ]);
 
     locations = locs;
