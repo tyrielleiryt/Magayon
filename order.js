@@ -1179,8 +1179,22 @@ function setPendingOrders(arr) {
   updateSyncCounter();
 }
 
+// Orders the server explicitly rejected during sync (not a network
+// failure — a real success:false from checkoutOrder, e.g. inventory
+// changed while offline). These stop retrying automatically since
+// resending the same payload will never succeed, but they're kept here
+// instead of just being dropped, so nothing silently disappears.
+function getFailedOrders() {
+  return JSON.parse(localStorage.getItem("failedOrders") || "[]");
+}
+
+function setFailedOrders(arr) {
+  localStorage.setItem("failedOrders", JSON.stringify(arr));
+}
+
 function updateSyncCounter() {
   const pending = getPendingOrders();
+  const failed = getFailedOrders();
   const el = document.getElementById("syncCount");
   const box = document.getElementById("syncStatus");
 
@@ -1192,15 +1206,19 @@ function updateSyncCounter() {
     return;
   }
 
-  // 📦 Pending count
-  el.textContent = pending.length;
+  // 📦 Pending count (failed ones flagged separately so a stuck failure
+  // doesn't just look like "still waiting to sync")
+  el.textContent = failed.length ? `${pending.length} (${failed.length} failed)` : pending.length;
 
   box.onclick = () => {
-    alert(
-      pending.length
-        ? pending.map(o => o.ref_id).join("\n")
-        : "All orders synced"
-    );
+    const lines = [];
+    if (pending.length) {
+      lines.push(`Pending sync:\n${pending.map(o => o.ref_id).join("\n")}`);
+    }
+    if (failed.length) {
+      lines.push(`Failed — needs manual review:\n${failed.map(o => `${o.ref_id}: ${o.error}`).join("\n")}`);
+    }
+    alert(lines.length ? lines.join("\n\n") : "All orders synced");
   };
 }
 
@@ -1318,13 +1336,18 @@ async function syncPendingOrders() {
     return;
   }
 
-  // Drop each order from the queue as soon as IT succeeds, not after the
-  // whole batch finishes — otherwise one failure partway through re-sends
+  // Drop each order from the queue as soon as it RESOLVES — either a
+  // real success or a definite server-side rejection — not after the
+  // whole batch finishes, otherwise one failure partway through re-sends
   // every order that already went through on the next sync, duplicating
-  // sales that were already recorded.
+  // sales that were already recorded. Only a genuine network failure
+  // (the fetch itself throwing) leaves an order in the queue for retry.
   const remaining = [...pending];
+  const rejected = [];
 
   for (const o of pending) {
+    let data;
+
     try {
       const body = new URLSearchParams({
         action: "checkoutOrder",
@@ -1335,20 +1358,43 @@ async function syncPendingOrders() {
         payment: JSON.stringify(o.payment || {}) // ✅ ADD
       });
 
-      await authFetch(API_URL, {
+      const res = await authFetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body
       });
 
-      remaining.shift();
-      setPendingOrders(remaining);
-
+      data = await res.json();
     } catch (err) {
-      console.warn("Sync failed for order:", o.ref_id);
+      // Offline mid-sync, DNS failure, etc. — this order (and everything
+      // still behind it) stays in the queue for the next sync attempt.
+      console.warn("Sync failed for order:", o.ref_id, err);
       SYNC_IN_PROGRESS = false;
+      updateSyncCounter();
       return;
     }
+
+    remaining.shift();
+    setPendingOrders(remaining);
+
+    // The request completed, but the server rejected this specific order
+    // (e.g. inventory changed while offline, or today's inventory day
+    // wasn't open) — resending the identical payload will never succeed,
+    // so pull it into a separate failed list instead of looping on it
+    // forever and blocking every valid order queued behind it.
+    if (!data.success) {
+      console.error("Order rejected by server:", o.ref_id, data.error);
+      rejected.push({ ...o, error: data.error || "Unknown error", failed_at: Date.now() });
+    }
+  }
+
+  if (rejected.length) {
+    setFailedOrders(getFailedOrders().concat(rejected));
+    alert(
+      `⚠️ ${rejected.length} order${rejected.length === 1 ? "" : "s"} could not be recorded and ` +
+      `need${rejected.length === 1 ? "s" : ""} manual review:\n\n` +
+      rejected.map(o => `${o.ref_id}: ${o.error}`).join("\n")
+    );
   }
 
   SYNC_IN_PROGRESS = false;
