@@ -1220,6 +1220,34 @@ document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 document.getElementById("pettyCashBtn")?.addEventListener("click", openPettyCash);
 document.getElementById("addInventoryBtn")?.addEventListener("click", openAddInventory);
 
+// "Sync" had no click handler at all — offline orders already
+// auto-sync (see the "online" listener and the 5s interval further
+// down), but the button itself did nothing when tapped, which reads
+// as broken. Gives an immediate manual sync attempt + visible result
+// instead of leaving the cashier guessing.
+document.getElementById("syncBtn")?.addEventListener("click", async () => {
+  if (!navigator.onLine) {
+    showInventoryToast(`${icon("alert-triangle", { size: 13 })} You're offline — orders will sync automatically once you're back online`);
+    return;
+  }
+
+  const pendingBefore = getPendingOrders().length;
+  if (!pendingBefore) {
+    showInventoryToast(`${icon("check-circle", { size: 13 })} Nothing to sync — all orders are up to date`);
+    return;
+  }
+
+  showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing ${pendingBefore} order${pendingBefore === 1 ? "" : "s"}…`);
+  await syncPendingOrders();
+
+  const pendingAfter = getPendingOrders().length;
+  showInventoryToast(
+    pendingAfter === 0
+      ? `${icon("check-circle", { size: 13 })} All orders synced`
+      : `${icon("alert-triangle", { size: 13 })} ${pendingAfter} order${pendingAfter === 1 ? "" : "s"} still pending — will retry automatically`
+  );
+});
+
 
 async function openStocks() {
   const tbody = document.getElementById("stocksTable");
