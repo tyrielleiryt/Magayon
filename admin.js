@@ -131,26 +131,73 @@ export function hideLoader() {
 /* ================= SHARED REFERENCE-DATA CACHE =================
    categories / locations / inventoryItems barely change but were being
    re-fetched from Apps Script (slow round-trip) on every single view
-   switch — Products, Staff, Locations, Capital Calculator, Daily
-   Inventory all pulled their own fresh copy every time. Cache each by
-   `type` for the rest of this session; call invalidateCache(type) right
-   after any add/edit/delete so the next read picks up the change. */
+   switch — Products, Staff, Locations, Daily Inventory all pulled
+   their own fresh copy every time. Cache each by `type` for the rest
+   of this session; call invalidateCache(type) right after any
+   add/edit/delete so the next read picks up the change.
+
+   Also persisted to localStorage (same pattern as the POS side's
+   product/inventory cache) so a fresh reload or a brand new login
+   doesn't start cold — a returning visit resolves getCached() instantly
+   from last session's copy while a fresh one loads silently in the
+   background for whoever asks next, instead of every single admin
+   panel load paying full Apps Script round-trip time for data that
+   almost never changes. invalidateCache() clears both, so this
+   session's own edits are never served stale. */
 const dataCache = {};
+const PERSIST_PREFIX = "adminCache_";
+
+function readPersistedCache(type) {
+  try {
+    const raw = localStorage.getItem(PERSIST_PREFIX + type);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function writePersistedCache(type, data) {
+  try {
+    localStorage.setItem(PERSIST_PREFIX + type, JSON.stringify(data));
+  } catch (err) {
+    // localStorage full/unavailable — harmless, just no persistence
+    // this time; the in-memory cache still works for this session.
+  }
+}
 
 export async function getCached(type) {
   if (!dataCache[type]) {
-    dataCache[type] = fetch(`${API_URL}?type=${type}`)
+    const fetchPromise = fetch(`${API_URL}?type=${type}`)
       .then(r => r.json())
+      .then(data => {
+        writePersistedCache(type, data);
+        dataCache[type] = Promise.resolve(data); // fresh for the next caller
+        return data;
+      })
       .catch(err => {
         delete dataCache[type]; // don't cache a failed fetch
         throw err;
       });
+
+    const persisted = readPersistedCache(type);
+
+    if (persisted) {
+      dataCache[type] = Promise.resolve(persisted);
+      fetchPromise.catch(() => {}); // still runs in the background — a failure here just leaves the persisted copy as-is for next time
+    } else {
+      dataCache[type] = fetchPromise;
+    }
   }
   return dataCache[type];
 }
 
 export function invalidateCache(type) {
   delete dataCache[type];
+  try {
+    localStorage.removeItem(PERSIST_PREFIX + type);
+  } catch (err) {
+    // ignore
+  }
 }
 
 /* ================= DATE & TIME ================= */
