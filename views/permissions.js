@@ -11,8 +11,7 @@ import { icon } from "../icons.js";
    decide which nav buttons to show that role. */
 const PAGES = [
   { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
-  { key: "categories", label: `${icon("tag")} Categories` },
-  { key: "products", label: `${icon("package")} Products` },
+  { key: "categoriesProducts", label: `${icon("tag")} Categories & Products` },
   { key: "locations", label: `${icon("store")} Locations` },
   { key: "staff", label: `${icon("users")} Staff` },
   { key: "attendance", label: `${icon("clock")} Attendance` },
