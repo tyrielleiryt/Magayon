@@ -376,39 +376,43 @@ if ("serviceWorker" in navigator) {
 }
 
   // Paint the product grid from whatever was cached on the last visit
-  // *before* waiting on the network — canSell() already fails safe (it
-  // returns false whenever `inventory` is still empty), so every item
-  // correctly shows as non-orderable until the real fetch below catches
-  // up. This just means a returning cashier sees the grid instantly
-  // instead of a blank loader on a slow tablet connection.
-  try {
-    const cachedCategories = JSON.parse(localStorage.getItem("categories") || "null");
-    const cachedProducts = JSON.parse(localStorage.getItem("products") || "null");
-    const cachedRecipes = JSON.parse(localStorage.getItem("recipes") || "null");
+  // *before* waiting on the network. Inventory levels are cached now too
+  // (previously only categories/products/recipes were, so canSell() —
+  // which fails safe whenever `inventory` is empty — stayed false for
+  // every item until the network caught up regardless; the grid looked
+  // ready but wasn't actually usable). With inventory included, a
+  // returning cashier with a good last-known snapshot can start ordering
+  // immediately, no blocking loader, while a fresh copy loads quietly in
+  // the background.
+  const paintedFromCache = paintFromCachedPOSData();
 
-    if (cachedCategories && cachedProducts && cachedRecipes) {
-      categories = cachedCategories;
-      products = cachedProducts;
-      recipes = cachedRecipes;
+  if (paintedFromCache) {
+    loadAllData()
+      .then(() => {
+        renderCategories();
+        renderProducts();
+        renderCart();
+      })
+      .catch(err => {
+        console.error(err);
+        showInventoryToast(`${icon("alert-triangle", { size: 13 })} Showing last saved data — couldn't refresh`);
+      });
+  } else {
+    // True first-ever load on this device — nothing to paint yet, so
+    // this is the one case still worth blocking on.
+    showLoader("Loading POS data…");
+
+    try {
+      await loadAllData();
       renderCategories();
       renderProducts();
+      renderCart();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load POS data.");
+    } finally {
+      hideLoader();
     }
-  } catch (err) {
-    console.warn("Failed to read cached POS data", err);
-  }
-
-  showLoader("Loading POS data…");
-
-  try {
-    await loadAllData();
-    renderCategories();
-    renderProducts();
-    renderCart();
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load POS data.");
-  } finally {
-    hideLoader();
   }
 
   document
@@ -454,6 +458,59 @@ if ("serviceWorker" in navigator) {
     chatBox?.classList.add("hidden");
 
 });
+
+/* =========================================================
+   PAINT FROM CACHE
+   Restores everything loadAllData() would normally populate — straight
+   from what was saved locally after the last successful load — so a
+   returning cashier gets an immediately usable grid instead of staring
+   at a loader while Apps Script responds. Returns false (paints
+   nothing) unless every piece needed to actually sell something is
+   present; a partial cache would leave canSell() silently false again.
+========================================================= */
+function paintFromCachedPOSData() {
+  try {
+    const cachedCategories = JSON.parse(localStorage.getItem("categories") || "null");
+    const cachedProducts = JSON.parse(localStorage.getItem("products") || "null");
+    const cachedRecipes = JSON.parse(localStorage.getItem("recipes") || "null");
+    const cachedInventory = JSON.parse(localStorage.getItem("inventory") || "null");
+    const cachedInventoryNames = JSON.parse(localStorage.getItem("inventoryNames") || "null");
+    const cachedConversionMap = JSON.parse(localStorage.getItem("inventoryConversionMap") || "null");
+    const cachedReorderLevels = JSON.parse(localStorage.getItem("inventoryReorderLevels") || "null");
+    const cachedPosClosed = JSON.parse(localStorage.getItem("posClosed") || "false");
+
+    if (!cachedCategories || !cachedProducts || !cachedRecipes ||
+        !cachedInventory || !cachedInventoryNames) {
+      return false;
+    }
+
+    categories = cachedCategories;
+    products = cachedProducts;
+    recipes = cachedRecipes;
+    inventory = cachedInventory;
+    inventoryNames = cachedInventoryNames;
+    inventoryConversionMap = cachedConversionMap || {};
+    inventoryReorderLevels = cachedReorderLevels || {};
+
+    renderCategories();
+    renderProducts();
+    renderCart();
+
+    // Reflects the last known open/closed state immediately instead of
+    // defaulting to "open" for a few seconds — loadAllData()'s own
+    // applyInventoryGate() call corrects this within moments either way
+    // once the real fetch resolves, same as it always has.
+    if (cachedPosClosed) {
+      POS_CLOSED = true;
+      enterSalesOnlyMode();
+    }
+
+    return true;
+  } catch (err) {
+    console.warn("Failed to read cached POS data", err);
+    return false;
+  }
+}
 
 /* =========================================================
    LOAD ALL DATA
@@ -514,7 +571,11 @@ if (inventoryResponse.status !== "OPEN") {
   localStorage.setItem("categories", JSON.stringify(categories));
   localStorage.setItem("products", JSON.stringify(products));
   localStorage.setItem("recipes", JSON.stringify(recipes));
-
+  localStorage.setItem("inventory", JSON.stringify(inventory));
+  localStorage.setItem("inventoryNames", JSON.stringify(inventoryNames));
+  localStorage.setItem("inventoryConversionMap", JSON.stringify(inventoryConversionMap));
+  localStorage.setItem("inventoryReorderLevels", JSON.stringify(inventoryReorderLevels));
+  localStorage.setItem("posClosed", JSON.stringify(POS_CLOSED));
 }
 
 async function loadProductSales(date, location) {

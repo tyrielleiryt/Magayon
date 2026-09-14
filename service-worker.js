@@ -16,7 +16,11 @@
 // always try the network for the freshest copy, and only fall back to
 // the cache when the request actually fails (actually offline).
 
-const CACHE_VERSION = "v3";
+// v4 adds icons.js (a hard dependency of order.js that was missing from
+// the precache list entirely — a device that had never been online once
+// would fail offline) and gcash-qr.png (needed to accept GCash payments
+// offline, same reasoning).
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `magayon-pos-${CACHE_VERSION}`;
 
 // Same-origin files only — cross-origin assets (like the Firebase SDK
@@ -29,8 +33,10 @@ const ASSETS = [
   "./order.js",
   "./firebase-config.js",
   "./auth-guard.js",
+  "./icons.js",
   "./manifest.json",
-  "./images/logo.png"
+  "./images/logo.png",
+  "./images/gcash-qr.png"
 ];
 
 self.addEventListener("install", e => {
