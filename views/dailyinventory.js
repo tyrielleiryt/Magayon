@@ -140,7 +140,7 @@ async function loadCarryOverReview(location) {
 
   try {
     const [days, masterItems] = await Promise.all([
-      fetch(`${API_URL}?type=dailyInventory`).then(r => r.json()),
+      fetchJSONWithRetry(`${API_URL}?type=dailyInventory`),
       getCached("inventoryItems")
     ]);
 
@@ -158,10 +158,10 @@ async function loadCarryOverReview(location) {
       return;
     }
 
-    const itemsData = await fetch(
+    const itemsData = await fetchJSONWithRetry(
       `${API_URL}?type=dailyInventoryItems` +
       `&date=${encodeURIComponent(prevDay.date)}&location=${encodeURIComponent(location)}`
-    ).then(r => r.json());
+    );
 
     const prevItems = (itemsData.items || []).filter(i => Number(i.remaining) > 0);
 
@@ -287,16 +287,38 @@ const DAILY_INVENTORY_PAGE_SIZE = 5;
 let dailyInventoryOffset = 0;
 let dailyInventoryHasMore = false;
 
+// Apps Script's web-app redirect chain occasionally comes back with an
+// HTML error page instead of JSON (a transient Google-side glitch, not
+// anything wrong with the request) — confirmed while debugging this
+// tab's load time. A single bad response used to hard-fail the whole
+// list with no recovery; this retries a couple of times with a short
+// gap before actually giving up.
+async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function loadDailyInventory() {
   dailyInventory = [];
   dailyInventoryOffset = 0;
   dailyInventoryHasMore = false;
 
   try {
-    const res = await fetch(
+    const data = await fetchJSONWithRetry(
       `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=0`
     );
-    const data = await res.json();
 
     dailyInventory = data.rows || [];
     dailyInventoryOffset = dailyInventory.length;
@@ -316,10 +338,9 @@ async function loadMoreDailyInventory() {
   }
 
   try {
-    const res = await fetch(
+    const data = await fetchJSONWithRetry(
       `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=${dailyInventoryOffset}`
     );
-    const data = await res.json();
 
     dailyInventory = dailyInventory.concat(data.rows || []);
     dailyInventoryOffset = dailyInventory.length;
@@ -477,11 +498,11 @@ function renderInvView(date, location, status, items, conversionMap) {
 
 async function fetchInvViewData(date, location) {
   const [data, masterItems] = await Promise.all([
-    fetch(
+    fetchJSONWithRetry(
       `${API_URL}?type=dailyInventoryItems` +
       `&date=${encodeURIComponent(date)}` +
       `&location=${encodeURIComponent(location)}`
-    ).then(r => r.json()),
+    ),
     getCached("inventoryItems")
   ]);
 
@@ -586,10 +607,10 @@ window.openAddInventoryForDay = async function (date, location) {
   try {
     const [items, dailyData] = await Promise.all([
       getCached("inventoryItems"),
-      fetch(
+      fetchJSONWithRetry(
         `${API_URL}?type=dailyInventoryItems` +
         `&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}`
-      ).then(r => r.json())
+      )
     ]);
 
     inventoryItems = items;
