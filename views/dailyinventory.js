@@ -277,20 +277,64 @@ async function submitStartInventoryDay(items) {
   }
 }
 
-/* ================= LOAD DAILY INVENTORY ================= */
+/* ================= LOAD DAILY INVENTORY =================
+   This list only grows — one row per location per day, forever — so
+   pulling and rendering the entire history on every visit to this tab
+   doesn't scale. Loads just the most recent page; "View More" below
+   fetches further pages on demand. Server returns rows already sorted
+   newest-first, so pages can just be appended in fetch order. */
+const DAILY_INVENTORY_PAGE_SIZE = 5;
+let dailyInventoryOffset = 0;
+let dailyInventoryHasMore = false;
+
 async function loadDailyInventory() {
+  dailyInventory = [];
+  dailyInventoryOffset = 0;
+  dailyInventoryHasMore = false;
+
   try {
-    const res = await fetch(`${API_URL}?type=dailyInventory`);
+    const res = await fetch(
+      `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=0`
+    );
     const data = await res.json();
 
-    dailyInventory = (Array.isArray(data) ? data : [])
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    dailyInventory = data.rows || [];
+    dailyInventoryOffset = dailyInventory.length;
+    dailyInventoryHasMore = !!data.hasMore;
     renderTable();
   } catch (err) {
     console.error(err);
     alert("Failed to load daily inventory");
   }
 }
+
+async function loadMoreDailyInventory() {
+  const btn = el("dailyInventoryViewMoreBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+  }
+
+  try {
+    const res = await fetch(
+      `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=${dailyInventoryOffset}`
+    );
+    const data = await res.json();
+
+    dailyInventory = dailyInventory.concat(data.rows || []);
+    dailyInventoryOffset = dailyInventory.length;
+    dailyInventoryHasMore = !!data.hasMore;
+    renderTable();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load more daily inventory");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "View More";
+    }
+  }
+}
+window.loadMoreDailyInventory = loadMoreDailyInventory;
 
 /* ================= TABLE ================= */
 function renderTable() {
@@ -335,6 +379,21 @@ function renderTable() {
       </tr>
     `);
   });
+
+  // A search/filter only narrows what's already loaded — it doesn't
+  // reach further into history — so hide "View More" while filtering
+  // rather than imply it would search unloaded rows too.
+  if (dailyInventoryHasMore && !searchDate && !searchLocation) {
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td colspan="5" style="text-align:center;padding:12px">
+          <button id="dailyInventoryViewMoreBtn" class="btn-view" onclick="loadMoreDailyInventory()">
+            View More
+          </button>
+        </td>
+      </tr>
+    `);
+  }
 }
 
 /* ================= INVENTORY MODAL — SHARED HELPERS =================
