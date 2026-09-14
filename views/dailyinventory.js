@@ -1,5 +1,5 @@
-import { bindDataBoxScroll, getCached } from "../admin.js";
-import { openModal, closeModal } from "./modal.js";
+import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
+import { openModal, closeModal, showModalLoader, hideModalLoader } from "./modal.js";
  
 /* =========================================================
    CONFIG
@@ -93,6 +93,10 @@ function renderActionBar() {
     <button id="closeDayBtn" class="danger">
   ${icon("lock")} Close Inventory Day
 </button>
+
+    <button id="inventoryItemsBtn" class="category-action-btn" style="margin-left:auto">
+  ${icon("archive")} Inventory Items
+</button>
   `;
 
   el("searchDateInput").oninput = e => {
@@ -116,6 +120,8 @@ function renderActionBar() {
     }
     openCloseDayModal(date, location);
   };
+
+  el("inventoryItemsBtn").onclick = openInventoryItemsModal;
 }
 
 /* =================  Start Inventory ================= */
@@ -742,3 +748,309 @@ window.saveInventoryForDay = function (date, location) {
       resetSaveBtn();
     });
 };
+
+/* ================= INVENTORY ITEMS MODAL =================
+   Combines the old standalone "Inventory" tab's catalog management
+   (Add/Edit/Delete item) into this tab, reached via the "Inventory
+   Items" button. Uses the same header/crossfade primitives as the
+   View/Add Inventory screens above — one modal window whose content
+   swaps between grid, add/edit form, and delete confirm instead of
+   closing and reopening for every step. Items render as chips (same
+   look as Categories & Products' category chips) instead of a table;
+   clicking a chip opens Edit directly, same as a Product card. */
+let inventoryItemsCatalog = [];
+let invItemsSearch = "";
+
+function normalizeInventoryItems(data) {
+  return (Array.isArray(data) ? data : []).map(r => {
+    if (!Array.isArray(r)) {
+      return {
+        item_id: r.item_id,
+        item_name: r.item_name,
+        description: r.description,
+        quantity_per_serving: r.quantity_per_serving,
+        unit: r.unit,
+        capital: r.capital,
+        selling_price: r.selling_price,
+        reorder_level: r.reorder_level,
+        active: r.active
+      };
+    }
+    return {
+      item_id: r[0],
+      item_name: r[1],
+      description: r[2],
+      quantity_per_serving: r[3],
+      unit: r[4],
+      capital: r[5],
+      selling_price: r[6],
+      reorder_level: r[7],
+      active: r[8]
+    };
+  });
+}
+
+async function openInventoryItemsModal() {
+  openModal(`
+    ${invHeader("archive", "Inventory Items")}
+    <div class="inv-modal-empty-cell" style="padding:48px 12px">
+      ${icon("refresh-cw", { size: 20, class: "inv-spin" })}<br>Loading…
+    </div>
+  `, true);
+
+  try {
+    inventoryItemsCatalog = normalizeInventoryItems(await getCached("inventoryItems"));
+    invItemsSearch = "";
+    showInventoryItemsGrid();
+  } catch (err) {
+    console.error(err);
+    swapModalContent(`
+      ${invHeader("archive", "Inventory Items")}
+      <div class="inv-modal-empty-cell" style="padding:32px 12px">Failed to load inventory items.</div>
+      <div class="modal-actions">
+        <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+      </div>
+    `);
+  }
+}
+
+function inventoryItemsGridHTML() {
+  return `
+    ${invHeader("archive", "Inventory Items")}
+    <input id="invItemsSearchInput" placeholder="Search items..." value="${invItemsSearch}">
+    <div class="inv-modal-scroll">
+      <div class="admin-product-grid" id="invItemsGrid"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  `;
+}
+
+function showInventoryItemsGrid() {
+  swapModalContent(inventoryItemsGridHTML(), () => {
+    const searchInput = document.getElementById("invItemsSearchInput");
+    if (searchInput) {
+      searchInput.oninput = e => {
+        invItemsSearch = e.target.value.toLowerCase();
+        renderInvItemsGridBody();
+      };
+    }
+    renderInvItemsGridBody();
+  });
+}
+
+function renderInvItemsGridBody() {
+  const grid = document.getElementById("invItemsGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  grid.insertAdjacentHTML("beforeend", `
+    <button type="button" class="category-chip category-chip-add" id="addInvItemChip">
+      ${icon("plus", { size: 22 })}
+      <span>Add Item</span>
+    </button>
+  `);
+  document.getElementById("addInvItemChip").onclick = () => openInventoryItemForm(null);
+
+  const filtered = inventoryItemsCatalog.filter(i =>
+    `${i.item_name || ""} ${i.description || ""}`.toLowerCase().includes(invItemsSearch)
+  );
+
+  if (!filtered.length) {
+    grid.insertAdjacentHTML("beforeend", `
+      <p style="grid-column:1/-1;text-align:center;color:#888;padding:24px 4px">
+        No inventory items found
+      </p>
+    `);
+    return;
+  }
+
+  filtered.forEach(item => renderInventoryItemChip(grid, item));
+}
+
+function renderInventoryItemChip(grid, item) {
+  const chip = document.createElement("div");
+  chip.className = "category-chip category-chip-item" + (item.active === false ? " inactive" : "");
+
+  const unit = item.unit || "";
+  const perServing = item.quantity_per_serving;
+  const countLine = (perServing !== undefined && perServing !== null && perServing !== "")
+    ? `${perServing}${unit ? " " + unit : ""} / serving`
+    : (unit || "—");
+
+  const desc = (item.description || "").replace(/"/g, "&quot;");
+
+  chip.innerHTML = `
+    <div class="category-chip-actions">
+      <button type="button" class="category-chip-icon-btn" data-action="delete" title="Delete item">${icon("trash-2", { size: 13 })}</button>
+    </div>
+    <div class="category-chip-name">${item.item_name || ""}</div>
+    ${desc ? `<div class="category-chip-desc" title="${desc}">${desc}</div>` : ""}
+    <div class="category-chip-count">${countLine}</div>
+  `;
+
+  chip.onclick = () => openInventoryItemForm(item);
+
+  chip.querySelector('[data-action="delete"]').onclick = e => {
+    e.stopPropagation();
+    openInventoryItemDeleteConfirm(item);
+  };
+
+  grid.appendChild(chip);
+}
+
+function openInventoryItemForm(item) {
+  const isEdit = !!item;
+
+  swapModalContent(`
+    ${invHeader(isEdit ? "pencil" : "plus", isEdit ? "Edit Inventory Item" : "Add Inventory Item")}
+    <div class="inv-modal-scroll inv-modal-scroll-form">
+      <label>Item Name</label>
+      <input id="invf_name" value="${isEdit ? (item.item_name || "") : ""}" required>
+
+      <label>Description</label>
+      <textarea id="invf_desc">${isEdit ? (item.description || "") : ""}</textarea>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Quantity per Serving</label>
+          <input id="invf_qty" type="number" min="0" value="${isEdit ? (item.quantity_per_serving ?? "") : ""}">
+        </div>
+        <div class="form-field">
+          <label>Unit</label>
+          <input id="invf_unit" placeholder="g, pc, cup, etc" value="${isEdit ? (item.unit || "") : ""}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Capital</label>
+          <input id="invf_capital" type="number" min="0" value="${isEdit ? (item.capital ?? "") : ""}">
+        </div>
+        <div class="form-field">
+          <label>Selling Price</label>
+          <input id="invf_price" type="number" min="0" value="${isEdit ? (item.selling_price ?? "") : ""}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Reorder Level</label>
+          <input id="invf_reorder" type="number" min="0" value="${isEdit ? (item.reorder_level ?? "") : ""}">
+        </div>
+        <div class="form-field">
+          <label style="display:flex;align-items:center;gap:8px;margin-top:24px">
+            <input id="invf_active" type="checkbox" style="width:auto;margin:0" ${(!isEdit || item.active !== false) ? "checked" : ""}>
+            Active
+          </label>
+        </div>
+      </div>
+    </div>
+    <div id="invItemFormError" class="inv-save-error hidden"></div>
+    <div class="modal-actions">
+      <button class="category-action-btn" onclick="saveInventoryItemFromModal(${isEdit ? `'${item.item_id}'` : "null"})">${icon("save")} Save</button>
+      <button class="inv-modal-btn-secondary" onclick="showInventoryItemsGrid()">Cancel</button>
+    </div>
+  `);
+}
+
+function openInventoryItemDeleteConfirm(item) {
+  swapModalContent(`
+    ${invHeader("trash-2", "Delete Inventory Item")}
+    <p style="padding:10px 0">
+      Are you sure you want to delete <strong>${item.item_name}</strong>?
+    </p>
+    <div class="modal-actions">
+      <button class="inv-modal-btn-secondary" onclick="showInventoryItemsGrid()">Cancel</button>
+      <button class="category-action-btn" style="background:var(--apple-red)" onclick="confirmDeleteInventoryItem('${item.item_id}')">${icon("trash-2")} Delete</button>
+    </div>
+  `);
+}
+
+async function saveInventoryItemFromModal(existingId) {
+  const payload = {
+    item_name: document.getElementById("invf_name").value.trim(),
+    description: document.getElementById("invf_desc").value.trim(),
+    quantity_per_serving: document.getElementById("invf_qty").value,
+    unit: document.getElementById("invf_unit").value,
+    capital: document.getElementById("invf_capital").value,
+    selling_price: document.getElementById("invf_price").value,
+    reorder_level: document.getElementById("invf_reorder").value,
+    active: document.getElementById("invf_active").checked
+  };
+
+  const errorEl = document.getElementById("invItemFormError");
+  if (errorEl) errorEl.classList.add("hidden");
+
+  if (!payload.item_name) {
+    if (errorEl) {
+      errorEl.textContent = "Item name is required";
+      errorEl.classList.remove("hidden");
+    } else {
+      alert("Item name is required");
+    }
+    return;
+  }
+
+  if (existingId) payload.item_id = existingId;
+
+  showModalLoader(existingId ? "Updating item…" : "Saving item…");
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: existingId ? "updateInventoryItem" : "addInventoryItem",
+        data: JSON.stringify(payload)
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Save failed");
+
+    invalidateCache("inventoryItems");
+    inventoryItemsCatalog = normalizeInventoryItems(await getCached("inventoryItems"));
+    showInventoryItemsGrid();
+  } catch (err) {
+    console.error(err);
+    if (errorEl) {
+      errorEl.textContent = err.message || "Save failed";
+      errorEl.classList.remove("hidden");
+    } else {
+      alert("❌ " + err.message);
+    }
+  } finally {
+    hideModalLoader();
+  }
+}
+
+async function confirmDeleteInventoryItem(itemId) {
+  showModalLoader("Deleting item…");
+
+  try {
+    const res = await authFetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "deleteInventoryItem",
+        item_id: itemId
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Delete failed");
+
+    invalidateCache("inventoryItems");
+    inventoryItemsCatalog = normalizeInventoryItems(await getCached("inventoryItems"));
+    showInventoryItemsGrid();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Delete failed: " + err.message);
+  } finally {
+    hideModalLoader();
+  }
+}
+
+window.saveInventoryItemFromModal = saveInventoryItemFromModal;
+window.showInventoryItemsGrid = showInventoryItemsGrid;
+window.confirmDeleteInventoryItem = confirmDeleteInventoryItem;

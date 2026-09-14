@@ -227,6 +227,43 @@ html, body {
   cursor: not-allowed;
 }
 
+/* Daily Inventory's Start/Close Day buttons (class="primary"/"danger")
+   never had a matching rule and rendered as unstyled native buttons —
+   give them the same look as .category-action-btn now that a third,
+   properly-styled button sits right next to them in the same row. */
+.action-bar button.primary,
+.action-bar button.danger {
+  background: var(--apple-blue);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-bar button.primary:hover {
+  background: var(--apple-blue-dark);
+}
+
+.action-bar button.danger {
+  background: var(--apple-red);
+}
+
+.action-bar button.danger:hover {
+  background: #d6291f;
+}
+
+.action-bar button.primary:active,
+.action-bar button.danger:active {
+  transform: scale(0.97);
+}
+
 /* ================= TABLE ================= */
 .category-table {
   width: 100%;
@@ -439,6 +476,22 @@ html, body {
 .category-chip-add span {
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Inventory Items modal — items reuse .category-chip's look (Add/Edit
+   opens straight from a click, like a Product card, so there's no
+   expand/chevron here) with two additions of their own. */
+.category-chip-desc {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-chip-item.inactive {
+  opacity: 0.5;
 }
 
 /* Nested product grid for an expanded category — breaks to full grid
@@ -758,6 +811,14 @@ html, body {
   overflow-y: auto;     /* 🔥 modal scrolls */
   box-sizing: border-box;
   transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+/* openModal(html, true) has always toggled this class on to ask for a
+   wider modal (Daily Inventory's own View/Add Inventory screens already
+   pass true) but no rule ever backed it, so every "large" modal was
+   silently stuck at the default 520px. */
+#modalBox.large {
+  width: 900px;
 }
 
 /* Shown while a modal's own data is loading/saving — scoped to the modal

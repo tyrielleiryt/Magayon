@@ -13,7 +13,6 @@ const PAGES = [
   { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
   { key: "categoriesProducts", label: `${icon("tag")} Categories & Products` },
   { key: "locationStaffAttendance", label: `${icon("store")} Location, Staff, and Attendance` },
-  { key: "inventory", label: `${icon("archive")} Inventory` },
   { key: "dailyInventory", label: `${icon("clipboard-list")} Daily Inventory System` },
   { key: "dailySales", label: `${icon("receipt")} Daily Sales` },
   { key: "salesExpensesTracker", label: `${icon("trending-up")} Sales and Expenses Tracker` }

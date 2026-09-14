@@ -21,7 +21,7 @@ renderIcons();
 // top-level listener in this file. Learned the hard way: this is exactly
 // what broke the Chat button and the sidebar drawer (each click fired
 // twice — once per instance — silently canceling itself out).
-const ASSET_VERSION = "20260915b";
+const ASSET_VERSION = "20260916a";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -332,7 +332,6 @@ document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async (
    revisiting a tab doesn't re-fetch or re-parse anything. */
 const VIEW_LOADERS = {
   categoriesProducts: () => import(`./views/categoriesProducts.js?v=${ASSET_VERSION}`),
-  inventory: () => import(`./views/inventoryitems.js?v=${ASSET_VERSION}`),
   dailyInventory: () => import(`./views/dailyinventory.js?v=${ASSET_VERSION}`),
   dailySales: () => import(`./views/dailySales.js?v=${ASSET_VERSION}`),
   salesExpensesTracker: () => import(`./views/salesExpensesTracker.js?v=${ASSET_VERSION}`),

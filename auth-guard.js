@@ -13,7 +13,7 @@ import { auth, db } from "./firebase-config.js";
 
 export const ROLES = {
   CASHIER: "cashier",
-  MANAGER: "manager",    // limited admin: dashboard, daily sales, daily inventory, inventory
+  MANAGER: "manager",    // limited admin: dashboard, daily sales, daily inventory
   ADMIN: "admin",        // legacy full-access role, kept equivalent to it_admin/owner
   OWNER: "owner",        // full access, same as it_admin, minus account/permission management
   IT_ADMIN: "it_admin"   // full access + manages staff accounts, roles and page permissions
@@ -29,7 +29,7 @@ export const FULL_ACCESS_ROLES = [ROLES.ADMIN, ROLES.IT_ADMIN, ROLES.OWNER];
 // Firestore at config/rolePermissions); this is only the fallback used
 // until that doc exists or doesn't mention a given role.
 export const DEFAULT_ROLE_PAGES = {
-  [ROLES.MANAGER]: ["dashboard", "dailySales", "dailyInventory", "inventory", "salesExpensesTracker", "locationStaffAttendance"]
+  [ROLES.MANAGER]: ["dashboard", "dailySales", "dailyInventory", "salesExpensesTracker", "locationStaffAttendance"]
   // Cashier isn't listed here — it never reaches the admin panel at all
   // (see admin.js's requireRole() call), so there's no page list to edit.
 };
