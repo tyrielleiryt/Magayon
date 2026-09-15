@@ -121,13 +121,14 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 /* ================= RESPONSIVE TOP-BAR ↔ SIDEBAR RELOCATION =================
-   The Sales & Expenses Tracker + Overhead (OPEX) buttons live in the top
-   bar on desktop (beside Chat) — there's no room for them there on a
-   mobile-width screen, so they move into the sidebar drawer instead,
-   back in their original spot (right before Workforce & Operations).
-   Same two DOM nodes either way, just reparented — one source of truth,
-   so there's never a second copy that could fall out of sync on which
-   one shows "active". */
+   The System Refresh + Sales & Expenses Tracker + Overhead (OPEX)
+   buttons live in the top bar on desktop (beside Chat) — there's no
+   room for them there on a mobile-width screen, so they move into the
+   sidebar drawer instead, back in their original spot (right before
+   Workforce & Operations). Same DOM nodes either way, just reparented —
+   one source of truth, so there's never a second copy that could fall
+   out of sync on which one shows "active". */
+const systemRefreshBtn = document.getElementById("systemRefreshBtn");
 const trackerTopBtn = document.getElementById("setTrackerTopBtn");
 const opexTopBtn = document.getElementById("opexTopBtn");
 const chatToggleBtn = document.getElementById("adminChatToggle");
@@ -136,13 +137,13 @@ const topBarEl = document.querySelector(".top-bar");
 const mobileMedia = window.matchMedia("(max-width: 768px)");
 
 function placeTrackerButtons(isMobile) {
-  if (!trackerTopBtn && !opexTopBtn) return; // both removed by role filtering above
-
   if (isMobile) {
     const anchor = workforceNavBtn && sidebarEl?.contains(workforceNavBtn) ? workforceNavBtn : null;
+    if (systemRefreshBtn) sidebarEl?.insertBefore(systemRefreshBtn, anchor);
     if (trackerTopBtn) sidebarEl?.insertBefore(trackerTopBtn, anchor);
     if (opexTopBtn) sidebarEl?.insertBefore(opexTopBtn, anchor);
   } else {
+    if (systemRefreshBtn) topBarEl?.insertBefore(systemRefreshBtn, chatToggleBtn);
     if (trackerTopBtn) topBarEl?.insertBefore(trackerTopBtn, chatToggleBtn);
     if (opexTopBtn) topBarEl?.insertBefore(opexTopBtn, chatToggleBtn);
   }
@@ -150,6 +151,20 @@ function placeTrackerButtons(isMobile) {
 
 placeTrackerButtons(mobileMedia.matches);
 mobileMedia.addEventListener("change", e => placeTrackerButtons(e.matches));
+
+// Nuclear option for "I did something (started an inventory day, etc.)
+// and the data still isn't showing up" — clears the persisted admin
+// cache (see getCached()/PERSIST_PREFIX below) so the reload that
+// follows can't just re-hydrate from the same stale copy, then reloads.
+document.getElementById("systemRefreshBtn")?.addEventListener("click", () => {
+  if (!confirm("This refreshes the page and clears cached data. Continue?")) return;
+
+  Object.keys(localStorage)
+    .filter(key => key.startsWith(PERSIST_PREFIX))
+    .forEach(key => localStorage.removeItem(key));
+
+  window.location.reload();
+});
 
 /* ================= LOADER HELPERS ================= */
 export function showLoader(text = "Loading data…") {
