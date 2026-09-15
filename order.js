@@ -2008,6 +2008,8 @@ function renderSalesTable(orders) {
         </td>
       </tr>`;
     totalEl.textContent = "0.00";
+    document.getElementById("sumCash").textContent = "0.00";
+    document.getElementById("sumGcash").textContent = "0.00";
     return;
   }
 
@@ -2066,11 +2068,9 @@ if (method === "GCASH") {
   });
 
   // SUMMARY
-totalEl.innerHTML = `
-  <div><strong>Gross Sales:</strong> ₱${grandTotal.toFixed(2)}</div>
-  <div>${icon("banknote", { size: 14 })} Cash: ₱${cashTotal.toFixed(2)}</div>
-  <div>${icon("smartphone", { size: 14 })} GCash: ₱${gcashTotal.toFixed(2)}</div>
-`;
+  totalEl.textContent = grandTotal.toFixed(2);
+  document.getElementById("sumCash").textContent = cashTotal.toFixed(2);
+  document.getElementById("sumGcash").textContent = gcashTotal.toFixed(2);
 }
 
 function formatDateTime(value) {

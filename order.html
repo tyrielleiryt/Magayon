@@ -282,7 +282,11 @@
 
       <div class="pos-modal-footer pos-modal-footer-split">
         <div class="total">
-          Gross Sales: ₱<span id="sumGross">0.00</span>
+          <div>Gross Sales: ₱<span id="sumGross">0.00</span></div>
+          <div class="payment-breakdown">
+            <span class="payment-breakdown-item"><i data-icon="banknote"></i> Cash: ₱<span id="sumCash">0.00</span></span>
+            <span class="payment-breakdown-item"><i data-icon="smartphone"></i> GCash: ₱<span id="sumGcash">0.00</span></span>
+          </div>
         </div>
         <button class="pos-modal-close-btn" onclick="closeSales()">Close</button>
       </div>
