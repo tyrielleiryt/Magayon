@@ -4,12 +4,20 @@
 <head>
   <meta charset="UTF-8" />
   <title>MAGAYON POS</title>
-    <!-- ✅ REQUIRED for tablet + PWA -->
+    <!-- ✅ REQUIRED for tablet + PWA
+         interactive-widget=resizes-content tells supporting browsers
+         (Chrome/Android) to actually shrink the layout viewport when the
+         on-screen keyboard opens, instead of just drawing the keyboard
+         over it — without this, the cart's Checkout/Print buttons (and
+         other bottom-anchored controls) can end up rendered behind the
+         keyboard, unreachable, even though body/modals already use dvh
+         units below to size themselves to the same shrunk viewport. -->
   <meta name="viewport"
         content="width=device-width,
                  initial-scale=1.0,
                  maximum-scale=1.0,
-                 user-scalable=no" />
+                 user-scalable=no,
+                 interactive-widget=resizes-content" />
 
   <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json">

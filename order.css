@@ -24,6 +24,15 @@ body {
   background: var(--apple-gray-bg);
   color: var(--apple-text);
   height: 100vh;
+  /* 100vh doesn't shrink for the on-screen keyboard on most mobile
+     browsers, so a fixed-height layout built on it renders as if the
+     keyboard weren't there — pushing whatever sits at the bottom (the
+     cart's Checkout/Print buttons) out under where the keyboard now
+     covers the screen. 100dvh tracks the actual visible viewport,
+     including the keyboard, so the layout reflows to keep those
+     buttons on-screen instead. Kept 100vh above as the fallback for
+     the rare browser that doesn't support dvh yet. */
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -460,6 +469,7 @@ body {
   width: 420px;
   max-width: 92vw;
   max-height: 78vh;
+  max-height: 78dvh; /* keeps Confirm reachable above the keyboard — see body's dvh note */
 
   border-radius: 16px;
   background: linear-gradient(#ffffff, #f9fafb);
@@ -879,6 +889,7 @@ body.sales-only .checkout {
   width: 420px;
   max-width: 90vw;
   max-height: 80vh;
+  max-height: 80dvh;
 
   border-radius: 16px;
   background: linear-gradient(
@@ -969,6 +980,7 @@ body.sales-only .checkout {
   width: 700px;
   max-width: 95vw;
   max-height: 80vh;
+  max-height: 80dvh;
 
   display: flex;
   flex-direction: column;
@@ -1028,6 +1040,7 @@ body.sales-only .checkout {
   .sales-modal {
     width: 96vw;
     max-height: 85vh;
+    max-height: 85dvh;
   }
 
   .sales-table-wrapper {
@@ -1045,6 +1058,7 @@ body.sales-only .checkout {
   width: 480px;
   max-width: 92vw;
   max-height: 82vh;
+  max-height: 82dvh;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
   animation: modalPop 0.18s ease-out;
 }
@@ -1379,6 +1393,7 @@ body.sales-only .checkout {
 /* Scrollable body */
 #salesModal .modal-body {
   max-height: 65vh;
+  max-height: 65dvh;
   overflow-y: auto;
   padding: 0;
 }
@@ -1835,6 +1850,7 @@ body.sales-only .checkout {
     bottom: 0;
     min-width: 0;
     max-height: 70vh;
+    max-height: 70dvh;
     border-left: none;
     border-top: 1px solid #ddd;
     border-radius: 16px 16px 0 0;
