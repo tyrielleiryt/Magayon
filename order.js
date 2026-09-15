@@ -2026,30 +2026,46 @@ function performLogout() {
   window.location.href = "index.html";
 }
 
-function loadTodaySales() {
+// Same transient-Apps-Script-failure defense as fetchJSONWithRetry() above,
+// but for this one call's JSONP transport (a <script> tag, not fetch) —
+// a bad response here doesn't reject with a normal error, it fails to
+// load as valid JS, which only shows up as the tag's onerror firing, so
+// the retry has to live at that same layer instead.
+function loadTodaySales(attempts = 3, delayMs = 1200) {
   return new Promise((resolve, reject) => {
-    const callbackName = "salesCallback_" + Date.now();
+    let attempt = 0;
 
-    window[callbackName] = data => {
-      delete window[callbackName];
-      script.remove();
-      resolve(data);
-    };
+    function tryLoad() {
+      attempt++;
+      const callbackName = "salesCallback_" + Date.now() + "_" + attempt;
 
-    const script = document.createElement("script");
-    script.src =
-      `${API_URL}?type=dailySalesReport` +
-      `&date=${getPHDate()}` +
-      `&location=${LOCATION}` +
-      `&callback=${callbackName}`;
+      window[callbackName] = data => {
+        delete window[callbackName];
+        script.remove();
+        resolve(data);
+      };
 
-    script.onerror = () => {
-      delete window[callbackName];
-      script.remove();
-      reject(new Error("Failed to load sales"));
-    };
+      const script = document.createElement("script");
+      script.src =
+        `${API_URL}?type=dailySalesReport` +
+        `&date=${getPHDate()}` +
+        `&location=${LOCATION}` +
+        `&callback=${callbackName}`;
 
-    document.body.appendChild(script);
+      script.onerror = () => {
+        delete window[callbackName];
+        script.remove();
+        if (attempt < attempts) {
+          setTimeout(tryLoad, delayMs);
+        } else {
+          reject(new Error("Failed to load sales"));
+        }
+      };
+
+      document.body.appendChild(script);
+    }
+
+    tryLoad();
   });
 }
 
