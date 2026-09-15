@@ -1,2 +1,5 @@
 .DS_Store
 views/code gs working backup
+node_modules/
+*.local.env
+service-account*.json

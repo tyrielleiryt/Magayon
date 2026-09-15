@@ -8,6 +8,7 @@ import { API_URL } from "../firebase-config.js";
 import { openCloseDayModal } from "../admin-close-day.js";
 import { authFetch } from "../auth-guard.js";
 import { icon } from "../icons.js";
+import { saveInventoryItem as saveInventoryItemSupabase, deleteInventoryItem as deleteInventoryItemSupabase } from "../data/inventoryItems.js";
 
 const STAFF_ID = localStorage.getItem("staff_id");
 const CREATED_BY =
@@ -1009,16 +1010,7 @@ async function saveInventoryItemFromModal(existingId) {
   showModalLoader(existingId ? "Updating item…" : "Saving item…");
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: existingId ? "updateInventoryItem" : "addInventoryItem",
-        data: JSON.stringify(payload)
-      })
-    });
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Save failed");
+    await saveInventoryItemSupabase(payload);
 
     invalidateCache("inventoryItems");
     inventoryItemsCatalog = normalizeInventoryItems(await getCached("inventoryItems"));
@@ -1040,16 +1032,7 @@ async function confirmDeleteInventoryItem(itemId) {
   showModalLoader("Deleting item…");
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "deleteInventoryItem",
-        item_id: itemId
-      })
-    });
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Delete failed");
+    await deleteInventoryItemSupabase(itemId);
 
     invalidateCache("inventoryItems");
     inventoryItemsCatalog = normalizeInventoryItems(await getCached("inventoryItems"));

@@ -1,0 +1,13 @@
+{
+  "name": "magayon",
+  "private": true,
+  "description": "Magayon Sales and Inventory System — dev tooling only. The app itself ships as plain static files (no build step) to GitHub Pages; this manifest exists solely to pin the Supabase CLI and provide type-checking for the data-access layer.",
+  "devDependencies": {
+    "@supabase/supabase-js": "2.116.0",
+    "supabase": "2.117.0",
+    "typescript": "7.0.2"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

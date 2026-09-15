@@ -3,6 +3,7 @@ import { openModal, closeModal } from "./modal.js";
 
 import { API_URL, firebaseConfig, db } from "../firebase-config.js";
 import { authFetch, getCurrentProfile, ROLES } from "../auth-guard.js";
+import { saveLocation as saveLocationSupabase, deleteLocation as deleteLocationSupabase } from "../data/locations.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -392,18 +393,11 @@ async function saveLocation(location) {
   showLoader(location ? "Saving changes…" : "Adding location…");
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        action: location ? "editLocation" : "addLocation",
-        location_id: location?.location_id || "",
-        location_name: name,
-        address
-      })
+    await saveLocationSupabase({
+      location_id: location?.location_id || "",
+      location_name: name,
+      address
     });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Save failed");
 
     closeModal();
     invalidateCache("locations");
@@ -422,17 +416,8 @@ function deleteLocationConfirm(location) {
 
   showLoader("Deleting location…");
 
-  authFetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      action: "deleteLocation",
-      location_id: location.location_id
-    })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) throw new Error(data.error || "Delete failed");
+  deleteLocationSupabase(location.location_id)
+    .then(() => {
       expandedLocationIds.delete(location.location_id);
       invalidateCache("locations");
       return reloadLocations();

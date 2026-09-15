@@ -1,0 +1,17 @@
+{
+  "name": "magayon-functions",
+  "description": "Cloud Functions for Firebase — syncs Firestore users/{uid}.role into a Firebase custom claim (app_role) so Supabase RLS can read each user's role from their existing Firebase ID token.",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "9.1.0",
+    "firebase-admin": "14.4.0",
+    "firebase-functions": "7.3.2"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions"
+  }
+}

@@ -1,3 +1,8 @@
+// @ts-nocheck — pre-existing file, untyped; excluded so it can still be
+// imported (transitively, via auth-guard.js) by the typed data/*.js
+// layer (see jsconfig.json) without its CDN Firebase imports (which
+// have no local type declarations) failing that check. Purely a
+// compile-time comment, no runtime effect.
 // firebase-config.js
 // Single shared source of Firebase + backend config.
 // Every page imports auth/db/API_URL from here instead of redeclaring

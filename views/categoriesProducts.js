@@ -4,6 +4,12 @@ import { openModal, closeModal, showModalLoader, hideModalLoader } from "./modal
 import { API_URL } from "../firebase-config.js";
 import { authFetch } from "../auth-guard.js";
 import { icon } from "../icons.js";
+import { saveCategory as saveCategorySupabase, deleteCategory as deleteCategorySupabase } from "../data/categories.js";
+import {
+  saveProduct as saveProductSupabase,
+  deleteProduct as deleteProductSupabase,
+  toggleProductStatus as toggleProductStatusSupabase
+} from "../data/products.js";
 
 window.closeModal = closeModal;
 window.__productImgFallback = () => icon("utensils", { size: 32, style: "color:#cbd5e1" });
@@ -275,18 +281,10 @@ async function saveCategory(category) {
   showLoader(category ? "Saving changes…" : "Adding category…");
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        action: category ? "editCategory" : "addCategory",
-        category_id: category?.category_id || "",
-        category_name: name
-      })
+    await saveCategorySupabase({
+      category_id: category?.category_id || "",
+      category_name: name
     });
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.error || "Save failed");
 
     closeModal();
     invalidateCache("categories");
@@ -305,17 +303,8 @@ function deleteCategory(category) {
 
   showLoader("Deleting category…");
 
-  authFetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      action: "deleteCategory",
-      category_id: category.category_id
-    })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) throw new Error(data.error || "Delete failed");
+  deleteCategorySupabase(category.category_id)
+    .then(() => {
       expandedCategoryIds.delete(category.category_id);
       invalidateCache("categories");
       return reloadCategories();
@@ -523,29 +512,18 @@ function saveProduct(productId) {
   const saveBtn = document.getElementById("saveProductBtn");
   if (saveBtn) saveBtn.disabled = true;
 
-  authFetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: new URLSearchParams({
-      action: "saveProduct",
+  saveProductSupabase(
+    {
       product_id: productId || "",
       product_code: code,
       product_name: name,
       category_id: category,
-      price: price,
-      image_url: image,
-      recipe: JSON.stringify(recipe)
-    })
-  })
-    .then(r => r.json())
-    .then(res => {
-      if (!res.success && res.error === "DUPLICATE_CODE") {
-        alert("❌ Product code already exists.");
-        return;
-      }
-
+      price,
+      image_url: image
+    },
+    recipe
+  )
+    .then(() => {
       invalidateCache("products");
       invalidateCache("allProductRecipes");
       closeModal();
@@ -567,17 +545,7 @@ function deleteProductConfirm(product) {
 
   showLoader("Deleting product…");
 
-  authFetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: new URLSearchParams({
-      action: "deleteProduct",
-      product_id: product.product_id
-    })
-  })
-    .then(r => r.json())
+  deleteProductSupabase(product.product_id)
     .then(() => {
       invalidateCache("products");
       reloadProducts();
@@ -592,26 +560,8 @@ function toggleProductStatus(product) {
 
   showLoader("Updating product status…");
 
-  authFetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: new URLSearchParams({
-      action: "toggleProductStatus",
-      product_id: product.product_id,
-      active: (!product.active).toString()
-    })
-  })
-    .then(r => r.text())
-    .then(text => {
-      const clean = text.replace(/^\)\]\}',?\n?/, "");
-      const res = JSON.parse(clean);
-
-      if (!res.success) {
-        throw new Error(res.error || "Update failed");
-      }
-
+  toggleProductStatusSupabase(product.product_id, !product.active)
+    .then(() => {
       invalidateCache("products");
       reloadProducts();
     })

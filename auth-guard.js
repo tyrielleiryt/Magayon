@@ -1,3 +1,7 @@
+// @ts-nocheck — pre-existing file, untyped; excluded so it can still be
+// imported (transitively, via supabase-config.js) by the typed data/*.js
+// layer (see jsconfig.json) without its own lack of JSDoc failing that
+// check. Purely a compile-time comment, no runtime effect.
 // auth-guard.js
 // Central login + role-based access control for every protected page.
 //

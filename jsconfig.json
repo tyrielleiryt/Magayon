@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "lib": ["ES2020", "DOM"],
+    "paths": {
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/+esm": [
+        "./node_modules/@supabase/supabase-js/dist/index.d.mts"
+      ]
+    }
+  },
+  "include": ["data/**/*.js", "supabase-config.js"]
+}

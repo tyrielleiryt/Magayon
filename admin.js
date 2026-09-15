@@ -3,6 +3,10 @@
 import { ROLES, requireRole, logout, authFetch, getAllowedPages } from "./auth-guard.js";
 import { API_URL } from "./firebase-config.js";
 import { renderIcons } from "./icons.js";
+import { listLocations } from "./data/locations.js";
+import { listCategories } from "./data/categories.js";
+import { listInventoryItems } from "./data/inventoryItems.js";
+import { listProducts, listAllRecipes } from "./data/products.js";
 
 window.API_URL = API_URL; // kept for admin-close-day.js
 
@@ -243,9 +247,28 @@ async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
   throw lastErr;
 }
 
+// Phase 1 of the Supabase migration (see docs/supabase-migration.md):
+// these 5 types now come straight from Supabase instead of Apps Script.
+// Routed through here rather than at each call site so every existing
+// getCached("locations")/etc. call across every view keeps working
+// unchanged, with the exact same in-memory + localStorage caching this
+// function already provided.
+const SUPABASE_FETCHERS = {
+  locations: listLocations,
+  categories: listCategories,
+  inventoryItems: listInventoryItems,
+  products: listProducts,
+  allProductRecipes: listAllRecipes
+};
+
+function fetchType(type) {
+  const supabaseFetcher = SUPABASE_FETCHERS[type];
+  return supabaseFetcher ? supabaseFetcher() : fetchJSONWithRetry(`${API_URL}?type=${type}`);
+}
+
 export async function getCached(type) {
   if (!dataCache[type]) {
-    const fetchPromise = fetchJSONWithRetry(`${API_URL}?type=${type}`)
+    const fetchPromise = fetchType(type)
       .then(data => {
         writePersistedCache(type, data);
         dataCache[type] = Promise.resolve(data); // fresh for the next caller

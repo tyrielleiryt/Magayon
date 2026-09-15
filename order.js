@@ -5,6 +5,9 @@
 import { API_URL } from "./firebase-config.js";
 import { ROLES, requireRole, logout, authFetch } from "./auth-guard.js";
 import { icon, renderIcons } from "./icons.js";
+import { listCategories } from "./data/categories.js";
+import { listProducts, listAllRecipes } from "./data/products.js";
+import { listInventoryItems } from "./data/inventoryItems.js";
 
 window.API_URL = API_URL; // kept for any legacy code expecting a global
 
@@ -534,25 +537,26 @@ async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
 async function loadAllData() {
   const today = getPHDate();
 
-  // One combined call instead of 5 separate ones — each type= request
-  // used to pay its own Apps Script startup cost and compete for the
-  // script's concurrent-execution slots, which occasionally left one
-  // of them (inventoryItems, in testing) stuck for 30-60+ seconds and
-  // stalled the whole POS load since everything waited on Promise.all.
-  const data = await fetchJSONWithRetry(
-    `${API_URL}?type=posInit&date=${today}&location=${LOCATION}`
-  );
+  // Phase 1 of the Supabase migration (see docs/supabase-migration.md):
+  // catalog/reference data (categories, products, recipes, inventory
+  // items) now comes straight from Supabase, fetched in parallel with
+  // Apps Script's posInit call — which now only supplies today's live
+  // stock (dailyInventory); that part hasn't migrated yet (Phase 2).
+  const [posInitData, categoriesData, productsData, inventoryItemsData, recipesData] =
+    await Promise.all([
+      fetchJSONWithRetry(`${API_URL}?type=posInit&date=${today}&location=${LOCATION}`),
+      listCategories(),
+      listProducts(),
+      listInventoryItems(),
+      listAllRecipes()
+    ]);
 
-  const categoriesData = data.categories;
-  const productsData = data.products;
-  const recipesData = data.recipes;
-  const inventoryResponse = data.dailyInventory;
-  const inventoryItemsData = data.inventoryItems;
+  const inventoryResponse = posInitData.dailyInventory;
 
   inventoryReorderLevels = {};
   inventoryConversionMap = {};
-  (Array.isArray(inventoryItemsData) ? inventoryItemsData : []).forEach(i => {
-    if (i.reorder_level !== undefined && i.reorder_level !== "") {
+  inventoryItemsData.forEach(i => {
+    if (i.reorder_level !== undefined && i.reorder_level !== null) {
       inventoryReorderLevels[i.item_id] = Number(i.reorder_level);
     }
     inventoryConversionMap[i.item_id] = {
