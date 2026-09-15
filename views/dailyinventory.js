@@ -47,11 +47,11 @@ export default async function loadDailyInventoryView() {
         <table class="category-table">
           <thead>
             <tr>
-              <th>#</th>
               <th>Date</th>
-              <th>Inventory</th>
+              <th>Status</th>
               <th>Location</th>
               <th>Created By</th>
+              <th>Inventory</th>
             </tr>
           </thead>
           <tbody id="dailyInventoryBody"><tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr></tbody>
@@ -78,6 +78,16 @@ function getPHDate() {
     now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
   );
   return ph.toISOString().slice(0, 10);
+}
+
+/* Used everywhere a date reaches the screen (table rows, modal headers)
+   — the backend's raw `date` value is an ISO datetime string, which
+   used to leak straight into a couple of modal titles unformatted
+   (e.g. "Inventory — 2026-09-13T16:00:00.000Z"). */
+function formatDate(value) {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 }
 
 /* ================= ACTION BAR ================= */
@@ -372,7 +382,7 @@ function renderTable() {
     (!searchDate ||
       new Date(d.date).toLocaleDateString().toLowerCase().includes(searchDate)) &&
     (!searchLocation ||
-      (d.location || "").toLowerCase().includes(searchLocation))
+      (locationMap[d.location] || d.location || "").toLowerCase().includes(searchLocation))
   );
 
 
@@ -386,11 +396,14 @@ function renderTable() {
     return;
   }
 
-  filtered.forEach((d, i) => {
+  filtered.forEach(d => {
+    const isOpen = String(d.status).toUpperCase() === "OPEN";
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${i + 1}</td>
         <td>${new Date(d.date).toLocaleDateString()}</td>
+        <td><span class="status-chip ${isOpen ? "good" : "neutral"}">${isOpen ? "Open" : "Closed"}</span></td>
+        <td>${locationMap[d.location] || d.location}</td>
+        <td>${d.created_by || "-"}</td>
         <td>
 <button class="btn-view"
   onclick="viewDailyInventory(
@@ -398,11 +411,9 @@ function renderTable() {
     '${d.location}',
     '${d.status}'
   )">
-            View
+            ${icon("eye", { size: 13 })} View
           </button>
         </td>
-        <td>${locationMap[d.location] || d.location}</td>
-        <td>${d.created_by || "-"}</td>
       </tr>
     `);
   });
@@ -477,7 +488,7 @@ function renderInvView(date, location, status, items, conversionMap) {
       }).join("");
 
   return `
-    ${invHeader("clipboard-list", `Inventory — ${date}`)}
+    ${invHeader("clipboard-list", `Inventory — ${formatDate(date)}`)}
     <div class="inv-modal-scroll">
       <table class="category-table">
         <thead>
@@ -536,7 +547,7 @@ window.viewDailyInventory = async function (date, location, status) {
     if (data.status === "NO_ACTIVE_INVENTORY") {
       openModal(
         `
-        ${invHeader("clipboard-list", `Inventory — ${date}`)}
+        ${invHeader("clipboard-list", `Inventory — ${formatDate(date)}`)}
         <div class="inv-modal-empty-cell" style="padding:32px 12px">
           No active inventory for today
         </div>
@@ -584,7 +595,7 @@ function renderInvAdd(date, location, items, remainingMap) {
   }).join("");
 
   return `
-    ${invHeader("plus", `Add Inventory — ${date}`)}
+    ${invHeader("plus", `Add Inventory — ${formatDate(date)}`)}
     <div class="inv-modal-scroll inv-modal-scroll-form">
       ${rows}
     </div>
@@ -604,7 +615,7 @@ window.openAddInventoryForDay = async function (date, location) {
   // no separate overlay, so nothing can render behind the modal, and
   // it reads as the same window updating rather than a modal swap.
   swapModalContent(`
-    ${invHeader("plus", `Add Inventory — ${date}`)}
+    ${invHeader("plus", `Add Inventory — ${formatDate(date)}`)}
     <div class="inv-modal-empty-cell" style="padding:48px 12px">
       ${icon("refresh-cw", { size: 20, class: "inv-spin" })}<br>Loading…
     </div>
@@ -634,7 +645,7 @@ window.openAddInventoryForDay = async function (date, location) {
   } catch (err) {
     console.error(err);
     swapModalContent(`
-      ${invHeader("plus", `Add Inventory — ${date}`)}
+      ${invHeader("plus", `Add Inventory — ${formatDate(date)}`)}
       <div class="inv-modal-empty-cell" style="padding:32px 12px">
         Failed to load inventory.
       </div>

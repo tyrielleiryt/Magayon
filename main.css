@@ -1328,6 +1328,28 @@ html, body {
   cursor: not-allowed;
 }
 
+/* Small inline "View"/"View More" buttons (Daily Inventory, Sales
+   Reports) — had no styling at all before, rendering as bare native
+   buttons. */
+.btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,122,255,0.08);
+  color: var(--apple-blue);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-view:hover {
+  background: rgba(0,122,255,0.15);
+}
+
 .category-action-btn:not(:disabled):hover {
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(0,0,0,.12);
@@ -1957,6 +1979,7 @@ html, body {
 .status-chip.good { background: #f0fdf4; color: #15803d; }
 .status-chip.warn { background: #fffbeb; color: #b45309; }
 .status-chip.crit { background: #fff5f5; color: #b91c1c; }
+.status-chip.neutral { background: #f1f5f9; color: #475569; }
 
 .kpi-value {
   font-size: 28px;
