@@ -8,7 +8,8 @@ import { icon } from "../icons.js";
 /* ================= STATE ================= */
 let locationMap = {};  // location_id → location_name
 let lastOrders = [];   // last-loaded report, so voiding an item can refresh in place
-let lastDate = "";      // tracks whether a report has been loaded yet
+let lastDate = "";      // date/location of the currently-open transaction list modal,
+let lastLocation = "";  // so a void can refresh the same modal in place
 
 /* ================= LOADER ================= */
 function showLoader(text = "Loading…") {
@@ -40,14 +41,10 @@ function renderActionBar() {
   document.getElementById("actionBar").innerHTML = `
     <input type="date" id="salesDate" />
     <input type="text" id="salesLocation" placeholder="Location ID (optional)" />
-    <button class="category-action-btn" id="loadSalesBtn">
-      Load Report
-    </button>
-    <button id="dailySalesReportBtn" class="primary">
-  ${icon("receipt")} DAILY SALES REPORT
+    <button id="dailySalesReportBtn" class="category-action-btn">
+  ${icon("receipt")} Generate Report
 </button>
   `;
-  document.getElementById("loadSalesBtn").onclick = loadSales;
   document.getElementById("dailySalesReportBtn").onclick =
   loadDailySalesReportFull;
 }
@@ -80,41 +77,76 @@ function loadDailySalesReportFull() {
   }
 
   document.getElementById("contentBox").innerHTML = `
-    <div class="tracker-card" style="height:100%">
+    <div class="tracker-card dsr-report" style="height:100%">
       <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
       <div style="text-align:center;color:#888;padding:24px">Loading…</div>
     </div>
   `;
 
-  fetchDailySalesReportSummary(date, location);
+  Promise.all([
+    fetchDailySalesReportSummary(date, location),
+    fetchDayExpenses(date, location)
+  ]).then(([summary, expenses]) => {
+    renderDailySalesReportFull(summary, expenses, date, location);
+  });
 }
 
 function fetchDailySalesReportSummary(date, location) {
-  const callback = "handleDailySalesReportSummary";
-  delete window[callback];
+  return new Promise(resolve => {
+    const callback = "handleDailySalesReportSummary";
+    delete window[callback];
+    window[callback] = resolve;
 
-  window[callback] = function (data) {
-    renderDailySalesReportFull(data, date, location);
-  };
+    const old = document.getElementById("dsrJsonpScript");
+    if (old) old.remove();
 
-  const old = document.getElementById("dsrJsonpScript");
-  if (old) old.remove();
+    const script = document.createElement("script");
+    script.id = "dsrJsonpScript";
+    script.src =
+      `${API_URL}?type=dailySalesReportSummary&date=${date}` +
+      `&location=${encodeURIComponent(location)}&callback=${callback}`;
+    script.onerror = () => resolve({ success: false, error: "Failed to load report" });
 
-  const script = document.createElement("script");
-  script.id = "dsrJsonpScript";
-  script.src =
-    `${API_URL}?type=dailySalesReportSummary&date=${date}` +
-    `&location=${encodeURIComponent(location)}&callback=${callback}`;
-
-  document.body.appendChild(script);
+    document.body.appendChild(script);
+  });
 }
 
-function renderDailySalesReportFull(data, date, location) {
+/* Itemized expenses aren't part of dailySalesReportSummary (that only
+   returns a single lump total) — Sales & Expenses Tracker already pulls
+   itemized {item, description, amount} rows per day via this same
+   salesExpensesMonth endpoint, so this just reuses it and picks out the
+   one matching day instead of adding a new backend action. */
+function fetchDayExpenses(date, location) {
+  const month = date.slice(0, 7);
+
+  return new Promise(resolve => {
+    const callback = "handleDsrExpensesMonth";
+    delete window[callback];
+    window[callback] = data => {
+      const day = (data?.days || []).find(d => d.date === date);
+      resolve(day?.expenses || []);
+    };
+
+    const old = document.getElementById("dsrExpensesJsonpScript");
+    if (old) old.remove();
+
+    const script = document.createElement("script");
+    script.id = "dsrExpensesJsonpScript";
+    script.src =
+      `${API_URL}?type=salesExpensesMonth&month=${month}` +
+      `&location=${encodeURIComponent(location)}&callback=${callback}`;
+    script.onerror = () => resolve([]);
+
+    document.body.appendChild(script);
+  });
+}
+
+function renderDailySalesReportFull(data, expenses, date, location) {
   lastReportSummary = data;
 
   if (!data || !data.success) {
     document.getElementById("contentBox").innerHTML = `
-      <div class="tracker-card">
+      <div class="tracker-card dsr-report">
         <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
         <div style="text-align:center;color:#888;padding:24px">
           ${data?.error || "No inventory day found for that date"}
@@ -125,9 +157,10 @@ function renderDailySalesReportFull(data, date, location) {
   }
 
   const items = data.items || [];
+  const expensesTotal = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   document.getElementById("contentBox").innerHTML = `
-    <div class="tracker-card" style="height:100%">
+    <div class="tracker-card dsr-report" style="height:100%">
       <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
 
       <div class="table-scroll" style="max-height:none;flex:1">
@@ -160,70 +193,73 @@ function renderDailySalesReportFull(data, date, location) {
         </table>
       </div>
 
-      <div style="margin-top:16px;border-top:2px solid #eee;padding-top:12px;max-width:360px;margin-left:auto">
-        <div style="display:flex;justify-content:space-between;padding:6px 0">
-          <label style="font-weight:600">TOTAL SALES</label>
-          <span>₱${Number(data.total_sales).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0">
-          <label style="font-weight:600">PETTY CASH FUND</label>
-          <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0">
-          <label style="font-weight:600">GCASH PAYMENT</label>
-          <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0">
-          <label style="font-weight:600">EXPENSES</label>
-          <span>₱${Number(data.expenses).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #eee;margin-top:6px">
-          <label style="font-weight:700">CASH ON HAND</label>
-          <span style="font-weight:700">₱${Number(data.cash_on_hand).toFixed(2)}</span>
+      <div class="dsr-report-footer">
+        <div class="dsr-report-actions">
+          <button id="dsrViewTxnBtn" class="category-action-btn">${icon("list-checks")} View Transaction List</button>
+          <button id="dsrPrintBtn" class="inv-modal-btn-secondary">${icon("printer")} Print</button>
         </div>
 
-        <p style="color:#888;font-size:12px;margin-top:8px">
-          Petty Cash Fund and Expenses are managed on the
-          ${icon("banknote", { size: 13 })} Petty Cash Fund / Expenses tab.
-        </p>
+        <div class="dsr-summary">
+          <div class="dsr-summary-pair">
+            <div class="dsr-summary-cell">
+              <label>PETTY CASH FUND</label>
+              <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
+            </div>
+            <div class="dsr-summary-cell dsr-summary-cell-right">
+              <label>CASH ON HAND</label>
+              <span>₱${Number(data.cash_on_hand).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="dsr-summary-row">
+            <label>TOTAL SALES</label>
+            <span>₱${Number(data.total_sales).toFixed(2)}</span>
+          </div>
+          <div class="dsr-summary-row">
+            <label>GCASH PAYMENT</label>
+            <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
+          </div>
+
+          <div class="dsr-expenses">
+            <label class="dsr-expenses-label">EXPENSES</label>
+            <table class="dsr-expenses-table">
+              <tbody>
+                ${!expenses.length
+                  ? `<tr><td colspan="2" class="dsr-expenses-empty">No expenses logged</td></tr>`
+                  : expenses.map(e => `
+                    <tr>
+                      <td>${e.item || e.description || "-"}</td>
+                      <td>₱${Number(e.amount || 0).toFixed(2)}</td>
+                    </tr>
+                  `).join("")
+                }
+              </tbody>
+              <tfoot>
+                <tr><td>TOTAL</td><td>₱${expensesTotal.toFixed(2)}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   `;
 
-  bindDataBoxScroll(document.querySelector(".tracker-card"));
+  document.getElementById("dsrViewTxnBtn").onclick = () => openTransactionListModal(date, location);
+  document.getElementById("dsrPrintBtn").onclick = () => window.print();
+
+  bindDataBoxScroll(document.querySelector(".dsr-report"));
 }
 
-/* ================= LAYOUT ================= */
+/* ================= LAYOUT =================
+   Idle state before a report has been generated — the transaction list
+   now only ever appears inside the "View Transaction List" modal (see
+   below), triggered from within an already-generated report. */
 function renderLayout() {
   document.getElementById("contentBox").innerHTML = `
-    <div class="data-box" style="display:flex;flex-direction:column;height:100%;min-height:0;">
-      <div class="data-scroll" style="flex:1;overflow-y:auto;max-height:100%;">
-        <table class="category-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Transaction / Product</th>
-              <th>Qty</th>
-              <th>Cashier</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="salesBody">
-            <tr>
-              <td colspan="5" style="text-align:center;color:#888">
-                Select a date and click Load Report
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="inventory-summary" style="margin-top:12px">
-        <div><b>Gross Sales:</b> ₱<span id="sumGross">0.00</span></div>
-      </div>
+    <div class="tracker-card" style="height:100%">
+      <div class="set-tip">${icon("receipt", { size: 22 })} Choose a date and location, then click Generate Report</div>
     </div>
   `;
-  bindDataBoxScroll(document.querySelector(".data-box"));
 }
 
 /* ================= LOAD LOCATIONS ================= */
@@ -238,29 +274,47 @@ async function loadLocations() {
   }
 }
 
-/* ================= LOAD SALES (JSONP) ================= */
-function loadSales() {
-  const date = document.getElementById("salesDate").value;
-  let location = document.getElementById("salesLocation").value || "";
-
-  if (!date) {
-    alert("Select a date");
-    return;
-  }
-
+/* ================= VIEW TRANSACTION LIST (modal) =================
+   Opened from inside a generated report ("View Transaction List") —
+   uses that report's own date/location, not whatever's currently
+   sitting in the action-bar inputs, so it can't show the wrong day. */
+function openTransactionListModal(date, location) {
   lastDate = date;
+  lastLocation = location;
 
-  showLoader("Loading sales report…");
+  openModal(`
+    <div class="modal-header">${icon("list-checks")} Transactions — ${date}</div>
+    <div class="table-scroll" style="max-height:60vh;overflow:auto">
+      <table class="category-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Transaction / Product</th>
+            <th>Qty</th>
+            <th>Cashier</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="txnListBody">
+          <tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;text-align:right"><b>Gross Sales:</b> ₱<span id="txnListGross">0.00</span></div>
+    <div class="modal-actions">
+      <button class="inv-modal-btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  `, true);
 
+  loadTransactionList(date, location);
+}
+
+function loadTransactionList(date, location) {
   const callback = "handleDailySalesReport";
   delete window[callback];
 
   window[callback] = function (orders) {
-    try {
-      renderTable(Array.isArray(orders) ? orders : []);
-    } finally {
-      hideLoader();
-    }
+    renderTransactionList(Array.isArray(orders) ? orders : []);
   };
 
   const old = document.getElementById("salesJsonpScript");
@@ -277,10 +331,12 @@ function loadSales() {
 }
 
 /* ================= RENDER ================= */
-function renderTable(orders) {
+function renderTransactionList(orders) {
   lastOrders = orders;
 
-  const tbody = document.getElementById("salesBody");
+  const tbody = document.getElementById("txnListBody");
+  if (!tbody) return; // modal was closed mid-fetch
+
   tbody.innerHTML = "";
 
   let grandTotal = 0;
@@ -410,7 +466,10 @@ window.confirmVoidItem = async function (orderItemId, refId, restore) {
         : "✅ Item voided" + (data.restored ? " and stock restored." : ".")
     );
 
-    if (lastDate) loadSales();
+    // The Order Items / Void screens replace the same single modal the
+    // transaction list was showing, so by this point that list is gone —
+    // reopen it fresh (re-fetched) instead of trying to refresh in place.
+    if (lastDate) openTransactionListModal(lastDate, lastLocation);
   } catch (err) {
     console.error(err);
     alert("❌ " + err.message);
@@ -421,8 +480,8 @@ window.confirmVoidItem = async function (orderItemId, refId, restore) {
 
 /* ================= TOTALS ================= */
 function updateTotals(total) {
-  document.getElementById("sumGross").textContent =
-    Number(total).toFixed(2);
+  const el = document.getElementById("txnListGross");
+  if (el) el.textContent = Number(total).toFixed(2);
 }
 
 /* ================= DATE FORMAT ================= */

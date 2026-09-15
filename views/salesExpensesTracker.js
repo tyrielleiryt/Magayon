@@ -40,8 +40,14 @@ export default async function loadSalesExpensesTrackerView() {
   }
 }
 
+// Falls back to the logged-in user's default location when this view's
+// own #setLocation field isn't in the DOM — the OPEX button now lives
+// in the global top bar and can be opened from any tab, not just this
+// one, via a lazy import of this module (see admin.js).
 function getCurrentLocation() {
-  return document.getElementById("setLocation").value.trim();
+  return document.getElementById("setLocation")?.value.trim()
+    || localStorage.getItem("userLocation")
+    || "";
 }
 
 function renderActionBar() {
@@ -56,11 +62,9 @@ function renderActionBar() {
         <input type="text" id="setLocation" placeholder="e.g. LOC-1767637180808" />
       </div>
       <button class="category-action-btn" id="setLoadBtn">Load</button>
-      <button class="category-action-btn" id="setOpexBtn">${icon("settings")} Overhead (OPEX)</button>
     </div>
   `;
   document.getElementById("setLoadBtn").onclick = loadMonth;
-  document.getElementById("setOpexBtn").onclick = openOpexModal;
 }
 
 function renderLayout() {
@@ -98,7 +102,7 @@ async function loadOpex(location) {
   });
 }
 
-async function openOpexModal() {
+export async function openOpexModal() {
   const location = getCurrentLocation();
   if (!location) { alert("Please enter a location first"); return; }
 

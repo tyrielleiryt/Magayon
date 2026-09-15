@@ -21,7 +21,7 @@ renderIcons();
 // top-level listener in this file. Learned the hard way: this is exactly
 // what broke the Chat button and the sidebar drawer (each click fired
 // twice — once per instance — silently canceling itself out).
-const ASSET_VERSION = "20260916d";
+const ASSET_VERSION = "20260917a";
 
 /* ================= AUTH GUARD =================
    Re-verifies against Firebase Auth + the user's Firestore profile on every
@@ -60,6 +60,14 @@ if (allowedPages !== null) {
 document.querySelectorAll('.nav-btn[data-view="permissions"]').forEach(btn => {
   if (currentUser.role !== ROLES.IT_ADMIN) btn.remove();
 });
+
+// #opexTopBtn isn't a .nav-btn (it opens a modal, it doesn't navigate),
+// so it wasn't covered by the allowedPages filtering above — hide it
+// alongside the Sales & Expenses Tracker button it sits next to, same
+// access level as today.
+if (allowedPages !== null && !allowedPages.includes("salesExpensesTracker")) {
+  document.getElementById("opexTopBtn")?.remove();
+}
 
 /* ================= MOBILE SIDEBAR DRAWER =================
    The hamburger button and overlay only render/matter at the mobile
@@ -111,6 +119,37 @@ sidebarOverlayEl?.addEventListener("click", guardSidebarClick(closeSidebar));
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", guardSidebarClick(closeSidebar));
 });
+
+/* ================= RESPONSIVE TOP-BAR ↔ SIDEBAR RELOCATION =================
+   The Sales & Expenses Tracker + Overhead (OPEX) buttons live in the top
+   bar on desktop (beside Chat) — there's no room for them there on a
+   mobile-width screen, so they move into the sidebar drawer instead,
+   back in their original spot (right before Workforce & Operations).
+   Same two DOM nodes either way, just reparented — one source of truth,
+   so there's never a second copy that could fall out of sync on which
+   one shows "active". */
+const trackerTopBtn = document.getElementById("setTrackerTopBtn");
+const opexTopBtn = document.getElementById("opexTopBtn");
+const chatToggleBtn = document.getElementById("adminChatToggle");
+const workforceNavBtn = document.querySelector('.nav-btn[data-view="locationStaffAttendance"]');
+const topBarEl = document.querySelector(".top-bar");
+const mobileMedia = window.matchMedia("(max-width: 768px)");
+
+function placeTrackerButtons(isMobile) {
+  if (!trackerTopBtn && !opexTopBtn) return; // both removed by role filtering above
+
+  if (isMobile) {
+    const anchor = workforceNavBtn && sidebarEl?.contains(workforceNavBtn) ? workforceNavBtn : null;
+    if (trackerTopBtn) sidebarEl?.insertBefore(trackerTopBtn, anchor);
+    if (opexTopBtn) sidebarEl?.insertBefore(opexTopBtn, anchor);
+  } else {
+    if (trackerTopBtn) topBarEl?.insertBefore(trackerTopBtn, chatToggleBtn);
+    if (opexTopBtn) topBarEl?.insertBefore(opexTopBtn, chatToggleBtn);
+  }
+}
+
+placeTrackerButtons(mobileMedia.matches);
+mobileMedia.addEventListener("change", e => placeTrackerButtons(e.matches));
 
 /* ================= LOADER HELPERS ================= */
 export function showLoader(text = "Loading data…") {
@@ -339,6 +378,13 @@ const VIEW_LOADERS = {
   permissions: () => import(`./views/permissions.js?v=${ASSET_VERSION}`),
   dashboard: () => import(`./views/dashboard.js?v=${ASSET_VERSION}`)
 };
+
+// OPEX now lives in the top bar (see main.html), reachable from any tab —
+// not just after visiting Sales & Expenses Tracker first — so it lazily
+// imports that same view module on click, same pattern as VIEW_LOADERS.
+document.getElementById("opexTopBtn")?.addEventListener("click", () => {
+  VIEW_LOADERS.salesExpensesTracker().then(m => m.openOpexModal());
+});
 
 // Only set once the dashboard has actually been loaded at least once —
 // stopDashboardPolling() is a named export from that module, so it

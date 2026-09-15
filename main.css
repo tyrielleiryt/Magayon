@@ -31,6 +31,8 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--apple-border);
 }
 
@@ -71,6 +73,38 @@ html, body {
   font-weight: bold;
   border-radius: 10px;
   padding: 2px 6px;
+}
+
+/* Sales & Expenses Tracker + Overhead (OPEX) — relocated from the
+   sidebar into the top bar, styled to match .chat-toggle's pill look.
+   .nav-btn-topbar reuses the real .nav-btn class (so the existing
+   permission-filtering / SPA-nav click wiring keeps working) with this
+   as an additional modifier; .nav-btn-topbar-plain is OPEX's own look
+   since it isn't a nav button (it opens a modal, not a view). */
+.nav-btn-topbar,
+.nav-btn-topbar-plain {
+  background: rgba(0,0,0,0.06);
+  color: var(--apple-text);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.nav-btn-topbar:hover,
+.nav-btn-topbar-plain:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.top-bar .nav-btn-topbar.active {
+  background: var(--apple-blue);
+  color: white;
 }
 
 /* Hidden on desktop/tablet — only shown at the mobile breakpoint below,
@@ -1440,6 +1474,138 @@ html, body {
   overflow-y: auto;
   max-height: 360px;
   border-radius: 6px;
+}
+
+/* ================= DAILY SALES REPORT =================
+   .dsr-report is the print target (see the @media print block at the
+   end of this file) — everything else on the page is hidden when
+   printing, this subtree stays. */
+.dsr-report-footer {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 16px;
+  border-top: 2px solid #eee;
+  padding-top: 16px;
+  flex-wrap: wrap;
+}
+
+.dsr-report-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dsr-summary {
+  flex: 1;
+  min-width: 260px;
+  max-width: 380px;
+}
+
+.dsr-summary-pair {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+.dsr-summary-cell label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--apple-text-secondary);
+  letter-spacing: .02em;
+}
+
+.dsr-summary-cell span {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--apple-text);
+}
+
+.dsr-summary-cell-right {
+  text-align: right;
+}
+
+.dsr-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.dsr-summary-row label {
+  font-weight: 600;
+}
+
+.dsr-expenses {
+  margin-top: 10px;
+}
+
+.dsr-expenses-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--apple-text-secondary);
+  letter-spacing: .02em;
+  margin-bottom: 6px;
+}
+
+.dsr-expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dsr-expenses-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dsr-expenses-table td:last-child {
+  text-align: right;
+}
+
+.dsr-expenses-table tfoot td {
+  font-weight: 700;
+  border-top: 1px solid #ddd;
+  border-bottom: none;
+  padding-top: 8px;
+}
+
+.dsr-expenses-empty {
+  color: #888;
+  text-align: center !important;
+  padding: 10px 0 !important;
+}
+
+/* Print just the report — hide everything else on the page, then
+   un-hide the report subtree and pin it to the page origin. The
+   action buttons stay hidden even inside the report. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .dsr-report,
+  .dsr-report * {
+    visibility: visible;
+  }
+
+  .dsr-report {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .dsr-report-actions {
+    display: none;
+  }
 }
 
 /* ================= SALES & EXPENSES TRACKER ================= */
