@@ -1,9 +1,11 @@
 import { bindDataBoxScroll, getCached, invalidateCache, showLoader, hideLoader } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
-import { API_URL, firebaseConfig, db } from "../firebase-config.js";
-import { authFetch, getCurrentProfile, ROLES } from "../auth-guard.js";
+import { firebaseConfig, db } from "../firebase-config.js";
+import { getCurrentProfile, ROLES } from "../auth-guard.js";
 import { saveLocation as saveLocationSupabase, deleteLocation as deleteLocationSupabase } from "../data/locations.js";
+import { listStaff, saveStaff as saveStaffSupabase, deactivateStaff as deactivateStaffSupabase } from "../data/staff.js";
+import { getAttendanceOverview, getEmployeeDTR } from "../data/attendance.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -67,7 +69,7 @@ export default async function loadLocationStaffAttendanceView() {
   try {
     const [locs, staff, attendance] = await Promise.all([
       getCached("locations"),
-      getCached("staff"),
+      listStaff(),
       fetchAttendanceToday()
     ]);
 
@@ -81,26 +83,16 @@ export default async function loadLocationStaffAttendanceView() {
   }
 }
 
-function fetchAttendanceToday() {
-  return new Promise(resolve => {
-    const callback = "handleAttendanceOverviewLSA";
-    delete window[callback];
-
-    window[callback] = data => {
-      const map = {};
-      (data?.staff || []).forEach(s => { map[s.staff_id] = s; });
-      resolve(map);
-    };
-
-    const old = document.getElementById("lsaAttJsonpScript");
-    if (old) old.remove();
-
-    const script = document.createElement("script");
-    script.id = "lsaAttJsonpScript";
-    script.src = `${API_URL}?type=attendanceOverview&date=${todayStr()}&callback=${callback}`;
-    script.onerror = () => resolve({});
-    document.body.appendChild(script);
-  });
+async function fetchAttendanceToday() {
+  try {
+    const data = await getAttendanceOverview(todayStr());
+    const map = {};
+    (data?.staff || []).forEach(s => { map[s.staff_id] = s; });
+    return map;
+  } catch (err) {
+    console.warn("Failed to load today's attendance", err);
+    return {};
+  }
 }
 
 /* ================= LAYOUT ================= */
@@ -127,7 +119,7 @@ async function reloadLocations() {
 }
 
 async function reloadStaff() {
-  staffList = await getCached("staff");
+  staffList = await listStaff();
   renderLocationGrid();
 }
 
@@ -309,30 +301,20 @@ function renderDTRPanel(s) {
   return wrap;
 }
 
-function loadDTR(s, wrap) {
+async function loadDTR(s, wrap) {
   const startDate = wrap.querySelector(".dtr-start").value;
   const endDate = wrap.querySelector(".dtr-end").value;
   const results = wrap.querySelector(".dtr-results");
 
   results.innerHTML = `<p style="text-align:center;color:#888;padding:12px">Loading…</p>`;
 
-  const callback = "handleEmployeeDTR_" + s.staff_id.replace(/[^a-zA-Z0-9]/g, "");
-  delete window[callback];
-
-  window[callback] = data => renderDTR(data, results);
-
-  const old = wrap.querySelector(".dtr-jsonp-script");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.className = "dtr-jsonp-script";
-  script.src =
-    `${API_URL}?type=employeeDTR&staff_id=${encodeURIComponent(s.staff_id)}` +
-    `&start_date=${startDate}&end_date=${endDate}&callback=${callback}`;
-  script.onerror = () => {
+  try {
+    const data = await getEmployeeDTR(s.staff_id, startDate, endDate);
+    renderDTR(data, results);
+  } catch (err) {
+    console.error(err);
     results.innerHTML = `<p style="text-align:center;color:#888;padding:12px">Failed to load</p>`;
-  };
-  document.body.appendChild(script);
+  }
 }
 
 function renderDTR(data, results) {
@@ -574,24 +556,16 @@ async function saveStaff(existing) {
   showLoader(existing ? "Updating staff…" : "Adding staff…");
 
   try {
-    const payload = {
-      action: existing ? "editStaff" : "addStaff",
+    const saved = await saveStaffSupabase({
+      staff_id: existing?.staff_id,
       last_name: lastName,
       first_name: firstName,
       position,
       location_id: locationId,
       rate: rate === "" ? 0 : Number(rate)
-    };
-    if (existing) payload.staff_id = existing.staff_id;
-
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams(payload)
     });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Save failed");
 
-    const staffId = existing ? existing.staff_id : data.staff_id;
+    const staffId = saved.staff_id;
 
     if (wantsNewLogin) {
       const email = loginEmailEl.value.trim();
@@ -608,13 +582,17 @@ async function saveStaff(existing) {
       });
 
       // Keep the roster's email column in sync with the new login.
-      await authFetch(API_URL, {
-        method: "POST",
-        body: new URLSearchParams({ action: "editStaff", staff_id: staffId, email })
+      await saveStaffSupabase({
+        staff_id: staffId,
+        last_name: lastName,
+        first_name: firstName,
+        position,
+        location_id: locationId,
+        rate: rate === "" ? 0 : Number(rate),
+        email
       });
     }
 
-    invalidateCache("staff");
     closeModal();
     await reloadStaff();
   } catch (err) {
@@ -657,16 +635,8 @@ function deactivateStaffConfirm(s) {
 
   showLoader("Updating staff status…");
 
-  authFetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({ action: "deleteStaff", staff_id: s.staff_id })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) throw new Error(data.error || "Failed");
-      invalidateCache("staff");
-      return reloadStaff();
-    })
+  deactivateStaffSupabase(s.staff_id)
+    .then(() => reloadStaff())
     .catch(err => {
       console.error(err);
       alert("❌ " + err.message);

@@ -1,14 +1,18 @@
 import { bindDataBoxScroll, getCached, invalidateCache } from "../admin.js";
 import { openModal, closeModal, showModalLoader, hideModalLoader } from "./modal.js";
- 
+
 /* =========================================================
    CONFIG
 ========================================================= */
-import { API_URL } from "../firebase-config.js";
 import { openCloseDayModal } from "../admin-close-day.js";
-import { authFetch } from "../auth-guard.js";
 import { icon } from "../icons.js";
 import { saveInventoryItem as saveInventoryItemSupabase, deleteInventoryItem as deleteInventoryItemSupabase } from "../data/inventoryItems.js";
+import {
+  listDailyInventoryDays,
+  getDailyInventoryItems,
+  startInventoryDay as startInventoryDaySupabase,
+  addDailyInventory as addDailyInventorySupabase
+} from "../data/dailyInventory.js";
 
 const STAFF_ID = localStorage.getItem("staff_id");
 const CREATED_BY =
@@ -156,8 +160,8 @@ async function loadCarryOverReview(location) {
   showLoader("Loading yesterday's remaining stock…");
 
   try {
-    const [days, masterItems] = await Promise.all([
-      fetchJSONWithRetry(`${API_URL}?type=dailyInventory`),
+    const [{ rows: days }, masterItems] = await Promise.all([
+      listDailyInventoryDays({ limit: 1000, offset: 0 }),
       getCached("inventoryItems")
     ]);
 
@@ -166,7 +170,7 @@ async function loadCarryOverReview(location) {
       unitMap[i.item_id] = i.unit || "";
     });
 
-    const prevDay = (Array.isArray(days) ? days : [])
+    const prevDay = days
       .filter(d => d.location === location && String(d.status).toUpperCase() === "CLOSED")
       .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
@@ -175,10 +179,7 @@ async function loadCarryOverReview(location) {
       return;
     }
 
-    const itemsData = await fetchJSONWithRetry(
-      `${API_URL}?type=dailyInventoryItems` +
-      `&date=${encodeURIComponent(prevDay.date)}&location=${encodeURIComponent(location)}`
-    );
+    const itemsData = await getDailyInventoryItems(prevDay.date, location);
 
     const prevItems = (itemsData.items || []).filter(i => Number(i.remaining) > 0);
 
@@ -260,24 +261,7 @@ async function submitStartInventoryDay(items) {
   showLoader("Starting inventory day…");
 
   try {
-    // mode is just the fallback when no items are picked — the actual
-    // per-item carry amounts (or the absence of any) come from `items`.
-    const body = { action: "startNewInventoryDay", date, location, mode: "EMPTY" };
-    if (items && items.length) {
-      body.items = JSON.stringify(items);
-    }
-
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams(body)
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      alert("❌ " + data.error);
-      return;
-    }
+    await startInventoryDaySupabase(date, location, CREATED_BY, items && items.length ? items : null);
 
     alert(
       items && items.length
@@ -288,7 +272,7 @@ async function submitStartInventoryDay(items) {
 
   } catch (err) {
     console.error(err);
-    alert("❌ Failed to start inventory day");
+    alert("❌ " + (err.message || "Failed to start inventory day"));
   } finally {
     hideLoader();
   }
@@ -304,38 +288,13 @@ const DAILY_INVENTORY_PAGE_SIZE = 5;
 let dailyInventoryOffset = 0;
 let dailyInventoryHasMore = false;
 
-// Apps Script's web-app redirect chain occasionally comes back with an
-// HTML error page instead of JSON (a transient Google-side glitch, not
-// anything wrong with the request) — confirmed while debugging this
-// tab's load time. A single bad response used to hard-fail the whole
-// list with no recovery; this retries a couple of times with a short
-// gap before actually giving up.
-async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
-  let lastErr;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const res = await fetch(url);
-      const text = await res.text();
-      return JSON.parse(text);
-    } catch (err) {
-      lastErr = err;
-      if (i < attempts - 1) {
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-    }
-  }
-  throw lastErr;
-}
-
 async function loadDailyInventory() {
   dailyInventory = [];
   dailyInventoryOffset = 0;
   dailyInventoryHasMore = false;
 
   try {
-    const data = await fetchJSONWithRetry(
-      `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=0`
-    );
+    const data = await listDailyInventoryDays({ limit: DAILY_INVENTORY_PAGE_SIZE, offset: 0 });
 
     dailyInventory = data.rows || [];
     dailyInventoryOffset = dailyInventory.length;
@@ -355,9 +314,7 @@ async function loadMoreDailyInventory() {
   }
 
   try {
-    const data = await fetchJSONWithRetry(
-      `${API_URL}?type=dailyInventory&limit=${DAILY_INVENTORY_PAGE_SIZE}&offset=${dailyInventoryOffset}`
-    );
+    const data = await listDailyInventoryDays({ limit: DAILY_INVENTORY_PAGE_SIZE, offset: dailyInventoryOffset });
 
     dailyInventory = dailyInventory.concat(data.rows || []);
     dailyInventoryOffset = dailyInventory.length;
@@ -516,11 +473,7 @@ function renderInvView(date, location, status, items, conversionMap) {
 
 async function fetchInvViewData(date, location) {
   const [data, masterItems] = await Promise.all([
-    fetchJSONWithRetry(
-      `${API_URL}?type=dailyInventoryItems` +
-      `&date=${encodeURIComponent(date)}` +
-      `&location=${encodeURIComponent(location)}`
-    ),
+    getDailyInventoryItems(date, location),
     getCached("inventoryItems")
   ]);
 
@@ -625,10 +578,7 @@ window.openAddInventoryForDay = async function (date, location) {
   try {
     const [items, dailyData] = await Promise.all([
       getCached("inventoryItems"),
-      fetchJSONWithRetry(
-        `${API_URL}?type=dailyInventoryItems` +
-        `&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}`
-      )
+      getDailyInventoryItems(date, location)
     ]);
 
     inventoryItems = items;
@@ -717,26 +667,8 @@ window.saveInventoryForDay = function (date, location) {
     saveBtn.innerHTML = `${icon("save")} Save`;
   };
 
-  authFetch(
-    `${API_URL}?action=addDailyInventory` +
-    `&date=${encodeURIComponent(date)}` +
-    `&location=${encodeURIComponent(location)}` +
-    `&created_by=${encodeURIComponent(CREATED_BY)}` +
-    `&items=${encodeURIComponent(JSON.stringify(items))}`
-  )
-    .then(r => r.json())
-    .then(async res => {
-      if (!res.success) {
-        if (errorEl) {
-          errorEl.textContent = res.error || "Failed to save inventory";
-          errorEl.classList.remove("hidden");
-        } else {
-          alert(res.error);
-        }
-        resetSaveBtn();
-        return;
-      }
-
+  addDailyInventorySupabase(date, location, CREATED_BY, items)
+    .then(async () => {
       // Refresh the underlying admin table in the background — it's
       // behind the modal, so this doesn't disturb what's on screen —
       // then transition this same window back to the updated View
@@ -754,8 +686,10 @@ window.saveInventoryForDay = function (date, location) {
     .catch(err => {
       console.error(err);
       if (errorEl) {
-        errorEl.textContent = "Failed to save inventory";
+        errorEl.textContent = err.message || "Failed to save inventory";
         errorEl.classList.remove("hidden");
+      } else {
+        alert(err.message || "Failed to save inventory");
       }
       resetSaveBtn();
     });

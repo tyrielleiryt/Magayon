@@ -1,7 +1,9 @@
 import { bindDataBoxScroll, getCached, showLoader, hideLoader } from "../admin.js";
-import { API_URL } from "../firebase-config.js";
-import { authFetch } from "../auth-guard.js";
 import { icon } from "../icons.js";
+import { addExpense as addExpenseSupabase } from "../data/dailyInventory.js";
+import { getSalesExpensesMonth, addPayrollDeduction, deletePayrollDeduction } from "../data/orders.js";
+import { listOpexItems, saveOpexItem, deleteOpexItem } from "../data/opex.js";
+import { listStaff } from "../data/staff.js";
 
 /* Sales and Expenses Tracker — a month-at-a-glance rollup mirroring the
    business's manual weekly bookkeeping: Mon-Sat business weeks, daily
@@ -34,7 +36,7 @@ export default async function loadSalesExpensesTrackerView() {
   }
 
   try {
-    staffList = (await getCached("staff")).filter(s => s.active !== false);
+    staffList = (await listStaff()).filter(s => s.active !== false);
   } catch (err) {
     console.warn("Failed to load staff", err);
   }
@@ -81,25 +83,14 @@ function renderLayout() {
 /* ================= OPEX ================= */
 
 async function loadOpex(location) {
-  return new Promise(resolve => {
-    const callback = "handleOpexList";
-    delete window[callback];
-
-    window[callback] = function (data) {
-      opexItems = (data && data.items) || [];
-      opexTotal = opexItems.reduce((sum, i) => sum + (Number(i.amount_month) || 0), 0);
-      resolve();
-    };
-
-    const old = document.getElementById("setOpexJsonpScript");
-    if (old) old.remove();
-
-    const script = document.createElement("script");
-    script.id = "setOpexJsonpScript";
-    script.src = `${API_URL}?type=opex&location=${encodeURIComponent(location)}&callback=${callback}`;
-    script.onerror = () => { opexItems = []; opexTotal = 0; resolve(); };
-    document.body.appendChild(script);
-  });
+  try {
+    const data = await listOpexItems(location);
+    opexItems = data.items || [];
+  } catch (err) {
+    console.warn("Failed to load OPEX", err);
+    opexItems = [];
+  }
+  opexTotal = opexItems.reduce((sum, i) => sum + (Number(i.amount_month) || 0), 0);
 }
 
 export async function openOpexModal() {
@@ -164,12 +155,7 @@ export async function openOpexModal() {
 
     showLoader("Saving OPEX item…");
     try {
-      const res = await authFetch(API_URL, {
-        method: "POST",
-        body: new URLSearchParams({ action: "addOpexItem", item_name, amount_month, location_id: location })
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error || "Save failed");
+      await saveOpexItem(item_name, amount_month, location);
       openOpexModal();
       loadMonth();
     } catch (err) {
@@ -184,12 +170,7 @@ export async function openOpexModal() {
       if (!confirm("Remove this OPEX item?")) return;
       showLoader("Removing…");
       try {
-        const res = await authFetch(API_URL, {
-          method: "POST",
-          body: new URLSearchParams({ action: "deleteOpexItem", opex_id: btn.dataset.id })
-        });
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error || "Delete failed");
+        await deleteOpexItem(btn.dataset.id);
         openOpexModal();
         loadMonth();
       } catch (err) {
@@ -218,27 +199,16 @@ async function loadMonth() {
   // last load.
   await loadOpex(location);
 
-  const callback = "handleSalesExpensesMonth";
-  delete window[callback];
-
-  window[callback] = function (data) {
-    lastData = data;
-    renderMonth(data, month, location);
-  };
-
-  const old = document.getElementById("setJsonpScript");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.id = "setJsonpScript";
-  script.src =
-    `${API_URL}?type=salesExpensesMonth&month=${month}` +
-    `&location=${encodeURIComponent(location)}&callback=${callback}`;
-  script.onerror = () => {
-    document.getElementById("setContent").innerHTML =
-      `<div style="text-align:center;color:#888;padding:24px">Failed to load</div>`;
-  };
-  document.body.appendChild(script);
+  getSalesExpensesMonth(month, location)
+    .then(data => {
+      lastData = data;
+      renderMonth(data, month, location);
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("setContent").innerHTML =
+        `<div style="text-align:center;color:#888;padding:24px">Failed to load</div>`;
+    });
 }
 
 /* ================= HELPERS ================= */
@@ -596,19 +566,7 @@ function wireWeekEvents(weekEl, location) {
 
       showLoader("Saving deduction…");
       try {
-        const res = await authFetch(API_URL, {
-          method: "POST",
-          body: new URLSearchParams({
-            action: "addPayrollDeduction",
-            week_start_date: weekStart,
-            location_id: location,
-            staff_id: staffId,
-            amount,
-            notes
-          })
-        });
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error || "Save failed");
+        await addPayrollDeduction(weekStart, location, staffId, amount, notes);
         loadMonth();
       } catch (err) {
         alert("❌ " + err.message);
@@ -622,12 +580,7 @@ function wireWeekEvents(weekEl, location) {
         if (!confirm("Remove this deduction?")) return;
         showLoader("Removing…");
         try {
-          const res = await authFetch(API_URL, {
-            method: "POST",
-            body: new URLSearchParams({ action: "deletePayrollDeduction", deduction_id: btn.dataset.id })
-          });
-          const result = await res.json();
-          if (!result.success) throw new Error(result.error || "Delete failed");
+          await deletePayrollDeduction(btn.dataset.id);
           loadMonth();
         } catch (err) {
           alert("❌ " + err.message);
@@ -650,19 +603,12 @@ function wireWeekEvents(weekEl, location) {
 
       showLoader("Saving expense…");
       try {
-        const res = await authFetch(API_URL, {
-          method: "POST",
-          body: new URLSearchParams({
-            action: "addExpense",
-            daily_id: dailyId,
-            item,
-            description,
-            amount,
-            remarks: ""
-          })
-        });
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error || "Save failed");
+        // Apps Script's addExpense took a separate "item" field; the
+        // Supabase schema has a single description column, so the two
+        // are combined here the same way dailySales.js's own render
+        // code already prioritized them (item first, description as
+        // fallback) — no data lost, just one field instead of two.
+        await addExpenseSupabase(Number(dailyId), item || description, amount, "");
         loadMonth();
       } catch (err) {
         alert("❌ " + err.message);

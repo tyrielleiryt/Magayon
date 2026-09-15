@@ -1,4 +1,4 @@
-import { API_URL } from "./firebase-config.js";
+import { getDailyInventoryItems } from "./data/dailyInventory.js";
 
 export function openCloseDayModal(date, location) {
   document.getElementById("closeDayDate").textContent = date;
@@ -23,10 +23,7 @@ export async function loadInventorySummary(date, location) {
   countEl.textContent = "0";
 
   try {
-    const res = await fetch(
-      `${API_URL}?type=dailyInventoryItems&date=${date}&location=${location}`
-    );
-    const items = await res.json();
+    const { items } = await getDailyInventoryItems(date, location);
 
     listEl.innerHTML = "";
 

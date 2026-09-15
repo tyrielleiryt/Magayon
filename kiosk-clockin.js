@@ -2,13 +2,27 @@
    Lets any staff member (including server/cook, who have no login at
    all) clock in/out from the login screen, without needing a cashier
    to sign into the POS first. Fingerprint/Face ID is the only real
-   identity check — there's no staff login involved, so this calls the
-   backend directly (no Firebase auth token). Location isn't picked
-   here either: the backend attributes the clock event to whatever
-   location that staff member is already assigned to in the Staff Tab. */
+   identity check — there's no staff login involved, so this signs in
+   silently and anonymously to Firebase just to get a token Supabase's
+   RPCs will accept (they only require `auth.role() = 'authenticated'`,
+   true for an anonymous session too — never `app_role`, which an
+   anonymous session has no way to carry). Location isn't picked here
+   either: the RPCs attribute the clock event to whatever location that
+   staff member is already assigned to in the Staff Tab.
 
-import { API_URL } from "./firebase-config.js";
+   Requires Firebase Anonymous Auth enabled in the Firebase Console
+   (Authentication → Sign-in method → Anonymous) — until then,
+   ensureAnonymousAuth() below will throw. */
+
+import { auth } from "./firebase-config.js";
+import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { icon } from "./icons.js";
+import { getStaffStatus, enrollBiometric, clockInOut } from "./data/attendance.js";
+
+async function ensureAnonymousAuth() {
+  if (auth.currentUser) return;
+  await signInAnonymously(auth);
+}
 
 function base64urlToBuffer(base64url) {
   const padded = base64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(base64url.length + (4 - base64url.length % 4) % 4, "=");
@@ -31,34 +45,18 @@ export function closeKioskClockIn() {
   el("kioskClockInModal").classList.add("hidden");
 }
 
-function loadKioskClockInData() {
+async function loadKioskClockInData() {
   const tbody = el("kioskClockInTable");
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
 
-  return new Promise(resolve => {
-    const callbackName = "kioskClockInCallback_" + Date.now();
-
-    window[callbackName] = data => {
-      delete window[callbackName];
-      script.remove();
-      renderKioskClockInTable(data);
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    // No &location= — omitting it returns every active staff member
-    // across every location, since this tablet isn't tied to one.
-    script.src = `${API_URL}?type=clockInKioskData&callback=${callbackName}`;
-
-    script.onerror = () => {
-      delete window[callbackName];
-      script.remove();
-      tbody.innerHTML = "<tr><td colspan='3'>Failed to load staff.</td></tr>";
-      resolve();
-    };
-
-    document.body.appendChild(script);
-  });
+  try {
+    await ensureAnonymousAuth();
+    const data = await getStaffStatus();
+    renderKioskClockInTable(data);
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = "<tr><td colspan='3'>Failed to load staff.</td></tr>";
+  }
 }
 
 function renderKioskClockInTable(data) {
@@ -132,16 +130,8 @@ async function kioskEnrollStaff(staffId, name) {
 
     if (!credential) throw new Error("Enrollment was cancelled");
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "enrollBiometric",
-        staff_id: staffId,
-        credential_id: credential.id
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Enrollment failed");
+    await ensureAnonymousAuth();
+    await enrollBiometric(staffId, credential.id);
 
     await loadKioskClockInData();
   } catch (err) {
@@ -173,17 +163,8 @@ async function kioskClockInOut(staffId, credentialId, action) {
 
     if (!assertion) throw new Error("Verification was cancelled");
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action,
-        staff_id: staffId
-        // No location_id — the backend uses this staff member's own
-        // assigned location instead.
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Failed to record");
+    await ensureAnonymousAuth();
+    await clockInOut(staffId, action);
 
     await loadKioskClockInData();
   } catch (err) {

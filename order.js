@@ -8,6 +8,17 @@ import { icon, renderIcons } from "./icons.js";
 import { listCategories } from "./data/categories.js";
 import { listProducts, listAllRecipes } from "./data/products.js";
 import { listInventoryItems } from "./data/inventoryItems.js";
+import { checkoutOrder as checkoutOrderSupabase, listTodaySales } from "./data/orders.js";
+import {
+  addDailyInventory as addDailyInventorySupabase,
+  getPettyCashSummary,
+  updateDailyFinance as updateDailyFinanceSupabase,
+  addExpense as addExpenseSupabase,
+  getDailyInventoryItems
+} from "./data/dailyInventory.js";
+import { getStaffStatus, enrollBiometric as enrollBiometricSupabase, clockInOut as clockInOutSupabase } from "./data/attendance.js";
+import { listStaff } from "./data/staff.js";
+import { listChatMessages, sendChatMessage as sendChatMessageSupabase } from "./data/chat.js";
 
 window.API_URL = API_URL; // kept for any legacy code expecting a global
 
@@ -505,53 +516,23 @@ function paintFromCachedPOSData() {
 }
 
 /* =========================================================
-   FETCH WITH RETRY
-   Apps Script's web-app redirect chain occasionally hangs 30-95s under
-   load and comes back with a non-JSON error page instead of real data
-   (confirmed live, not hypothetical) — every plain fetch()+res.json()
-   in this file was a single shot with no defense against that, so one
-   bad response showed "Failed to load..." even though the data was
-   fine moments before/after. Same fix already shipped for the admin
-   side's fetchJSONWithRetry() in admin.js.
-========================================================= */
-async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
-  let lastErr;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const res = await fetch(url);
-      const text = await res.text();
-      return JSON.parse(text);
-    } catch (err) {
-      lastErr = err;
-      if (i < attempts - 1) {
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-    }
-  }
-  throw lastErr;
-}
-
-/* =========================================================
    LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
   const today = getPHDate();
 
-  // Phase 1 of the Supabase migration (see docs/supabase-migration.md):
-  // catalog/reference data (categories, products, recipes, inventory
-  // items) now comes straight from Supabase, fetched in parallel with
-  // Apps Script's posInit call — which now only supplies today's live
-  // stock (dailyInventory); that part hasn't migrated yet (Phase 2).
-  const [posInitData, categoriesData, productsData, inventoryItemsData, recipesData] =
+  // Phases 1+2 of the Supabase migration (see docs/supabase-migration.md):
+  // catalog data AND today's live stock now both come straight from
+  // Supabase — Apps Script's combined posInit call (the original source
+  // of this app's slow/failed POS loads) is no longer needed here at all.
+  const [inventoryResponse, categoriesData, productsData, inventoryItemsData, recipesData] =
     await Promise.all([
-      fetchJSONWithRetry(`${API_URL}?type=posInit&date=${today}&location=${LOCATION}`),
+      getDailyInventoryItems(today, LOCATION),
       listCategories(),
       listProducts(),
       listInventoryItems(),
       listAllRecipes()
     ]);
-
-  const inventoryResponse = posInitData.dailyInventory;
 
   inventoryReorderLevels = {};
   inventoryConversionMap = {};
@@ -613,9 +594,7 @@ async function refreshInventoryOnly({ silent = false } = {}) {
       showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing inventory…`);
     }
 
-   const data = await fetchJSONWithRetry(
-  `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-);
+   const data = await getDailyInventoryItems(today, LOCATION);
 
 if (data.status !== "OPEN") {
   POS_CLOSED = true;
@@ -913,24 +892,12 @@ if (!window.__lastPayment?.payment_status) {
 
 
   try {
-    const payment = window.__lastPayment;
-    const body = new URLSearchParams({
-      action: "checkoutOrder",
-      ref_id: ref,
-      staff_id: STAFF_ID,
-      location: LOCATION,
-      payment: JSON.stringify(window.__lastPayment),
-      items: JSON.stringify(
-  cartItems.map(i => ({
-    product_id: i.product_id,
-    qty: i.qty,
-    price: i.price,
-    total: i.qty * i.price // ✅ ADD THIS
-  }))
-)
-
-      
-    });
+    const itemsPayload = cartItems.map(i => ({
+      product_id: i.product_id,
+      qty: i.qty,
+      price: i.price,
+      total: i.qty * i.price
+    }));
 
     // ✅ OFFLINE CHECKOUT
 if (!navigator.onLine) {
@@ -940,12 +907,7 @@ if (!navigator.onLine) {
     ref_id: ref,
     staff_id: STAFF_ID,
     location: LOCATION,
-items: cartItems.map(i => ({
-  product_id: i.product_id,
-  qty: i.qty,
-  price: i.price,
-  total: i.qty * i.price
-})),
+    items: itemsPayload,
     payment: window.__lastPayment, // ✅ ADD THIS
     time: Date.now()
   });
@@ -957,15 +919,7 @@ updateSyncCounter(); // optional safety refresh
   return;
 }
 
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body
-    });
-
-    const data = await res.json();
+    const data = await checkoutOrderSupabase(ref, STAFF_ID, LOCATION, itemsPayload, window.__lastPayment);
 
     if (!data.success) {
       throw new Error(data.error || "Checkout failed");
@@ -981,7 +935,7 @@ if (navigator.onLine) {
     console.error(err);
     alert("❌ Checkout failed");
   } finally {
-    
+
   }
 }
 
@@ -1260,9 +1214,7 @@ async function openStocks() {
   try {
     const today = getPHDate();
 
-    const data = await fetchJSONWithRetry(
-      `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-    );
+    const data = await getDailyInventoryItems(today, LOCATION);
 
     if (data.status !== "OPEN") {
       tbody.innerHTML =
@@ -1332,22 +1284,7 @@ async function syncPendingOrders() {
     let data;
 
     try {
-      const body = new URLSearchParams({
-        action: "checkoutOrder",
-        ref_id: o.ref_id,
-        staff_id: o.staff_id,
-        location: o.location,
-        items: JSON.stringify(o.items),
-        payment: JSON.stringify(o.payment || {}) // ✅ ADD
-      });
-
-      const res = await authFetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body
-      });
-
-      data = await res.json();
+      data = await checkoutOrderSupabase(o.ref_id, o.staff_id, o.location, o.items, o.payment || {});
     } catch (err) {
       // Offline mid-sync, DNS failure, etc. — this order (and everything
       // still behind it) stays in the queue for the next sync attempt.
@@ -1427,10 +1364,7 @@ async function openPettyCash() {
 
   try {
     const today = getPHDate();
-    const res = await fetch(
-      `${API_URL}?type=pettyCashSummary&date=${today}&location=${LOCATION}`
-    );
-    const data = await res.json();
+    const data = await getPettyCashSummary(today, LOCATION);
     renderPettyCash(data);
   } catch (err) {
     console.error(err);
@@ -1517,16 +1451,7 @@ async function savePettyCashFund() {
   btn.disabled = true;
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "updateDailyFinance",
-        daily_id: lastPettyCashSummary.daily_id,
-        petty_cash_fund: fund
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Save failed");
+    await updateDailyFinanceSupabase(lastPettyCashSummary.daily_id, fund);
     openPettyCash();
   } catch (err) {
     console.error(err);
@@ -1555,18 +1480,7 @@ async function saveExpense() {
   btn.disabled = true;
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "addExpense",
-        daily_id: lastPettyCashSummary.daily_id,
-        description,
-        amount,
-        remarks
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Save failed");
+    await addExpenseSupabase(lastPettyCashSummary.daily_id, description, amount, remarks);
     openPettyCash();
   } catch (err) {
     console.error(err);
@@ -1671,25 +1585,8 @@ function saveAddInventory() {
   const saveBtn = document.getElementById("addInventorySaveBtn");
   saveBtn.disabled = true;
 
-  authFetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "addDailyInventory",
-      date: getPHDate(),
-      location: LOCATION,
-      created_by: CASHIER_NAME || STAFF_ID,
-      items: JSON.stringify(items)
-    })
-  })
-    .then(r => r.json())
-    .then(res => {
-      if (!res.success) {
-        errorEl.textContent = res.error || "Failed to save inventory";
-        errorEl.classList.remove("hidden");
-        saveBtn.disabled = false;
-        return;
-      }
-
+  addDailyInventorySupabase(getPHDate(), LOCATION, CASHIER_NAME || STAFF_ID, items)
+    .then(() => {
       // Refresh the in-memory inventory (already used elsewhere for the
       // manual "Sync Inventory" menu item) so the product grid's
       // canSell() reflects the new stock immediately.
@@ -1697,7 +1594,7 @@ function saveAddInventory() {
     })
     .catch(err => {
       console.error(err);
-      errorEl.textContent = "Failed to save inventory";
+      errorEl.textContent = err.message || "Failed to save inventory";
       errorEl.classList.remove("hidden");
       saveBtn.disabled = false;
     })
@@ -1736,35 +1633,23 @@ function closeClockIn() {
 }
 window.closeClockIn = closeClockIn;
 
-function loadClockInData() {
+async function loadClockInData() {
   const tbody = document.getElementById("clockInTable");
   tbody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
 
-  return new Promise(resolve => {
-    const callbackName = "clockInCallback_" + Date.now();
-
-    window[callbackName] = data => {
-      delete window[callbackName];
-      script.remove();
-      renderClockInTable(data);
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    script.src =
-      `${API_URL}?type=clockInKioskData` +
-      `&location=${LOCATION}` +
-      `&callback=${callbackName}`;
-
-    script.onerror = () => {
-      delete window[callbackName];
-      script.remove();
-      tbody.innerHTML = "<tr><td colspan='3'>Failed to load staff.</td></tr>";
-      resolve();
-    };
-
-    document.body.appendChild(script);
-  });
+  try {
+    // get_staff_status() returns every active staff member across every
+    // location (it has no location filter) — narrow to this POS's own
+    // location the same way the rest of this file already knows its
+    // staff roster, via listStaff().
+    const [status, roster] = await Promise.all([getStaffStatus(), listStaff()]);
+    const idsHere = new Set(roster.filter(s => String(s.location_id).trim() === String(LOCATION).trim()).map(s => s.staff_id));
+    const data = { ...status, staff: (status.staff || []).filter(s => idsHere.has(s.staff_id)) };
+    renderClockInTable(data);
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = "<tr><td colspan='3'>Failed to load staff.</td></tr>";
+  }
 }
 
 function renderClockInTable(data) {
@@ -1845,16 +1730,7 @@ async function enrollStaff(staffId, name) {
 
     if (!credential) throw new Error("Enrollment was cancelled");
 
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "enrollBiometric",
-        staff_id: staffId,
-        credential_id: credential.id
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Enrollment failed");
+    await enrollBiometricSupabase(staffId, credential.id);
 
     await loadClockInData();
   } catch (err) {
@@ -1886,16 +1762,7 @@ async function clockInOut(staffId, credentialId, action) {
 
     if (!assertion) throw new Error("Verification was cancelled");
 
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action,
-        staff_id: staffId,
-        location_id: LOCATION
-      })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error || "Failed to record");
+    await clockInOutSupabase(staffId, action);
 
     await loadClockInData();
   } catch (err) {
@@ -2030,49 +1897,6 @@ function performLogout() {
   window.location.href = "index.html";
 }
 
-// Same transient-Apps-Script-failure defense as fetchJSONWithRetry() above,
-// but for this one call's JSONP transport (a <script> tag, not fetch) —
-// a bad response here doesn't reject with a normal error, it fails to
-// load as valid JS, which only shows up as the tag's onerror firing, so
-// the retry has to live at that same layer instead.
-function loadTodaySales(attempts = 3, delayMs = 1200) {
-  return new Promise((resolve, reject) => {
-    let attempt = 0;
-
-    function tryLoad() {
-      attempt++;
-      const callbackName = "salesCallback_" + Date.now() + "_" + attempt;
-
-      window[callbackName] = data => {
-        delete window[callbackName];
-        script.remove();
-        resolve(data);
-      };
-
-      const script = document.createElement("script");
-      script.src =
-        `${API_URL}?type=dailySalesReport` +
-        `&date=${getPHDate()}` +
-        `&location=${LOCATION}` +
-        `&callback=${callbackName}`;
-
-      script.onerror = () => {
-        delete window[callbackName];
-        script.remove();
-        if (attempt < attempts) {
-          setTimeout(tryLoad, delayMs);
-        } else {
-          reject(new Error("Failed to load sales"));
-        }
-      };
-
-      document.body.appendChild(script);
-    }
-
-    tryLoad();
-  });
-}
-
 function updateNetStatus() {
   const el = document.getElementById("netStatus");
   if (!el) return;
@@ -2098,48 +1922,32 @@ function incrementUnread() {
 let lastChatHash = "";
 let chatLoading = false;
 
-function loadPOSChat() {
-    if (!POS_CHAT_ENABLED) return;
+async function loadPOSChat() {
+  if (!POS_CHAT_ENABLED) return;
   if (chatLoading) return;
   chatLoading = true;
 
   const loc = localStorage.getItem("userLocation");
-  if (!loc) return;
+  if (!loc) { chatLoading = false; return; }
 
-  const callbackName = "posChatCallback_" + Date.now();
-  const script = document.createElement("script");
+  try {
+    const messages = await listChatMessages(loc);
+    const hash = JSON.stringify(messages);
 
-  window[callbackName] = messages => {
-    chatLoading = false;
-    delete window[callbackName];
-    script.remove();
+    if (hash !== lastChatHash) {
+      // 🔔 only notify if chat is closed
+      if (chatBox.classList.contains("hidden")) {
+        incrementUnread();
+      }
 
-  const hash = JSON.stringify(messages);
-
-  if (hash !== lastChatHash) {
-    // 🔔 only notify if chat is closed
-    if (chatBox.classList.contains("hidden")) {
-      incrementUnread();
+      lastChatHash = hash;
+      renderChatMessages(messages);
     }
-
-    lastChatHash = hash;
-    renderChatMessages(messages);
-  }
-  };
-
-  script.src =
-    `${API_URL}?type=chatMessages` +
-    `&location=${loc}` +
-    `&callback=${callbackName}`;
-
-  script.onerror = () => {
+  } catch (err) {
+    console.warn("⚠️ POS chat load failed", err);
+  } finally {
     chatLoading = false;
-    delete window[callbackName];
-    script.remove();
-    console.warn("⚠️ POS chat JSONP failed");
-  };
-
-  document.body.appendChild(script);
+  }
 }
 
 // 🔁 SINGLE poll — keeps polling even while the chat box is closed, so
@@ -2216,16 +2024,7 @@ function sendChat() {
   const msg = input.value.trim();
   if (!msg) return;
 
-authFetch(API_URL, {
-  method: "POST",
-  body: new URLSearchParams({
-    action: "sendChatMessage",
-    sender_role: "CASHIER",
-    sender_id: STAFF_ID,
-    location: LOCATION,
-    message: msg
-  })
-}).then(() => loadPOSChat());
+  sendChatMessageSupabase("CASHIER", STAFF_ID, LOCATION, msg).then(() => loadPOSChat());
 
   input.value = "";
 }
@@ -2267,8 +2066,7 @@ document.getElementById("salesBtn")?.addEventListener("click", async () => {
   try {
     showLoader("Loading sales report…");
 
-    // ✅ JSONP — NO CORS
-    const orders = await loadTodaySales();
+    const orders = await listTodaySales(getPHDate(), LOCATION);
 
     if (!Array.isArray(orders)) {
       throw new Error("Invalid sales data");

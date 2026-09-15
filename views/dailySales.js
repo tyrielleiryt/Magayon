@@ -1,9 +1,8 @@
 import { bindDataBoxScroll, getCached } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
 
-import { API_URL } from "../firebase-config.js";
-import { authFetch } from "../auth-guard.js";
 import { icon } from "../icons.js";
+import { getDailySalesReportSummary, getDayExpenses, listTodaySales, voidOrderItem as voidOrderItemSupabase } from "../data/orders.js";
 
 /* ================= STATE ================= */
 let locationMap = {};  // location_id → location_name
@@ -84,60 +83,10 @@ function loadDailySalesReportFull() {
   `;
 
   Promise.all([
-    fetchDailySalesReportSummary(date, location),
-    fetchDayExpenses(date, location)
+    getDailySalesReportSummary(date, location).catch(err => ({ success: false, error: err.message })),
+    getDayExpenses(date, location).catch(() => [])
   ]).then(([summary, expenses]) => {
     renderDailySalesReportFull(summary, expenses, date, location);
-  });
-}
-
-function fetchDailySalesReportSummary(date, location) {
-  return new Promise(resolve => {
-    const callback = "handleDailySalesReportSummary";
-    delete window[callback];
-    window[callback] = resolve;
-
-    const old = document.getElementById("dsrJsonpScript");
-    if (old) old.remove();
-
-    const script = document.createElement("script");
-    script.id = "dsrJsonpScript";
-    script.src =
-      `${API_URL}?type=dailySalesReportSummary&date=${date}` +
-      `&location=${encodeURIComponent(location)}&callback=${callback}`;
-    script.onerror = () => resolve({ success: false, error: "Failed to load report" });
-
-    document.body.appendChild(script);
-  });
-}
-
-/* Itemized expenses aren't part of dailySalesReportSummary (that only
-   returns a single lump total) — Sales & Expenses Tracker already pulls
-   itemized {item, description, amount} rows per day via this same
-   salesExpensesMonth endpoint, so this just reuses it and picks out the
-   one matching day instead of adding a new backend action. */
-function fetchDayExpenses(date, location) {
-  const month = date.slice(0, 7);
-
-  return new Promise(resolve => {
-    const callback = "handleDsrExpensesMonth";
-    delete window[callback];
-    window[callback] = data => {
-      const day = (data?.days || []).find(d => d.date === date);
-      resolve(day?.expenses || []);
-    };
-
-    const old = document.getElementById("dsrExpensesJsonpScript");
-    if (old) old.remove();
-
-    const script = document.createElement("script");
-    script.id = "dsrExpensesJsonpScript";
-    script.src =
-      `${API_URL}?type=salesExpensesMonth&month=${month}` +
-      `&location=${encodeURIComponent(location)}&callback=${callback}`;
-    script.onerror = () => resolve([]);
-
-    document.body.appendChild(script);
   });
 }
 
@@ -310,24 +259,12 @@ function openTransactionListModal(date, location) {
 }
 
 function loadTransactionList(date, location) {
-  const callback = "handleDailySalesReport";
-  delete window[callback];
-
-  window[callback] = function (orders) {
-    renderTransactionList(Array.isArray(orders) ? orders : []);
-  };
-
-  const old = document.getElementById("salesJsonpScript");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.id = "salesJsonpScript";
-  script.src =
-    `${API_URL}?type=dailySalesReport&date=${date}` +
-    (location ? `&location=${encodeURIComponent(location)}` : "") +
-    `&callback=${callback}`;
-
-  document.body.appendChild(script);
+  listTodaySales(date, location || undefined)
+    .then(orders => renderTransactionList(orders))
+    .catch(err => {
+      console.error(err);
+      renderTransactionList([]);
+    });
 }
 
 /* ================= RENDER ================= */
@@ -446,18 +383,7 @@ window.confirmVoidItem = async function (orderItemId, refId, restore) {
   showLoader("Voiding item…");
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "voidOrderItem",
-        order_item_id: orderItemId,
-        ref_id: refId,
-        restore: restore ? "true" : "false"
-      })
-    });
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Void failed");
+    const data = await voidOrderItemSupabase(Number(orderItemId), restore);
 
     closeModal();
     alert(

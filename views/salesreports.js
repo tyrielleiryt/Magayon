@@ -1,10 +1,7 @@
 import { bindDataBoxScroll } from "../admin.js";
 import { openModal, closeModal } from "./modal.js";
- 
-/* =========================================================
-   CONFIG
-========================================================= */
-import { API_URL } from "../firebase-config.js";
+import { listDailyInventoryDays } from "../data/dailyInventory.js";
+import { listTodaySales } from "../data/orders.js";
 
 /* ================= HELPERS ================= */
 const el = id => document.getElementById(id);
@@ -75,10 +72,9 @@ async function loadSalesDays() {
 
   try {
     // reuse dailyInventory as "days with activity"
-    const res = await fetch(`${API_URL}?type=dailyInventory`);
-    const data = await res.json();
+    const { rows } = await listDailyInventoryDays({ limit: 1000, offset: 0 });
 
-    salesDays = Array.isArray(data) ? data : [];
+    salesDays = rows;
     renderTable();
 
   } catch (err) {
@@ -135,17 +131,11 @@ window.viewDailySales = async function (date, location) {
   showLoader("Loading sales…");
 
   try {
-    const [summaryRes, reportRes] = await Promise.all([
-      fetch(
-        `${API_URL}?type=dailySalesSummary&date=${date}&location=${location}`
-      ),
-      fetch(
-        `${API_URL}?type=dailySalesReport&date=${date}&location=${location}`
-      )
-    ]);
-
-    const summary = await summaryRes.json();
-    const orders = await reportRes.json();
+    const orders = await listTodaySales(date, location);
+    const summary = {
+      total_orders: orders.length,
+      gross_sales: orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+    };
 
     openModal(
       `

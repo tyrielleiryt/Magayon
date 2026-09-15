@@ -7,6 +7,9 @@ import { listLocations } from "./data/locations.js";
 import { listCategories } from "./data/categories.js";
 import { listInventoryItems } from "./data/inventoryItems.js";
 import { listProducts, listAllRecipes } from "./data/products.js";
+import { closeInventoryDay as closeInventoryDaySupabase } from "./data/dailyInventory.js";
+import { clockInOut as clockInOutSupabase } from "./data/attendance.js";
+import { listChatMessages, sendChatMessage as sendChatMessageSupabase } from "./data/chat.js";
 
 window.API_URL = API_URL; // kept for admin-close-day.js
 
@@ -358,7 +361,10 @@ document.getElementById("logoutBtn")?.addEventListener("click", async () => {
 
   const staffId = localStorage.getItem("staff_id");
   if (staffId) {
-    new Image().src = `${API_URL}?action=endShift&staff_id=${staffId}`;
+    // Best-effort auto clock-out on logout — same fire-and-forget shape
+    // as the old beacon-image request, errors intentionally swallowed
+    // since logout must proceed either way.
+    clockInOutSupabase(staffId, "clockOut").catch(() => {});
   }
 
   logout(); // signs out of Firebase too (the old handler only cleared localStorage)
@@ -383,12 +389,7 @@ document.getElementById("confirmCloseDayBtn")?.addEventListener("click", async (
   btn.disabled = true;
 
   try {
-    const res = await authFetch(API_URL, {
-      method: "POST",
-      body: new URLSearchParams({ action: "closeInventoryDay", date, location })
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Unknown error");
+    await closeInventoryDaySupabase(date, location);
 
     alert("✅ Inventory successfully closed.");
     window.location.reload();
@@ -515,18 +516,12 @@ function incrementAdminUnread() {
   badge.classList.remove("hidden");
 }
 
-function loadAdminChat() {
+async function loadAdminChat() {
   if (adminChatLoading) return;
   adminChatLoading = true;
 
-  const callbackName = "adminChatCallback_" + Date.now();
-  const script = document.createElement("script");
-
-  window[callbackName] = messages => {
-    adminChatLoading = false;
-    delete window[callbackName];
-    script.remove();
-
+  try {
+    const messages = await listChatMessages(ADMIN_LOCATION);
     const hash = JSON.stringify(messages);
     if (hash !== lastAdminChatHash) {
       // 🔔 only notify if chat is closed (skip the very first load, since
@@ -538,23 +533,13 @@ function loadAdminChat() {
       adminChatFirstLoad = false;
 
       lastAdminChatHash = hash;
-  renderAdminChat(messages);
+      renderAdminChat(messages);
     }
-  };
-
-  script.src =
-    `${API_URL}?type=chatMessages` +
-    `&location=${ADMIN_LOCATION}` +
-    `&callback=${callbackName}`;
-
-  script.onerror = () => {
+  } catch (err) {
+    console.warn("⚠️ Admin chat load failed", err);
+  } finally {
     adminChatLoading = false;
-    delete window[callbackName];
-    script.remove();
-    console.warn("⚠️ Admin chat JSONP failed");
-  };
-
-  document.body.appendChild(script);
+  }
 }
 
 // Which location an outgoing admin message goes to. Populated with real
@@ -598,8 +583,8 @@ function renderAdminChat(messages = []) {
       .reverse()
       .find(m => m.sender_role === "CASHIER");
 
-    if (lastCashier?.location) {
-      select.value = lastCashier.location;
+    if (lastCashier?.location_id) {
+      select.value = lastCashier.location_id;
     }
   }
 
@@ -609,7 +594,7 @@ function renderAdminChat(messages = []) {
       text-align:${m.sender_role === "ADMIN" ? "right" : "left"};
     ">
       <div style="font-size:11px;color:#6b7280">
-        ${m.sender_role} • ${m.location}
+        ${m.sender_role} • ${m.location_id}
       </div>
       <span style="
         display:inline-block;
@@ -641,16 +626,8 @@ function sendAdminChat() {
     return;
   }
 
-  authFetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "sendChatMessage",
-      sender_role: "ADMIN",
-      sender_id: "ADMIN",
-      location,
-      message: msg
-    })
-  }).then(() => loadAdminChat())
+  sendChatMessageSupabase("ADMIN", "ADMIN", location, msg)
+    .then(() => loadAdminChat())
     .catch(err => {
       console.warn("⚠️ Admin send failed:", err.message);
     });

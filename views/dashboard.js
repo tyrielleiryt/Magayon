@@ -1,7 +1,9 @@
 import { bindDataBoxScroll } from "../admin.js";
 
-import { API_URL } from "../firebase-config.js";
 import { icon } from "../icons.js";
+import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales } from "../data/orders.js";
+import { listStaff } from "../data/staff.js";
+import { getAttendanceOverview } from "../data/attendance.js";
 
 
 /* ================= ENTRY =================
@@ -106,25 +108,12 @@ export function stopDashboardPolling() {
   liveSalesTimer = null;
 }
 
-/* ================= SAFE JSON FETCH ================= */
-async function safeFetchJSON(url, signal) {
-  const res = await fetch(url, signal ? { signal } : undefined);
-  const text = await res.text();
-
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("API returned non-JSON:", text);
-    throw new Error("Invalid JSON response");
-  }
-}
-
 /* Today's gross/orders/average is needed by both Daily Performance and
    Labor Cost — whichever widget is opened first fetches it, the other
    reuses that same in-flight/resolved promise instead of re-fetching. */
 function getTodaySales(date, signal) {
   if (!todaySalesPromise) {
-    todaySalesPromise = safeFetchJSON(`${API_URL}?type=dailySalesAnalytics&date=${date}`, signal);
+    todaySalesPromise = getDailySalesAnalytics(date);
   }
   return todaySalesPromise;
 }
@@ -283,8 +272,7 @@ function renderLayout() {
 /* ================= TOP SELLERS ================= */
 async function loadTopSellers(date, signal) {
   try {
-    const url = `${API_URL}?type=topSellers&date=${date}`;
-    const data = await safeFetchJSON(url, signal);
+    const data = await getTopSellers(date);
 
     const tbody = document.getElementById("topSellersBody");
     tbody.innerHTML = "";
@@ -317,11 +305,9 @@ async function loadDailyAnalytics(date, signal) {
     yesterday.setDate(yesterday.getDate() - 1);
     const yDate = yesterday.toISOString().slice(0, 10);
 
-    const yesterdayURL = `${API_URL}?type=dailySalesAnalytics&date=${yDate}`;
-
     const [todayData, yesterdayData] = await Promise.all([
       getTodaySales(date, signal),
-      safeFetchJSON(yesterdayURL, signal)
+      getDailySalesAnalytics(yDate)
     ]);
 
     const grossToday = Number(todayData?.gross || 0);
@@ -355,8 +341,7 @@ async function loadDailyAnalytics(date, signal) {
 /* ================= LOW STOCK ================= */
 async function loadLowStockAlerts(date, signal) {
   try {
-    const url = `${API_URL}?type=lowStockAlerts&date=${date}`;
-    const data = await safeFetchJSON(url, signal);
+    const data = await getLowStockAlerts(date);
 
     const tbody = document.getElementById("lowStockBody");
     tbody.innerHTML = "";
@@ -392,8 +377,8 @@ async function loadLaborCost(date, signal) {
 
   try {
     const [staffList, attendance, sales] = await Promise.all([
-      safeFetchJSON(`${API_URL}?type=staff`, signal),
-      safeFetchJSON(`${API_URL}?type=attendanceOverview&date=${date}`, signal),
+      listStaff(),
+      getAttendanceOverview(date),
       getTodaySales(date, signal)
     ]);
 
@@ -455,7 +440,7 @@ async function loadStockDaysRemaining(date, signal) {
   const body = document.getElementById("stockDaysBody");
 
   try {
-    const rows = await safeFetchJSON(`${API_URL}?type=stockDaysRemaining&date=${date}`, signal);
+    const rows = await getStockDaysRemaining(date);
     renderStockDaysRemaining(Array.isArray(rows) ? rows.slice(0, STOCK_DAYS_ROWS_SHOWN) : []);
   } catch (err) {
     if (err.name === "AbortError") return;
@@ -488,20 +473,9 @@ function renderStockDaysRemaining(rows) {
 
 /* ================= LIVE SALES FEED ================= */
 function loadLiveSalesFeed(date) {
-  const callback = "handleLiveSalesFeed";
-  delete window[callback];
-
-  window[callback] = function (orders) {
-    renderLiveSalesFeed(Array.isArray(orders) ? orders : []);
-  };
-
-  const old = document.getElementById("liveSalesJsonpScript");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.id = "liveSalesJsonpScript";
-  script.src = `${API_URL}?type=dailySalesReport&date=${date}&callback=${callback}`;
-  document.body.appendChild(script);
+  listTodaySales(date)
+    .then(orders => renderLiveSalesFeed(Array.isArray(orders) ? orders : []))
+    .catch(err => console.error("Live sales feed failed", err));
 }
 
 function renderLiveSalesFeed(orders) {
