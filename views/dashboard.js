@@ -41,18 +41,33 @@ const WIDGET_LOADERS = {
   // liveSales is handled separately below — it's a poller, not a one-shot fetch
 };
 
+/* Widgets render as chips (same look as Categories & Products) collapsed
+   by default. First expand lazily builds the widget's panel and inserts
+   it as a full-width row right after its chip (same CSS Grid row-break
+   accordion technique used there); later toggles just show/hide that
+   same panel — nothing here re-fetches on a second open, matching the
+   original behavior exactly. */
 function wireWidgetToggles() {
   const today = new Date().toISOString().slice(0, 10);
   const signal = dashboardAbort.signal;
+  const grid = document.getElementById("dashboardGrid");
 
-  document.querySelectorAll(".dashboard-card-toggle").forEach(toggle => {
-    const card = toggle.closest(".dashboard-card");
-    const widget = card?.dataset.widget;
-    if (!card || !widget) return;
+  grid.querySelectorAll(".dashboard-chip").forEach(chip => {
+    const widget = chip.dataset.widget;
+    if (!widget) return;
 
-    toggle.addEventListener("click", () => {
-      const nowExpanded = !card.classList.contains("expanded");
-      card.classList.toggle("expanded", nowExpanded);
+    chip.addEventListener("click", () => {
+      const nowExpanded = !chip.classList.contains("expanded");
+      chip.classList.toggle("expanded", nowExpanded);
+
+      let panel = chip.nextElementSibling;
+      if (!panel || !panel.classList.contains("dashboard-expanded-panel")) {
+        panel = document.createElement("div");
+        panel.className = "dashboard-expanded-panel";
+        panel.innerHTML = panelBodyHTML(widget);
+        chip.insertAdjacentElement("afterend", panel);
+      }
+      panel.classList.toggle("hidden", !nowExpanded);
 
       if (widget === "liveSales") {
         liveSalesExpanded = nowExpanded;
@@ -130,9 +145,123 @@ function applyTrend(el, today, yesterday) {
   }
 }
 
-/* ================= LAYOUT ================= */
-function toggleHeader(iconName, title) {
-  return `${icon(iconName)} ${title} ${icon("chevron-down", { size: 16, class: "widget-chevron" })}`;
+/* ================= LAYOUT =================
+   Each widget is a chip — professional colored icon + label, same
+   visual language as Categories & Products' category chips — collapsed
+   by default. Expanding inserts a full-width panel (panelBodyHTML)
+   holding that widget's actual content; every element ID inside is
+   unchanged from before, so every loader function below still finds
+   what it's looking for without modification. */
+const WIDGET_META = {
+  topSellers: { icon: "trophy", label: "Top 5 Best Sellers", color: "amber" },
+  liveSales: { label: "Live Sales Feed", color: "green", live: true },
+  dailyPerformance: { icon: "trending-up", label: "Daily Performance", color: "blue" },
+  lowStock: { icon: "alert-triangle", label: "Low Stock Warnings", color: "red" },
+  stockDays: { icon: "package", label: "Days of Stock Remaining", color: "slate" },
+  laborCost: { icon: "banknote", label: "Labor Cost", color: "green" }
+};
+
+function dashboardChipHTML(key) {
+  const meta = WIDGET_META[key];
+  const iconHtml = meta.live
+    ? `<span class="dashboard-chip-live-dot"></span>`
+    : icon(meta.icon, { size: 22 });
+
+  return `
+    <div class="category-chip dashboard-chip" data-widget="${key}">
+      <div class="dashboard-chip-icon ${meta.color}">${iconHtml}</div>
+      <div class="category-chip-name">${meta.label}</div>
+      ${icon("chevron-down", { size: 16, class: "widget-chevron category-chip-chevron" })}
+    </div>
+  `;
+}
+
+function panelBodyHTML(widget) {
+  switch (widget) {
+    case "topSellers":
+      return `
+        <div class="dashboard-table-wrap">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Sales</th>
+              </tr>
+            </thead>
+            <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      `;
+
+    case "liveSales":
+      return `
+        <div class="live-sales-list" id="liveSalesList">
+          <div style="text-align:center;color:#888;padding:12px">Loading…</div>
+        </div>
+      `;
+
+    case "dailyPerformance":
+      return `
+        <div class="analytics-grid">
+          <div class="analytics-box">
+            <div class="label">Gross Sales</div>
+            <div class="value-row">
+              <div class="value" id="metricGross">₱0</div>
+              <div class="trend" id="trendGross">—</div>
+            </div>
+          </div>
+
+          <div class="analytics-box">
+            <div class="label">Transactions</div>
+            <div class="value-row">
+              <div class="value" id="metricOrders">0</div>
+              <div class="trend" id="trendOrders">—</div>
+            </div>
+          </div>
+
+          <div class="analytics-box">
+            <div class="label">Avg Order</div>
+            <div class="value-row">
+              <div class="value" id="metricAvg">₱0</div>
+              <div class="trend" id="trendAvg">—</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+    case "lowStock":
+      return `
+        <div class="dashboard-table-wrap">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Remaining</th>
+              </tr>
+            </thead>
+            <tbody id="lowStockBody"><tr><td colspan="2" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      `;
+
+    case "stockDays":
+      return `<div id="stockDaysBody"><div class="stock-empty">Loading…</div></div>`;
+
+    case "laborCost":
+      return `
+        <div class="kpi-label">
+          <span class="status-chip" id="laborCostChip">—</span>
+        </div>
+        <div class="kpi-value" id="laborCostValue">—</div>
+        <div class="kpi-sub" id="laborCostSub">Loading…</div>
+        <div class="bar-compare"><span id="laborCostBar" style="width:0%;background:#cbd5e1"></span></div>
+      `;
+
+    default:
+      return "";
+  }
 }
 
 function renderLayout() {
@@ -140,126 +269,12 @@ function renderLayout() {
 
   document.getElementById("contentBox").innerHTML = `
     <div class="data-box">
-      <h2>${icon("layout-dashboard")} Dashboard Overview</h2>
+      <h2>${icon("bar-chart-3")} Data Analytics</h2>
 
       <div class="dashboard-scroll">
-
-      <div class="dashboard-grid">
-
-  <!-- Left: Top Sellers -->
-  <div class="dashboard-card" data-widget="topSellers">
-    <h3 class="dashboard-card-toggle">${toggleHeader("trophy", "Top 5 Best Sellers")}</h3>
-    <div class="dashboard-card-body">
-    <div class="dashboard-table-wrap">
-      <table class="category-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Sales</th>
-          </tr>
-        </thead>
-        <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
-      </table>
-    </div>
-    </div>
-  </div>
-
-  <!-- Live Sales Feed -->
-  <div class="dashboard-card live-sales-card" data-widget="liveSales">
-    <h3 class="dashboard-card-toggle"><span class="live-dot"></span> Live Sales Feed ${icon("chevron-down", { size: 16, class: "widget-chevron" })}</h3>
-    <div class="dashboard-card-body">
-    <div class="live-sales-list" id="liveSalesList">
-      <div style="text-align:center;color:#888;padding:12px">Loading…</div>
-    </div>
-    </div>
-  </div>
-
-  <!-- Right column -->
-  <div class="dashboard-right-column">
-
-    <!-- Daily Performance -->
-    <div class="dashboard-card" data-widget="dailyPerformance">
-      <h3 class="dashboard-card-toggle">${toggleHeader("trending-up", "Daily Performance")}</h3>
-      <div class="dashboard-card-body">
-      <div class="analytics-grid">
-        <div class="analytics-box">
-          <div class="label">Gross Sales</div>
-          <div class="value-row">
-            <div class="value" id="metricGross">₱0</div>
-            <div class="trend" id="trendGross">—</div>
-          </div>
+        <div class="admin-product-grid dashboard-widget-grid" id="dashboardGrid">
+          ${Object.keys(WIDGET_META).map(dashboardChipHTML).join("")}
         </div>
-
-        <div class="analytics-box">
-          <div class="label">Transactions</div>
-          <div class="value-row">
-            <div class="value" id="metricOrders">0</div>
-            <div class="trend" id="trendOrders">—</div>
-          </div>
-        </div>
-
-        <div class="analytics-box">
-          <div class="label">Avg Order</div>
-          <div class="value-row">
-            <div class="value" id="metricAvg">₱0</div>
-            <div class="trend" id="trendAvg">—</div>
-          </div>
-        </div>
-      </div>
-      </div>
-    </div>
-
-    <!-- Low Stock -->
-    <div class="dashboard-card danger" data-widget="lowStock">
-      <h3 class="dashboard-card-toggle">${toggleHeader("alert-triangle", "Low Stock Warnings")}</h3>
-      <div class="dashboard-card-body">
-      <div class="dashboard-table-wrap">
-        <table class="category-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Remaining</th>
-            </tr>
-          </thead>
-          <tbody id="lowStockBody"><tr><td colspan="2" style="text-align:center;color:#888">Loading…</td></tr></tbody>
-        </table>
-      </div>
-      </div>
-    </div>
-
-  </div>
-
-</div>
-
-<div class="dashboard-grid-2">
-
-  <!-- Days of Stock Remaining -->
-  <div class="dashboard-card" data-widget="stockDays">
-    <h3 class="dashboard-card-toggle">${toggleHeader("package", "Days of Stock Remaining")}</h3>
-    <div class="dashboard-card-body">
-    <div id="stockDaysBody"><div class="stock-empty">Loading…</div></div>
-    </div>
-  </div>
-
-  <!-- Labor Cost % -->
-  <div class="dashboard-card kpi-tile" data-widget="laborCost">
-    <h3 class="dashboard-card-toggle kpi-toggle">
-      ${icon("banknote")} Labor Cost ${icon("chevron-down", { size: 16, class: "widget-chevron" })}
-    </h3>
-    <div class="dashboard-card-body">
-    <div class="kpi-label">
-      <span class="status-chip" id="laborCostChip">—</span>
-    </div>
-    <div class="kpi-value" id="laborCostValue">—</div>
-    <div class="kpi-sub" id="laborCostSub">Loading…</div>
-    <div class="bar-compare"><span id="laborCostBar" style="width:0%;background:#cbd5e1"></span></div>
-    </div>
-  </div>
-
-</div>
-
       </div>
     </div>
   `;

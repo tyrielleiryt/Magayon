@@ -1687,10 +1687,10 @@ html, body {
 
 /* ================= DASHBOARD CLEAN LAYOUT ================= */
 
-/* Scrolls the whole dashboard body (both widget rows) within the fixed
-   .data-box height, since .data-box itself never scrolls — only a
-   .data-scroll-style child does. Without this, anything past the first
-   .dashboard-grid row is clipped and unreachable. */
+/* Scrolls the whole dashboard body within the fixed .data-box height,
+   since .data-box itself never scrolls — only a .data-scroll-style
+   child does. Without this, anything past the first widget-grid row is
+   clipped and unreachable. */
 .dashboard-scroll {
   flex: 1;
   min-height: 0;
@@ -1701,62 +1701,51 @@ html, body {
   margin-top: 14px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.4fr;
-  gap: 18px;
-  flex-shrink: 0;
-}
-
-/* Card */
-.dashboard-card {
-  background: #fff;
-  padding: 16px;
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.06);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-    max-height: 300px; 
-}
-
-.dashboard-card h3 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-/* Click-to-load / click-again-to-hide widgets — collapsed by default,
-   nothing fetched until the toggle is clicked (see wireWidgetToggles()
-   in dashboard.js). A second click just hides the already-rendered
-   content again, no re-fetch. */
-.dashboard-card-toggle {
-  cursor: pointer;
+/* Widgets sit in the same chip grid as Categories & Products
+   (.admin-product-grid) — each widget is a .category-chip with a
+   professional colored icon badge (.dashboard-chip-icon) and its label,
+   collapsed by default. Expanding inserts a full-width panel
+   (.dashboard-expanded-panel) right after the chip, same row-break
+   accordion technique as .category-expanded-panel. */
+.dashboard-chip-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  user-select: none;
+  justify-content: center;
+  margin-bottom: 2px;
 }
 
-.dashboard-card-toggle .widget-chevron {
-  transition: transform 0.15s ease;
-  color: #94a3b8;
+.dashboard-chip-icon.amber { background: #fffbeb; color: #b45309; }
+.dashboard-chip-icon.green { background: #f0fdf4; color: #15803d; }
+.dashboard-chip-icon.blue  { background: rgba(0,122,255,0.1); color: var(--apple-blue); }
+.dashboard-chip-icon.red   { background: #fff5f5; color: #b91c1c; }
+.dashboard-chip-icon.slate { background: #f1f5f9; color: #475569; }
+
+.dashboard-chip-live-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: live-dot-pulse 1.8s infinite;
 }
 
-.dashboard-card.expanded .widget-chevron {
-  transform: rotate(180deg);
-}
-
-.dashboard-card-body {
-  display: none;
-  min-height: 0;
-  flex: 1;
-}
-
-.dashboard-card.expanded .dashboard-card-body {
+.dashboard-expanded-panel {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px solid var(--apple-border);
+  border-radius: 14px;
+  padding: 16px;
+  max-height: 340px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.dashboard-expanded-panel.hidden {
+  display: none;
 }
 
 /* Table wrapper */
@@ -1767,20 +1756,20 @@ html, body {
 }
 
 /* Tables */
-.dashboard-card table {
+.dashboard-expanded-panel table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
 }
 
-.dashboard-card th {
+.dashboard-expanded-panel th {
   background: #f3f4f6;
   padding: 6px;
   font-size: 12px;
 }
 
-.dashboard-card td {
+.dashboard-expanded-panel td {
   padding: 6px;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
@@ -1789,8 +1778,8 @@ html, body {
 }
 
 /* Allow wrapping instead of overflow */
-.dashboard-card td,
-.dashboard-card th {
+.dashboard-expanded-panel td,
+.dashboard-expanded-panel th {
   white-space: normal;      /* 🔥 allow wrapping */
   word-break: break-word;  /* 🔥 break long words */
   font-size: 13px;
@@ -1823,27 +1812,6 @@ html, body {
   color: #0f172a;
 }
 
-/* Low stock */
-.dashboard-card.danger {
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  max-height: 200px;
-  overflow-y: auto;
-  display: block;
-}
-
-.dashboard-card.danger td {
-  color: #b91c1c;
-  font-weight: 600;
-}
-
-/* Responsive */
-@media (max-width: 1100px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .value-row {
   display: flex;
   align-items: center;
@@ -1854,20 +1822,6 @@ html, body {
 .trend {
   font-size: 18px;
   font-weight: bold;
-}
-
-.dashboard-right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-}
-
-/* Live Sales Feed — sizes like any other .dashboard-card (matches Top Sellers) */
-.live-sales-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .live-dot {
@@ -1944,20 +1898,6 @@ html, body {
 .trend.down { color: #dc2626; }  /* red */
 .trend.flat { color: #64748b; }  /* gray */
 
-/* ================= DASHBOARD — SECONDARY ROW (Stock Days Remaining, Labor Cost) ================= */
-.dashboard-grid-2 {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 18px;
-  flex-shrink: 0;
-}
-
-@media (max-width: 1100px) {
-  .dashboard-grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
 .stock-row {
   display: flex;
   align-items: center;
@@ -1994,8 +1934,6 @@ html, body {
 .days-pill.crit { background: #fff5f5; color: #b91c1c; }
 .days-pill.warn { background: #fffbeb; color: #b45309; }
 .days-pill.ok   { background: #f0fdf4; color: #15803d; }
-
-.kpi-tile { justify-content: flex-start; }
 
 .kpi-label {
   font-size: 11.5px;
@@ -2123,28 +2061,23 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Dashboard — shrink to fit instead of scrolling. Its cards, tables,
+  /* Dashboard — shrink to fit instead of scrolling. Its panels, tables,
      and stat tiles are already narrow (3-5 columns at most), so there's
      more value in fitting the whole screen than in preserving desktop
      spacing/type sizes. */
-  .dashboard-card {
+  .dashboard-expanded-panel {
     padding: 10px;
     max-height: 220px;
   }
 
-  .dashboard-card h3 {
-    font-size: 13px;
-    margin-bottom: 8px;
-  }
-
-  .dashboard-card table,
-  .dashboard-card td,
-  .dashboard-card th {
+  .dashboard-expanded-panel table,
+  .dashboard-expanded-panel td,
+  .dashboard-expanded-panel th {
     font-size: 11px;
   }
 
-  .dashboard-card th,
-  .dashboard-card td {
+  .dashboard-expanded-panel th,
+  .dashboard-expanded-panel td {
     padding: 4px;
   }
 
