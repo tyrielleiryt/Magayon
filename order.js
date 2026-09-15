@@ -297,8 +297,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     .catch(err => console.warn("Failed to resolve location name", err));
   document.getElementById("fullscreenBtn")
   ?.addEventListener("click", toggleFullscreen);
-  document.getElementById("productTrackerBtn")
-  ?.addEventListener("click", loadPOSProductSaleTracker);
 
   /* ================= OVERFLOW MENU =================
      Sync / Clock In/Out / sync status / Sync Inventory / the report
@@ -578,86 +576,6 @@ if (inventoryResponse.status !== "OPEN") {
   localStorage.setItem("posClosed", JSON.stringify(POS_CLOSED));
 }
 
-async function loadProductSales(date, location) {
-  const tbody = document.getElementById("productSalesBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="4" class="pos-modal-empty">Loading…</td></tr>`;
-
-  const res = await fetch(
-    `${API_URL}?type=productSalesTracker&date=${date}&location=${location}`
-  );
-  const data = await res.json();
-
-  tbody.innerHTML = "";
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="pos-modal-empty">${icon("bar-chart-3", { size: 20 })}<br>No sales</td></tr>`;
-    return;
-  }
-
-  data.forEach(p => {
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr>
-        <td><b>${p.product_code || "-"}</b></td>
-        <td>${p.product_name}</td>
-        <td><strong>${p.qty_sold}</strong></td>
-        <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
-      </tr>
-    `);
-  });
-}
-
-/* =========================================================
-   loadProductSales
-========================================================= */
-
-async function loadInventoryReconciliation(date, location) {
-  const tbody = document.getElementById("inventoryReconBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">Loading…</td></tr>`;
-
-  const res = await fetch(
-    `${API_URL}?type=inventoryReconciliation&date=${date}&location=${location}&_=${Date.now()}`
-  );
-  const data = await res.json();
-
-  tbody.innerHTML = "";
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="pos-modal-empty">${icon("package", { size: 20 })}<br>No inventory</td></tr>`;
-    return;
-  }
-
-  data.forEach(i => {
-    let rowClass = "";
-
-    if (i.remaining < 0) rowClass = "danger-row";
-    else if (i.remaining <= 5) rowClass = "warning-row";
-
-    const added = Number(i.added) || 0;
-    const remaining = Number(i.remaining) || 0;
-    const conv = inventoryConversionMap[i.item_id];
-    const addedEquiv = conv && conv.perServing
-      ? ` <small style="color:var(--apple-text-secondary)">(${(added * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-      : "";
-    const remainingEquiv = conv && conv.perServing
-      ? ` <small style="color:var(--apple-text-secondary)">(${(remaining * conv.perServing).toLocaleString()} ${conv.unit})</small>`
-      : "";
-
-    tbody.insertAdjacentHTML("beforeend", `
-  <tr class="${rowClass}">
-    <td>${i.item_name}</td>
-    <td>${added}${addedEquiv}</td>
-    <td>${i.consumed}</td>
-    <td><strong>${remaining}</strong>${remainingEquiv}</td>
-    <td>
-      <strong>${i.quantity_left_display || "0"}</strong>
-    </td>
-  </tr>
-`);
-  });
-}
-
 /* =========================================================
    BELOW HELPERS Auto Inventory Refresh
 ========================================================= */
@@ -934,23 +852,6 @@ function renderCart() {
   }
 }
 
-function loadPOSProductSaleTracker() {
-  const date = getPHDate();
-  const location = LOCATION;
-
-  const modal = document.getElementById("productTrackerModal");
-
-  if (!modal) {
-    alert("Product tracker modal not found");
-    return;
-  }
-
-  modal.classList.remove("hidden");
-
-  loadProductSales(date, location);
-  loadInventoryReconciliation(date, location);
-}
-
 /* =========================================================
    CHECKOUT
 ========================================================= */
@@ -1206,18 +1107,6 @@ function updatePaidDisplay() {
   }
   
 }
-
-function closeProductTracker() {
-  document.getElementById("productTrackerModal")?.classList.add("hidden");
-}
-
-window.closeProductTracker = closeProductTracker;
-
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    closeProductTracker();
-  }
-});
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {

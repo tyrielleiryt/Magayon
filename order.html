@@ -53,7 +53,6 @@
 
           <button id="stocksBtn" class="menu-item"><i data-icon="clipboard-list"></i> Stocks List</button>
           <button id="salesBtn" class="menu-item"><i data-icon="receipt"></i> Sales Report</button>
-          <button id="productTrackerBtn" class="menu-item"><i data-icon="bar-chart-3"></i> Product Sale Tracker</button>
 
           <div class="menu-divider"></div>
 
@@ -403,53 +402,6 @@
   <div class="chat-input">
     <input id="chatInput" placeholder="Type a message…" />
     <button id="sendChatBtn">Send</button>
-  </div>
-</div>
-
-<div id="productTrackerModal" class="modal hidden">
-  <div class="modal-content sales-modal pos-report-modal">
-
-    <div class="pos-modal-header">
-      <h2><i data-icon="bar-chart-3"></i> Product Sale Tracker (Today)</h2>
-      <button type="button" class="modal-close-x" onclick="closeProductTracker()"><i data-icon="x"></i></button>
-    </div>
-
-    <div class="pos-modal-section-title"><i data-icon="bar-chart-3" data-icon-size="13"></i> Product Sales</div>
-    <div class="sales-table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Product</th>
-            <th>Qty Sold</th>
-            <th>Sum Total</th>
-          </tr>
-        </thead>
-        <tbody id="productSalesBody"></tbody>
-      </table>
-    </div>
-
-    <div class="pos-modal-section-title"><i data-icon="package" data-icon-size="13"></i> Inventory Reconciliation</div>
-
-    <div class="sales-table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Added</th>
-            <th>Consumed</th>
-            <th>Remaining</th>
-            <th>Quantity Left</th>
-          </tr>
-        </thead>
-        <tbody id="inventoryReconBody"></tbody>
-      </table>
-    </div>
-
-    <div class="pos-modal-footer">
-      <button class="pos-modal-close-btn" onclick="closeProductTracker()">Close</button>
-    </div>
-
   </div>
 </div>
 
