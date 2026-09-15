@@ -1596,8 +1596,8 @@ body.sales-only .checkout {
 }
 
 /* ================= OVERFLOW MENU =================
-   Sync, Clock In/Out, sync status, Sync Inventory, and the report
-   buttons (Stocks List / Sales Report / Product Sale Tracker) all live
+   Sync (orders + inventory, with a pending/failed count badge), Clock
+   In/Out, and the report buttons (Stocks List / Sales Report) all live
    in one dropdown — they're used far less often than Chat/Logout, so
    keeping them tucked away keeps the top bar itself sleek. */
 .menu-dropdown {
@@ -1641,6 +1641,27 @@ body.sales-only .checkout {
 
 .menu-item:hover {
   background: rgba(0,0,0,0.06);
+}
+
+/* Pending/failed order count on the merged "Sync" menu item — blue for
+   a normal pending count, red once anything has actually failed. */
+.sync-count-badge {
+  margin-left: auto;
+  background: var(--apple-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-count-badge.sync-count-warn {
+  background: var(--apple-red);
 }
 
 .menu-divider {

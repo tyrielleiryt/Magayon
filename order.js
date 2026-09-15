@@ -413,15 +413,6 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  document
-  .getElementById("syncInventoryBtn")
-  ?.addEventListener("click", () => {
-    refreshInventoryOnly();
-  });
-
-
-  
-
   document.getElementById("logoutBtn")?.addEventListener("click", async () => {
     if (!(await confirmLogout())) return;
     logout();
@@ -1142,34 +1133,33 @@ function setFailedOrders(arr) {
   localStorage.setItem("failedOrders", JSON.stringify(arr));
 }
 
+// Badge on the merged "Sync" menu item — pending+failed count, or "⟳"
+// while a sync is actively running. Hidden entirely when there's
+// nothing to flag, so the menu item just reads "Sync" the rest of the
+// time instead of showing a permanent "0".
 function updateSyncCounter() {
   const pending = getPendingOrders();
   const failed = getFailedOrders();
   const el = document.getElementById("syncCount");
-  const box = document.getElementById("syncStatus");
 
-  if (!el || !box) return;
+  if (!el) return;
 
-  // 🔄 Sync in progress
   if (SYNC_IN_PROGRESS) {
     el.textContent = "⟳";
+    el.classList.remove("hidden", "sync-count-warn");
     return;
   }
 
-  // 📦 Pending count (failed ones flagged separately so a stuck failure
-  // doesn't just look like "still waiting to sync")
-  el.textContent = failed.length ? `${pending.length} (${failed.length} failed)` : pending.length;
+  const count = pending.length + failed.length;
 
-  box.onclick = () => {
-    const lines = [];
-    if (pending.length) {
-      lines.push(`Pending sync:\n${pending.map(o => o.ref_id).join("\n")}`);
-    }
-    if (failed.length) {
-      lines.push(`Failed — needs manual review:\n${failed.map(o => `${o.ref_id}: ${o.error}`).join("\n")}`);
-    }
-    alert(lines.length ? lines.join("\n\n") : "All orders synced");
-  };
+  if (!count) {
+    el.classList.add("hidden");
+    return;
+  }
+
+  el.textContent = count;
+  el.classList.toggle("sync-count-warn", failed.length > 0);
+  el.classList.remove("hidden");
 }
 
 function saveOrderLocally(order) {
@@ -1188,11 +1178,11 @@ document.getElementById("stocksBtn")?.addEventListener("click", openStocks);
 document.getElementById("pettyCashBtn")?.addEventListener("click", openPettyCash);
 document.getElementById("addInventoryBtn")?.addEventListener("click", openAddInventory);
 
-// "Sync" had no click handler at all — offline orders already
-// auto-sync (see the "online" listener and the 5s interval further
-// down), but the button itself did nothing when tapped, which reads
-// as broken. Gives an immediate manual sync attempt + visible result
-// instead of leaving the cashier guessing.
+// "Sync" merges what used to be three separate menu rows (Sync,
+// Syncing: N, Sync Inventory) into one: pushes any queued offline
+// orders, then pulls a fresh inventory snapshot, then reports one
+// combined result — instead of leaving the cashier to guess which of
+// three buttons to press.
 document.getElementById("syncBtn")?.addEventListener("click", async () => {
   if (!navigator.onLine) {
     showInventoryToast(`${icon("alert-triangle", { size: 13 })} You're offline — orders will sync automatically once you're back online`);
@@ -1200,20 +1190,34 @@ document.getElementById("syncBtn")?.addEventListener("click", async () => {
   }
 
   const pendingBefore = getPendingOrders().length;
-  if (!pendingBefore) {
-    showInventoryToast(`${icon("check-circle", { size: 13 })} Nothing to sync — all orders are up to date`);
-    return;
+  const failedBefore = getFailedOrders().length;
+
+  if (pendingBefore) {
+    showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing ${pendingBefore} order${pendingBefore === 1 ? "" : "s"}…`);
+    await syncPendingOrders(); // alerts on its own if anything NEW fails here
   }
 
-  showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing ${pendingBefore} order${pendingBefore === 1 ? "" : "s"}…`);
-  await syncPendingOrders();
+  await refreshInventoryOnly({ silent: true });
 
   const pendingAfter = getPendingOrders().length;
-  showInventoryToast(
-    pendingAfter === 0
-      ? `${icon("check-circle", { size: 13 })} All orders synced`
-      : `${icon("alert-triangle", { size: 13 })} ${pendingAfter} order${pendingAfter === 1 ? "" : "s"} still pending — will retry automatically`
-  );
+  const failed = getFailedOrders();
+
+  // Orders that were ALREADY failed before this click never get retried
+  // automatically (see syncPendingOrders), so this is the only remaining
+  // way to see them — but skip it when syncPendingOrders() just alerted
+  // about a fresh failure this same run, to avoid showing it twice.
+  if (failed.length && failed.length === failedBefore) {
+    alert(
+      `⚠️ ${failed.length} order${failed.length === 1 ? "" : "s"} still need${failed.length === 1 ? "s" : ""} manual review:\n\n` +
+      failed.map(o => `${o.ref_id}: ${o.error}`).join("\n")
+    );
+  } else if (!failed.length) {
+    showInventoryToast(
+      pendingAfter === 0
+        ? `${icon("check-circle", { size: 13 })} Synced — inventory up to date`
+        : `${icon("alert-triangle", { size: 13 })} ${pendingAfter} order${pendingAfter === 1 ? "" : "s"} still pending — will retry automatically`
+    );
+  }
 });
 
 
