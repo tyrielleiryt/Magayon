@@ -502,6 +502,33 @@ function paintFromCachedPOSData() {
 }
 
 /* =========================================================
+   FETCH WITH RETRY
+   Apps Script's web-app redirect chain occasionally hangs 30-95s under
+   load and comes back with a non-JSON error page instead of real data
+   (confirmed live, not hypothetical) — every plain fetch()+res.json()
+   in this file was a single shot with no defense against that, so one
+   bad response showed "Failed to load..." even though the data was
+   fine moments before/after. Same fix already shipped for the admin
+   side's fetchJSONWithRetry() in admin.js.
+========================================================= */
+async function fetchJSONWithRetry(url, attempts = 3, delayMs = 1200) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/* =========================================================
    LOAD ALL DATA
 ========================================================= */
 async function loadAllData() {
@@ -512,9 +539,9 @@ async function loadAllData() {
   // script's concurrent-execution slots, which occasionally left one
   // of them (inventoryItems, in testing) stuck for 30-60+ seconds and
   // stalled the whole POS load since everything waited on Promise.all.
-  const data = await fetch(
+  const data = await fetchJSONWithRetry(
     `${API_URL}?type=posInit&date=${today}&location=${LOCATION}`
-  ).then(r => r.json());
+  );
 
   const categoriesData = data.categories;
   const productsData = data.products;
@@ -582,9 +609,9 @@ async function refreshInventoryOnly({ silent = false } = {}) {
       showInventoryToast(`${icon("refresh-cw", { size: 13 })} Syncing inventory…`);
     }
 
-   const data = await fetch(
+   const data = await fetchJSONWithRetry(
   `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
-).then(r => r.json());
+);
 
 if (data.status !== "OPEN") {
   POS_CLOSED = true;
@@ -1229,11 +1256,9 @@ async function openStocks() {
   try {
     const today = getPHDate();
 
-    const res = await fetch(
+    const data = await fetchJSONWithRetry(
       `${API_URL}?type=dailyInventoryItems&date=${today}&location=${LOCATION}`
     );
-
-    const data = await res.json();
 
     if (data.status !== "OPEN") {
       tbody.innerHTML =
