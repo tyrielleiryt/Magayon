@@ -10,12 +10,12 @@ import { icon } from "../icons.js";
    config/rolePermissions — admin.js reads this doc on every login to
    decide which nav buttons to show that role. */
 const PAGES = [
-  { key: "dashboard", label: `${icon("layout-dashboard")} Dashboard` },
-  { key: "categoriesProducts", label: `${icon("tag")} Categories & Products` },
-  { key: "locationStaffAttendance", label: `${icon("store")} Location, Staff, and Attendance` },
   { key: "dailyInventory", label: `${icon("clipboard-list")} Daily Inventory System` },
   { key: "dailySales", label: `${icon("receipt")} Daily Sales` },
-  { key: "salesExpensesTracker", label: `${icon("trending-up")} Sales and Expenses Tracker` }
+  { key: "salesExpensesTracker", label: `${icon("trending-up")} Sales and Expenses Tracker` },
+  { key: "locationStaffAttendance", label: `${icon("store")} Workforce & Operations` },
+  { key: "categoriesProducts", label: `${icon("tag")} Product Database` },
+  { key: "dashboard", label: `${icon("layout-dashboard")} Data Analytics` }
 ];
 
 // Cashier isn't editable here: cashier accounts are hard-restricted to
