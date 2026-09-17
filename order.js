@@ -234,7 +234,11 @@ const INVENTORY_DISPLAY_ORDER = [
   "INV-1780277878324", // Nature's Spring Small
   "INV-1780280166285", // Nature's Spring Large
   "INV-1767622563360", // Chicharon
-  "INV-1780277810618"  // Orange Cup
+  "INV-1780277810618", // Orange Cup
+  "INV-1767600012835", // Ham
+  "INV-1767600112836", // Hotdog
+  "INV-1767622502835", // Longganisa
+  "INV-1767622503457"  // Kinalas Pancit 90g base
 ];
 
 /** @param {string} itemId */
