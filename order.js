@@ -194,6 +194,7 @@ let categories = [];
 let recipes = {};        // product_id → recipe[]
 let inventory = {};      // item_id → remaining
 let inventoryNames = {};  // item_id → item_name ✅ ADD THIS
+let inventoryCatalogNames = {}; // item_id → item_name, for EVERY item in the catalog (not just ones already tracked today) — Add Inventory needs this to offer an item that's never been added to today's day yet
 let inventoryReorderLevels = {}; // item_id → reorder_level (per-item low-stock threshold)
 let inventoryConversionMap = {}; // item_id → { unit, perServing } — for showing a quantity equivalent (e.g. "= 1,200g") next to raw counts
 let cart = [];
@@ -479,6 +480,7 @@ function paintFromCachedPOSData() {
     const cachedInventory = JSON.parse(localStorage.getItem("inventory") || "null");
     const cachedInventoryNames = JSON.parse(localStorage.getItem("inventoryNames") || "null");
     const cachedConversionMap = JSON.parse(localStorage.getItem("inventoryConversionMap") || "null");
+    const cachedCatalogNames = JSON.parse(localStorage.getItem("inventoryCatalogNames") || "null");
     const cachedReorderLevels = JSON.parse(localStorage.getItem("inventoryReorderLevels") || "null");
     const cachedPosClosed = JSON.parse(localStorage.getItem("posClosed") || "false");
 
@@ -493,6 +495,7 @@ function paintFromCachedPOSData() {
     inventory = cachedInventory;
     inventoryNames = cachedInventoryNames;
     inventoryConversionMap = cachedConversionMap || {};
+    inventoryCatalogNames = cachedCatalogNames || {};
     inventoryReorderLevels = cachedReorderLevels || {};
 
     renderCategories();
@@ -536,6 +539,7 @@ async function loadAllData() {
 
   inventoryReorderLevels = {};
   inventoryConversionMap = {};
+  inventoryCatalogNames = {};
   inventoryItemsData.forEach(i => {
     if (i.reorder_level !== undefined && i.reorder_level !== null) {
       inventoryReorderLevels[i.item_id] = Number(i.reorder_level);
@@ -544,6 +548,7 @@ async function loadAllData() {
       unit: i.unit || "",
       perServing: Number(i.quantity_per_serving) || 0
     };
+    inventoryCatalogNames[i.item_id] = i.item_name;
   });
 
   // 🔒 INVENTORY GATE
@@ -575,6 +580,7 @@ if (inventoryResponse.status !== "OPEN") {
   localStorage.setItem("inventory", JSON.stringify(inventory));
   localStorage.setItem("inventoryNames", JSON.stringify(inventoryNames));
   localStorage.setItem("inventoryConversionMap", JSON.stringify(inventoryConversionMap));
+  localStorage.setItem("inventoryCatalogNames", JSON.stringify(inventoryCatalogNames));
   localStorage.setItem("inventoryReorderLevels", JSON.stringify(inventoryReorderLevels));
   localStorage.setItem("posClosed", JSON.stringify(POS_CLOSED));
 }
@@ -1512,12 +1518,16 @@ async function openAddInventory() {
   const errorEl = document.getElementById("addInventorySaveError");
   errorEl.classList.add("hidden");
 
-  const itemIds = Object.keys(inventoryNames);
+  // The full catalog, not just what's already tracked in today's day —
+  // otherwise an item that's never been added today (a brand-new item,
+  // or one this location simply hasn't stocked yet) could never appear
+  // here to be added in the first place.
+  const itemIds = Object.keys(inventoryCatalogNames);
 
   list.innerHTML = !itemIds.length
     ? `<div class="pos-modal-empty">No inventory items found.</div>`
     : itemIds.map(id => {
-        const name = inventoryNames[id];
+        const name = inventoryCatalogNames[id];
         const remaining = inventory[id] || 0;
         const conv = inventoryConversionMap[id] || {};
         const unit = conv.unit || "";
