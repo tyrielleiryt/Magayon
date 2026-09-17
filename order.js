@@ -198,6 +198,64 @@ let inventoryCatalogNames = {}; // item_id → item_name, for EVERY item in the 
 let inventoryReorderLevels = {}; // item_id → reorder_level (per-item low-stock threshold)
 let inventoryConversionMap = {}; // item_id → { unit, perServing } — for showing a quantity equivalent (e.g. "= 1,200g") next to raw counts
 let cart = [];
+
+/* =========================================================
+   STOCKS LIST / ADD INVENTORY DISPLAY ORDER
+   A fixed, business-chosen order (not alphabetical, not insertion
+   order) for the Stocks List and Add Inventory modals. Any item not
+   listed here (new items added later) falls after all of these, in
+   whatever order the catalog already returns it — so nothing silently
+   disappears, it just lands at the end until this list is updated.
+========================================================= */
+const INVENTORY_DISPLAY_ORDER = [
+  "INV-1767622429092", // Pancit Bato 60g base
+  "INV-1767622594940", // Dinuguan 50g
+  "INV-1767622628792", // Lumpia 1pc
+  "INV-1767627096749", // Pork Siomai
+  "INV-1767627117678", // Shrimp Siomai
+  "INV-1780481073246", // Big Chicken Siomai
+  "INV-1767627509848", // Rice
+  "INV-1767622514542", // Lechon Kawali topping 35g
+  "INV-1769587473757", // Sisig 60g
+  "INV-1778035635123", // Hungarian Sausage
+  "INV-1778036717654", // Chicken Fillet
+  "INV-1778036717636", // Egg
+  "INV-1767630209481", // Coke Mismo
+  "INV-1767630209482", // Sprite Mismo
+  "INV-1767630209483", // Royal Mismo
+  "INV-1767630432595", // Mountain Dew Mismo
+  "INV-1780280032528", // Sting
+  "INV-1770441196272", // Coke (Bottle)
+  "INV-1770441261537", // Sprite (Bottle)
+  "INV-1770441240168", // Royal (Bottle)
+  "INV-1780280090632", // Coke Kasalo
+  "INV-1780280119204", // Mountain Dew Kasalo
+  "INV-1780280134179", // Royal Kasalo
+  "INV-1780277878324", // Nature's Spring Small
+  "INV-1780280166285", // Nature's Spring Large
+  "INV-1767622563360", // Chicharon
+  "INV-1780277810618"  // Orange Cup
+];
+
+/** @param {string} itemId */
+function inventoryOrderRank(itemId) {
+  const idx = INVENTORY_DISPLAY_ORDER.indexOf(itemId);
+  return idx === -1 ? INVENTORY_DISPLAY_ORDER.length : idx;
+}
+
+/**
+ * Stable sort by the fixed display order above.
+ * @template T
+ * @param {T[]} arr
+ * @param {(item: T) => string} getItemId
+ * @returns {T[]}
+ */
+function sortByInventoryOrder(arr, getItemId) {
+  return arr
+    .map((item, i) => ({ item, i }))
+    .sort((a, b) => inventoryOrderRank(getItemId(a.item)) - inventoryOrderRank(getItemId(b.item)) || a.i - b.i)
+    .map(x => x.item);
+}
 let activeCategoryId = null;
 
 window.showRecipeInfo = function (productId, event) {
@@ -1228,7 +1286,7 @@ async function openStocks() {
       return;
     }
 
-    const rows = data.items || [];
+    const rows = sortByInventoryOrder(data.items || [], r => r.item_id);
 
     tbody.innerHTML = "";
 
@@ -1522,7 +1580,7 @@ async function openAddInventory() {
   // otherwise an item that's never been added today (a brand-new item,
   // or one this location simply hasn't stocked yet) could never appear
   // here to be added in the first place.
-  const itemIds = Object.keys(inventoryCatalogNames);
+  const itemIds = sortByInventoryOrder(Object.keys(inventoryCatalogNames), id => id);
 
   list.innerHTML = !itemIds.length
     ? `<div class="pos-modal-empty">No inventory items found.</div>`
