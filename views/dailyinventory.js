@@ -151,11 +151,14 @@ function startInventoryDay() {
   loadCarryOverReview(location);
 }
 
-/* Always shows yesterday's remaining stock (if any) so the admin picks
-   exactly how much of each item to carry into today, item by item —
-   set an item to 0 to leave it out entirely. If there's no previous
-   closed day, or nothing was left over, there's nothing to review, so
-   the day just starts empty. */
+/* Shows EVERY catalog item (not just ones yesterday happened to still
+   have stock in) so the admin picks exactly how much of each to carry
+   into today — set an item to 0 to leave it out. An item that hit 0
+   remaining (or was never tracked at all) used to silently drop out of
+   every future day's carry-over forever, since it was only ever
+   sourced from yesterday's own nonzero rows; now it's always in the
+   list, pre-filled with whatever it actually had (0 if none), never
+   dropped just for being out of stock. */
 async function loadCarryOverReview(location) {
   showLoader("Loading yesterday's remaining stock…");
 
@@ -165,8 +168,9 @@ async function loadCarryOverReview(location) {
       getCached("inventoryItems")
     ]);
 
+    const catalog = Array.isArray(masterItems) ? masterItems : [];
     const unitMap = {};
-    (Array.isArray(masterItems) ? masterItems : []).forEach(i => {
+    catalog.forEach(i => {
       unitMap[i.item_id] = i.unit || "";
     });
 
@@ -174,14 +178,19 @@ async function loadCarryOverReview(location) {
       .filter(d => d.location === location && String(d.status).toUpperCase() === "CLOSED")
       .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
-    if (!prevDay) {
-      submitStartInventoryDay(null);
-      return;
+    const remainingByItemId = {};
+    if (prevDay) {
+      const itemsData = await getDailyInventoryItems(prevDay.date, location);
+      (itemsData.items || []).forEach(i => {
+        remainingByItemId[i.item_id] = Number(i.remaining) || 0;
+      });
     }
 
-    const itemsData = await getDailyInventoryItems(prevDay.date, location);
-
-    const prevItems = (itemsData.items || []).filter(i => Number(i.remaining) > 0);
+    const prevItems = catalog.map(i => ({
+      item_id: i.item_id,
+      item_name: i.item_name,
+      remaining: remainingByItemId[i.item_id] || 0
+    }));
 
     if (!prevItems.length) {
       submitStartInventoryDay(null);
@@ -190,10 +199,11 @@ async function loadCarryOverReview(location) {
 
     openModal(`
       <div class="modal-header">
-        ${icon("sunrise")} Start Inventory Day — stock remaining from ${new Date(prevDay.date).toLocaleDateString()}
+        ${icon("sunrise")} Start Inventory Day${prevDay ? ` — stock remaining from ${new Date(prevDay.date).toLocaleDateString()}` : ""}
       </div>
       <p style="padding:4px 0;color:#666">
-        Choose how much of yesterday's remaining stock to carry over. Set an item to 0 to leave it out.
+        Every catalog item is listed below${prevDay ? ", pre-filled with what was left yesterday" : ""}.
+        Choose how much to carry into today — set an item to 0 to leave it out.
       </p>
 
       <div style="max-height:340px;overflow:auto;margin-top:8px">
@@ -242,12 +252,15 @@ window.zeroAllCarryOver = function () {
 };
 
 window.confirmCarryOverStart = function () {
+  // Every catalog item gets an explicit row — including ones left at
+  // 0 — so today's day always starts with the full catalog trackable
+  // (Stocks List / Add Inventory show it as "0 remaining" instead of
+  // it just not existing yet), not only whatever had stock or got
+  // manually bumped above 0 in this review.
   const items = [];
   document.querySelectorAll("[data-carry-id]").forEach(input => {
     const qty = Number(input.value) || 0;
-    if (qty > 0) {
-      items.push({ item_id: input.dataset.carryId, qty });
-    }
+    items.push({ item_id: input.dataset.carryId, qty });
   });
 
   submitStartInventoryDay(items);
