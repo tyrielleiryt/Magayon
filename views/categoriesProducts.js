@@ -411,9 +411,20 @@ async function loadInventory() {
   items.forEach(i => {
     inventoryMap[i.item_id] = {
       name: i.item_name,
-      capital: Number(i.capital) || 0
+      capital: Number(i.capital) || 0,
+      active: i.active !== false
     };
   });
+}
+
+/* Inactive items shouldn't be newly assignable to a recipe, but an
+   already-assigned one (editing an existing recipe row) must still
+   appear in its own dropdown, selected — otherwise its option is just
+   missing and the select silently falls back to whatever's first. */
+function recipeItemOptions(selectedId) {
+  return Object.entries(inventoryMap)
+    .filter(([id, i]) => i.active || id === selectedId)
+    .map(([id, i]) => [id, i]);
 }
 
 /* ================= RECIPE ================= */
@@ -426,7 +437,7 @@ function addRecipeRow() {
 
   row.innerHTML = `
     <select class="recipe-item">
-      ${Object.entries(inventoryMap)
+      ${recipeItemOptions()
         .map(([id, i]) => `<option value="${id}">${i.name}</option>`)
         .join("")}
     </select>
@@ -448,10 +459,10 @@ function addRecipeRowWithData(r) {
 
   row.innerHTML = `
     <select class="recipe-item">
-      ${Object.entries(inventoryMap)
+      ${recipeItemOptions(r.item_id)
         .map(([id, i]) =>
           `<option value="${id}" ${id === r.item_id ? "selected" : ""}>
-            ${i.name}
+            ${i.name}${!i.active ? " (inactive)" : ""}
           </option>`
         )
         .join("")}

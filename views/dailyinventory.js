@@ -168,7 +168,10 @@ async function loadCarryOverReview(location) {
       getCached("inventoryItems")
     ]);
 
-    const catalog = Array.isArray(masterItems) ? masterItems : [];
+    // Inactive items don't get carried into a new day's tracking going
+    // forward, same as they can't be freshly added elsewhere — they
+    // stay exactly as they were in whatever day already has them.
+    const catalog = (Array.isArray(masterItems) ? masterItems : []).filter(i => i.active !== false);
     const unitMap = {};
     catalog.forEach(i => {
       unitMap[i.item_id] = i.unit || "";
@@ -595,7 +598,8 @@ window.openAddInventoryForDay = async function (date, location) {
       getDailyInventoryItems(date, location)
     ]);
 
-    inventoryItems = items;
+    // Only active items can be freshly added to a day's tracking.
+    inventoryItems = (items || []).filter(i => i.active !== false);
 
     // item_id → remaining, so staff can see current stock while topping it up
     const remainingMap = {};
@@ -850,9 +854,9 @@ function renderInventoryItemChip(grid, item) {
 
   chip.innerHTML = `
     <div class="category-chip-actions">
-      <button type="button" class="category-chip-icon-btn" data-action="delete" title="Delete item">${icon("trash-2", { size: 13 })}</button>
+      <button type="button" class="category-chip-icon-btn" data-action="delete" title="Deactivate item">${icon("trash-2", { size: 13 })}</button>
     </div>
-    <div class="category-chip-name">${item.item_name || ""}</div>
+    <div class="category-chip-name">${item.item_name || ""}${item.active === false ? " · Inactive" : ""}</div>
     ${desc ? `<div class="category-chip-desc" title="${desc}">${desc}</div>` : ""}
     <div class="category-chip-count">${countLine}</div>
   `;
@@ -924,13 +928,15 @@ function openInventoryItemForm(item) {
 
 function openInventoryItemDeleteConfirm(item) {
   swapModalContent(`
-    ${invHeader("trash-2", "Delete Inventory Item")}
+    ${invHeader("trash-2", "Deactivate Inventory Item")}
     <p style="padding:10px 0">
-      Are you sure you want to delete <strong>${item.item_name}</strong>?
+      Deactivate <strong>${item.item_name}</strong>? It'll disappear from Add Inventory,
+      Stocks List, and the recipe picker going forward, but stays assigned to any recipe
+      or historical stock it's already part of — reactivate it any time from its Edit screen.
     </p>
     <div class="modal-actions">
       <button class="inv-modal-btn-secondary" onclick="showInventoryItemsGrid()">Cancel</button>
-      <button class="category-action-btn" style="background:var(--apple-red)" onclick="confirmDeleteInventoryItem('${item.item_id}')">${icon("trash-2")} Delete</button>
+      <button class="category-action-btn" style="background:var(--apple-red)" onclick="confirmDeleteInventoryItem('${item.item_id}')">${icon("trash-2")} Deactivate</button>
     </div>
   `);
 }
@@ -984,7 +990,7 @@ async function saveInventoryItemFromModal(existingId) {
 }
 
 async function confirmDeleteInventoryItem(itemId) {
-  showModalLoader("Deleting item…");
+  showModalLoader("Deactivating item…");
 
   try {
     await deleteInventoryItemSupabase(itemId);
@@ -994,7 +1000,7 @@ async function confirmDeleteInventoryItem(itemId) {
     showInventoryItemsGrid();
   } catch (err) {
     console.error(err);
-    alert("❌ Delete failed: " + err.message);
+    alert("❌ Deactivate failed: " + err.message);
   } finally {
     hideModalLoader();
   }

@@ -25,7 +25,7 @@ export async function listInventoryItems() {
 
 /**
  * Upsert — omit `item_id` (or pass falsy) to create a new one.
- * @param {{item_id?: string, item_name: string, description?: string, quantity_per_serving?: number, unit?: string, capital?: number, selling_price?: number, reorder_level?: number}} input
+ * @param {{item_id?: string, item_name: string, description?: string, quantity_per_serving?: number, unit?: string, capital?: number, selling_price?: number, reorder_level?: number, active?: boolean}} input
  * @returns {Promise<InventoryItem>}
  */
 export async function saveInventoryItem(input) {
@@ -38,7 +38,8 @@ export async function saveInventoryItem(input) {
     unit: input.unit || "",
     capital: Number(input.capital) || 0,
     selling_price: Number(input.selling_price) || 0,
-    reorder_level: Number(input.reorder_level) || 0
+    reorder_level: Number(input.reorder_level) || 0,
+    active: input.active !== false
   };
   const saved = await withRetry(() =>
     supabase.from("inventory_items").upsert(row).select().single()
@@ -48,13 +49,16 @@ export async function saveInventoryItem(input) {
 }
 
 /**
- * Hard delete — cascades to that item's product_ingredients rows (see
- * the Phase 1 migration's `ON DELETE CASCADE`), consistent with the
- * ingredient no longer existing.
+ * Soft delete (sets active=false) — a hard delete would violate the
+ * daily_inventory_items/order_item_consumption FKs for any item with
+ * real stock or sales history (in practice, every item that's ever
+ * been tracked for even one day), and destroying that history isn't
+ * what "delete" should mean here anyway. Matches the same
+ * active=false convention already used for locations/staff.
  * @param {string} itemId
  */
 export async function deleteInventoryItem(itemId) {
   await withRetry(() =>
-    supabase.from("inventory_items").delete().eq("item_id", itemId)
+    supabase.from("inventory_items").update({ active: false }).eq("item_id", itemId)
   );
 }

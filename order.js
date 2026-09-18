@@ -610,7 +610,10 @@ async function loadAllData() {
       unit: i.unit || "",
       perServing: Number(i.quantity_per_serving) || 0
     };
-    inventoryCatalogNames[i.item_id] = i.item_name;
+    // Only active items can be freshly added — an item already tracked
+    // today (however it got there) still shows fine in Stocks List via
+    // its own item_name on the daily_inventory_items row, unaffected.
+    if (i.active !== false) inventoryCatalogNames[i.item_id] = i.item_name;
   });
 
   // 🔒 INVENTORY GATE
