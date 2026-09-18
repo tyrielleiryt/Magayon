@@ -543,19 +543,20 @@ function renderInvAdd(date, location, items, remainingMap) {
     const unit = i.unit || "";
     const perServing = Number(i.quantity_per_serving) || 0;
     const remaining = remainingMap[i.item_id] ?? 0;
+    const remainingEquiv = perServing ? ` (${(remaining * perServing).toLocaleString()}${unit})` : "";
 
     return `
       <div class="inv-item-row">
         <div class="inv-item-info">
           <div class="inv-item-name">${i.item_name}${unit ? ` <span class="inv-item-unit">(${unit})</span>` : ""}</div>
-          <div class="inv-item-current">Currently: ${remaining}${unit ? " " + unit : ""}</div>
+          <div class="inv-item-current">Currently: ${remaining}${remainingEquiv}</div>
         </div>
         <input type="number" min="0"
           data-id="${i.item_id}"
           data-yield="${perServing}"
           data-unit="${unit}"
           class="add-inventory-qty"
-          placeholder="Qty">
+          placeholder="${unit ? `Total ${unit}` : "Qty"}">
         <div class="add-inventory-yield">—</div>
       </div>
     `;
@@ -622,24 +623,31 @@ window.openAddInventoryForDay = async function (date, location) {
 
 /* ================= LIVE TOTAL CALC =================
    quantity_per_serving = how much of the base unit one count of this
-   item represents (e.g. Pancit Bato = 60g each), so the quantity typed
-   × quantity_per_serving = the total base-unit amount being added. */
+   item represents (e.g. Pancit Bato = 60g each). Staff now enters the
+   TOTAL base-unit amount straight off the scale (e.g. 1000g) — the
+   field divides by quantity_per_serving to get the actual qty that
+   gets recorded (still what the recipe/stock-deduction system uses),
+   instead of staff doing that division by hand before typing anything. */
+function inputToQty(input) {
+  const raw = Number(input.value) || 0;
+  const perServing = Number(input.dataset.yield) || 0;
+  return perServing ? raw / perServing : raw;
+}
+
 function bindAddInventoryYieldInputs() {
   document.querySelectorAll(".add-inventory-qty").forEach(input => {
     const yieldEl = input.nextElementSibling;
-    const perServing = Number(input.dataset.yield) || 0;
-    const unit = input.dataset.unit || "";
 
     input.addEventListener("input", () => {
-      const qty = Number(input.value) || 0;
+      const raw = Number(input.value) || 0;
 
-      if (!perServing || !qty) {
+      if (!raw) {
         yieldEl.textContent = "—";
         return;
       }
 
-      const total = qty * perServing;
-      yieldEl.textContent = `= ${total.toLocaleString()}${unit} Total Added`;
+      const qty = inputToQty(input);
+      yieldEl.textContent = `= ${qty.toLocaleString(undefined, { maximumFractionDigits: 2 })} qty`;
     });
   });
 }
@@ -649,7 +657,7 @@ window.saveInventoryForDay = function (date, location) {
   const items = [];
 
   inputs.forEach(i => {
-    const qty = Number(i.value);
+    const qty = Math.round(inputToQty(i) * 100) / 100;
     if (qty > 0) {
       items.push({ item_id: i.dataset.id, qty });
     }
