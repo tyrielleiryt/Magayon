@@ -1599,8 +1599,18 @@ html, body {
     top: 0;
     left: 0;
     width: 100%;
+    height: auto !important;
     box-shadow: none;
     border-radius: 0;
+  }
+
+  /* The on-screen scroll container (.data-scroll) clips anything below
+     whatever was scrolled into view at print time — un-clip it here so
+     the full report prints regardless of scroll position. */
+  .dsr-report .data-scroll {
+    overflow: visible !important;
+    flex: none !important;
+    max-height: none !important;
   }
 
   .dsr-report-actions {

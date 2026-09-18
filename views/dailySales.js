@@ -112,81 +112,87 @@ function renderDailySalesReportFull(data, expenses, date, location) {
     <div class="tracker-card dsr-report" style="height:100%">
       <h3>${icon("receipt")} Daily Sales Report — ${date}</h3>
 
-      <div class="table-scroll" style="max-height:none;flex:1">
-        <table class="category-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Beginning Stocks</th>
-              <th>Yield</th>
-              <th>Ending Stocks</th>
-              <th>Yield</th>
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${!items.length
-              ? `<tr><td colspan="6" style="text-align:center;color:#888">No inventory items for this day</td></tr>`
-              : items.map(i => `
-                <tr>
-                  <td>${i.item_name}</td>
-                  <td>${Number(i.beginning_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
-                  <td>${Number(i.beginning_yield).toLocaleString()}</td>
-                  <td>${Number(i.ending_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
-                  <td>${Number(i.ending_yield).toLocaleString()}</td>
-                  <td></td>
-                </tr>
-              `).join("")
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <div class="dsr-report-footer">
-        <div class="dsr-report-actions">
-          <button id="dsrViewTxnBtn" class="category-action-btn">${icon("list-checks")} View Transaction List</button>
-          <button id="dsrPrintBtn" class="inv-modal-btn-secondary">${icon("printer")} Print</button>
+      <div class="data-scroll">
+        <div class="table-scroll" style="max-height:none">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Beginning Stocks</th>
+                <th>Yield</th>
+                <th>Ending Stocks</th>
+                <th>Yield</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${!items.length
+                ? `<tr><td colspan="6" style="text-align:center;color:#888">No inventory items for this day</td></tr>`
+                : items.map(i => `
+                  <tr>
+                    <td>${i.item_name}</td>
+                    <td>${Number(i.beginning_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
+                    <td>${Number(i.beginning_yield).toLocaleString()}</td>
+                    <td>${Number(i.ending_stock).toLocaleString()}${i.unit ? " " + i.unit : ""}</td>
+                    <td>${Number(i.ending_yield).toLocaleString()}</td>
+                    <td></td>
+                  </tr>
+                `).join("")
+              }
+            </tbody>
+          </table>
         </div>
 
-        <div class="dsr-summary">
-          <div class="dsr-summary-pair">
-            <div class="dsr-summary-cell">
-              <label>PETTY CASH FUND</label>
-              <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
-            </div>
-            <div class="dsr-summary-cell dsr-summary-cell-right">
-              <label>CASH ON HAND</label>
-              <span>₱${Number(data.cash_on_hand).toFixed(2)}</span>
-            </div>
+        <div class="dsr-report-footer">
+          <div class="dsr-report-actions">
+            <button id="dsrViewTxnBtn" class="category-action-btn">${icon("list-checks")} View Transaction List</button>
+            <button id="dsrPrintBtn" class="inv-modal-btn-secondary">${icon("printer")} Print</button>
           </div>
 
-          <div class="dsr-summary-row">
-            <label>TOTAL SALES</label>
-            <span>₱${Number(data.total_sales).toFixed(2)}</span>
-          </div>
-          <div class="dsr-summary-row">
-            <label>GCASH PAYMENT</label>
-            <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
-          </div>
+          <div class="dsr-summary">
+            <div class="dsr-summary-pair">
+              <div class="dsr-summary-cell">
+                <label>PETTY CASH FUND</label>
+                <span>₱${Number(data.petty_cash_fund).toFixed(2)}</span>
+              </div>
+              <div class="dsr-summary-cell dsr-summary-cell-right">
+                <label>CASH ON HAND</label>
+                <span>₱${Number(data.cash_on_hand).toFixed(2)}</span>
+              </div>
+            </div>
 
-          <div class="dsr-expenses">
-            <label class="dsr-expenses-label">EXPENSES</label>
-            <table class="dsr-expenses-table">
-              <tbody>
-                ${!expenses.length
-                  ? `<tr><td colspan="2" class="dsr-expenses-empty">No expenses logged</td></tr>`
-                  : expenses.map(e => `
-                    <tr>
-                      <td>${e.item || e.description || "-"}</td>
-                      <td>₱${Number(e.amount || 0).toFixed(2)}</td>
-                    </tr>
-                  `).join("")
-                }
-              </tbody>
-              <tfoot>
-                <tr><td>TOTAL</td><td>₱${expensesTotal.toFixed(2)}</td></tr>
-              </tfoot>
-            </table>
+            <div class="dsr-summary-row">
+              <label>TOTAL SALES</label>
+              <span>₱${Number(data.total_sales).toFixed(2)}</span>
+            </div>
+            <div class="dsr-summary-row">
+              <label>CASH SALES</label>
+              <span>₱${Number(data.cash_sales).toFixed(2)}</span>
+            </div>
+            <div class="dsr-summary-row">
+              <label>GCASH PAYMENT</label>
+              <span>₱${Number(data.gcash_payment).toFixed(2)}</span>
+            </div>
+
+            <div class="dsr-expenses">
+              <label class="dsr-expenses-label">EXPENSES</label>
+              <table class="dsr-expenses-table">
+                <tbody>
+                  ${!expenses.length
+                    ? `<tr><td colspan="2" class="dsr-expenses-empty">No expenses logged</td></tr>`
+                    : expenses.map(e => `
+                      <tr>
+                        <td>${e.item || e.description || "-"}</td>
+                        <td>₱${Number(e.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join("")
+                  }
+                </tbody>
+                <tfoot>
+                  <tr><td>TOTAL</td><td>₱${expensesTotal.toFixed(2)}</td></tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       </div>

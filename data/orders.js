@@ -312,6 +312,7 @@ export async function getDailySalesReportSummary(date, location) {
     petty_cash_fund: pettyCashFund,
     cash_on_hand: pettyCashFund + cashSales - totalExpenses,
     total_sales: totalSales,
+    cash_sales: cashSales,
     gcash_payment: gcashPayment,
     items
   };
