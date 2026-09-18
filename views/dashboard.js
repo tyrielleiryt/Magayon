@@ -1,9 +1,10 @@
 import { bindDataBoxScroll } from "../admin.js";
 
 import { icon } from "../icons.js";
-import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales } from "../data/orders.js";
+import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales, listUnresolvedFailedCheckouts, resolveFailedCheckout } from "../data/orders.js";
 import { listStaff } from "../data/staff.js";
 import { getAttendanceOverview } from "../data/attendance.js";
+import { listLocations } from "../data/locations.js";
 
 
 /* ================= ENTRY =================
@@ -39,7 +40,8 @@ const WIDGET_LOADERS = {
   dailyPerformance: (date, signal) => loadDailyAnalytics(date, signal),
   lowStock: (date, signal) => loadLowStockAlerts(date, signal),
   laborCost: (date, signal) => loadLaborCost(date, signal),
-  stockDays: (date, signal) => loadStockDaysRemaining(date, signal)
+  stockDays: (date, signal) => loadStockDaysRemaining(date, signal),
+  failedCheckouts: (date, signal) => loadFailedCheckouts(signal)
   // liveSales is handled separately below — it's a poller, not a one-shot fetch
 };
 
@@ -147,7 +149,8 @@ const WIDGET_META = {
   dailyPerformance: { icon: "trending-up", label: "Daily Performance", color: "blue" },
   lowStock: { icon: "alert-triangle", label: "Low Stock Warnings", color: "red" },
   stockDays: { icon: "package", label: "Days of Stock Remaining", color: "slate" },
-  laborCost: { icon: "banknote", label: "Labor Cost", color: "green" }
+  laborCost: { icon: "banknote", label: "Labor Cost", color: "green" },
+  failedCheckouts: { icon: "receipt", label: "Failed Checkouts", color: "red" }
 };
 
 function dashboardChipHTML(key) {
@@ -246,6 +249,25 @@ function panelBodyHTML(widget) {
         <div class="kpi-value" id="laborCostValue">—</div>
         <div class="kpi-sub" id="laborCostSub">Loading…</div>
         <div class="bar-compare"><span id="laborCostBar" style="width:0%;background:#cbd5e1"></span></div>
+      `;
+
+    case "failedCheckouts":
+      return `
+        <div class="dashboard-table-wrap">
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Location</th>
+                <th>Staff</th>
+                <th>Items</th>
+                <th>Reason</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="failedCheckoutsBody"><tr><td colspan="6" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          </table>
+        </div>
       `;
 
     default:
@@ -362,6 +384,85 @@ async function loadLowStockAlerts(date, signal) {
   } catch (err) {
     if (err.name === "AbortError") return;
     console.error("Low stock failed", err);
+  }
+}
+
+/* ================= FAILED CHECKOUTS =================
+   Cross-device visibility for checkout failures — each device's own
+   retry/review still lives in that device's localStorage queue (see
+   order.js), but this shows every unresolved failure across every
+   device/location in one place, so an admin doesn't have to physically
+   check each tablet's own Sync button. */
+let failedCheckoutsLocationMap = {};
+
+async function loadFailedCheckouts(signal) {
+  const tbody = document.getElementById("failedCheckoutsBody");
+
+  try {
+    const [failures, locations] = await Promise.all([
+      listUnresolvedFailedCheckouts(),
+      listLocations()
+    ]);
+
+    failedCheckoutsLocationMap = {};
+    (Array.isArray(locations) ? locations : []).forEach(l => {
+      failedCheckoutsLocationMap[l.location_id] = l.location_name;
+    });
+
+    renderFailedCheckouts(failures);
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    console.error("Failed checkouts load failed", err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888">Failed to load</td></tr>`;
+  }
+}
+
+function renderFailedCheckouts(failures) {
+  const tbody = document.getElementById("failedCheckoutsBody");
+  if (!tbody) return;
+
+  if (!failures.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888">No failed checkouts — nice</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = failures.map(f => {
+    const when = new Date(f.created_at).toLocaleString("en-US", {
+      month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+    });
+    const locationName = failedCheckoutsLocationMap[f.location_id] || f.location_id || "—";
+    const itemsSummary = (f.items || [])
+      .map(i => `${i.qty}× ${i.product_id}`)
+      .join(", ") || "—";
+
+    return `
+      <tr class="danger-row">
+        <td>${when}</td>
+        <td>${locationName}</td>
+        <td>${f.staff_id || "—"}</td>
+        <td>${itemsSummary}</td>
+        <td>${f.error}</td>
+        <td><button class="btn-resolve-failed-checkout" data-id="${f.id}">Resolve</button></td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.querySelectorAll(".btn-resolve-failed-checkout").forEach(btn => {
+    btn.addEventListener("click", () => resolveFailedCheckoutClick(Number(btn.dataset.id)));
+  });
+}
+
+async function resolveFailedCheckoutClick(id) {
+  if (!confirm("Mark this failed checkout as resolved? This doesn't record a sale — only confirms it's been manually handled.")) return;
+
+  try {
+    const by = localStorage.getItem("userName") || localStorage.getItem("staff_id") || "admin";
+    await resolveFailedCheckout(id, by);
+    const failures = await listUnresolvedFailedCheckouts();
+    renderFailedCheckouts(failures);
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
   }
 }
 

@@ -576,3 +576,65 @@ export async function getSalesExpensesMonth(month, location) {
 
   return { success: true, month, location, days: dayResults, payroll_weeks: payrollWeeks };
 }
+
+/**
+ * @typedef {Object} FailedCheckoutAttempt
+ * @property {number} id
+ * @property {string} ref_id
+ * @property {string} staff_id
+ * @property {string} location_id
+ * @property {{product_id: string, qty: number, price: number, total: number}[]} items
+ * @property {Record<string, unknown>} payment
+ * @property {string} error
+ * @property {string} created_at
+ */
+
+/**
+ * Mirrors a checkout failure server-side, for cross-device admin
+ * visibility — the actual retry/local-review mechanism stays the
+ * localStorage pendingOrders/failedOrders queue in order.js; this is
+ * purely so an admin on a different device can see it too. Deliberately
+ * doesn't throw on failure — this is a best-effort side record, never
+ * something that should block or mask the checkout flow's own handling.
+ * @param {string} refId
+ * @param {string} staffId
+ * @param {string} location
+ * @param {{product_id: string, qty: number, price: number, total: number}[]} items
+ * @param {Record<string, unknown>} payment
+ * @param {string} error
+ */
+export async function recordFailedCheckout(refId, staffId, location, items, payment, error) {
+  const { error: rpcErr } = await supabase.rpc("record_failed_checkout", {
+    p_ref_id: refId,
+    p_staff_id: staffId,
+    p_location: location,
+    p_items: items,
+    p_payment: payment,
+    p_error: error
+  });
+  if (rpcErr) throw new Error(rpcErr.message);
+}
+
+/** @returns {Promise<FailedCheckoutAttempt[]>} */
+export async function listUnresolvedFailedCheckouts() {
+  const rows = await withRetry(() =>
+    supabase
+      .from("failed_checkout_attempts")
+      .select("*")
+      .eq("resolved", false)
+      .order("created_at", { ascending: false })
+  );
+  return rows ?? [];
+}
+
+/**
+ * @param {number} id
+ * @param {string} resolvedBy
+ */
+export async function resolveFailedCheckout(id, resolvedBy) {
+  const { error } = await supabase.rpc("resolve_failed_checkout", {
+    p_id: id,
+    p_resolved_by: resolvedBy
+  });
+  if (error) throw new Error(error.message);
+}

@@ -8,7 +8,7 @@ import { icon, renderIcons } from "./icons.js";
 import { listCategories } from "./data/categories.js";
 import { listProducts, listAllRecipes } from "./data/products.js";
 import { listInventoryItems } from "./data/inventoryItems.js";
-import { checkoutOrder as checkoutOrderSupabase, listTodaySales } from "./data/orders.js";
+import { checkoutOrder as checkoutOrderSupabase, listTodaySales, recordFailedCheckout } from "./data/orders.js";
 import {
   addDailyInventory as addDailyInventorySupabase,
   getPettyCashSummary,
@@ -1028,6 +1028,12 @@ updateSyncCounter(); // optional safety refresh
         error: data.error || "Unknown error",
         failed_at: Date.now()
       }]));
+      // Best-effort mirror so an admin on a DIFFERENT device can also
+      // see this — never lets a failure here mask the alert below,
+      // since the local failedOrders entry above is the actual record
+      // of truth regardless of whether this succeeds.
+      recordFailedCheckout(ref, STAFF_ID, LOCATION, itemsPayload, window.__lastPayment, data.error || "Unknown error")
+        .catch(err => console.warn("Failed to mirror failed checkout server-side:", err));
       alert(`⚠️ Checkout could not be recorded and needs manual review:\n\n${ref}: ${data.error || "Unknown error"}`);
       delete window.__lastPayment;
       return;
@@ -1413,6 +1419,10 @@ async function syncPendingOrders() {
     if (!data.success) {
       console.error("Order rejected by server:", o.ref_id, data.error);
       rejected.push({ ...o, error: data.error || "Unknown error", failed_at: Date.now() });
+      // Best-effort mirror for cross-device admin visibility — see the
+      // same call in checkoutPOS for why this never blocks anything.
+      recordFailedCheckout(o.ref_id, o.staff_id, o.location, o.items, o.payment || {}, data.error || "Unknown error")
+        .catch(err => console.warn("Failed to mirror failed checkout server-side:", err));
     }
   }
 
