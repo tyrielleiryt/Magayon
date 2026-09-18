@@ -987,10 +987,50 @@ updateSyncCounter(); // optional safety refresh
   return;
 }
 
-    const data = await checkoutOrderSupabase(ref, STAFF_ID, LOCATION, itemsPayload, window.__lastPayment);
+    let data;
+    try {
+      data = await checkoutOrderSupabase(ref, STAFF_ID, LOCATION, itemsPayload, window.__lastPayment);
+    } catch (netErr) {
+      // The request never reached the server at all (dropped connection,
+      // DNS hiccup, a momentary blip while navigator.onLine still read
+      // true) — same recoverable situation as placing the order while
+      // offline, so it goes in the same retry queue instead of the sale
+      // just vanishing with a generic alert and an already-cleared cart.
+      console.warn("Checkout request failed, queued for retry:", ref, netErr);
+      const pending = getPendingOrders();
+      pending.push({
+        ref_id: ref,
+        staff_id: STAFF_ID,
+        location: LOCATION,
+        items: itemsPayload,
+        payment: window.__lastPayment,
+        time: Date.now()
+      });
+      setPendingOrders(pending);
+      updateSyncCounter();
+      delete window.__lastPayment;
+      return;
+    }
 
     if (!data.success) {
-      throw new Error(data.error || "Checkout failed");
+      // The request reached the server and was genuinely rejected
+      // (insufficient stock, today's day closed, ...) — resending the
+      // identical payload will never succeed, so this needs a human,
+      // not a retry. Recorded the same way an offline-queue rejection
+      // already is, so the sale is never just silently lost.
+      console.error("Checkout rejected by server:", ref, data.error);
+      setFailedOrders(getFailedOrders().concat([{
+        ref_id: ref,
+        staff_id: STAFF_ID,
+        location: LOCATION,
+        items: itemsPayload,
+        payment: window.__lastPayment,
+        error: data.error || "Unknown error",
+        failed_at: Date.now()
+      }]));
+      alert(`⚠️ Checkout could not be recorded and needs manual review:\n\n${ref}: ${data.error || "Unknown error"}`);
+      delete window.__lastPayment;
+      return;
     }
 
     // ✅ HARD REFRESH inventory from server after successful checkout
