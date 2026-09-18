@@ -75,19 +75,24 @@ function renderKioskClockInTable(data) {
 
   tbody.innerHTML = "";
   staff.forEach(s => {
-    let statusCell, actionCell;
-    const name = (s.name || "").replace(/'/g, "\\'");
+    const statusCell = !s.enrolled
+      ? "Not enrolled"
+      : s.status === "IN"
+        ? `In since ${s.clock_in_time || "—"}`
+        : (s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today");
 
-    if (!s.enrolled) {
-      statusCell = "Not enrolled";
-      actionCell = `<button onclick="window.kioskEnrollStaff('${s.staff_id}', '${name}')">${icon("fingerprint", { size: 14 })} Enroll</button>`;
-    } else if (s.status === "IN") {
-      statusCell = `In since ${s.clock_in_time || "—"}`;
-      actionCell = `<button onclick="window.kioskClockInOut('${s.staff_id}', '${s.credential_id}', 'clockOut')">${icon("log-out", { size: 14 })} Clock Out</button>`;
-    } else {
-      statusCell = s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today";
-      actionCell = `<button onclick="window.kioskClockInOut('${s.staff_id}', '${s.credential_id}', 'clockIn')">${icon("log-in", { size: 14 })} Clock In</button>`;
-    }
+    // Enrolled staff always get BOTH a clock in/out action and an
+    // "Enroll this device" fallback — WebAuthn credentials are bound to
+    // one specific device each, so being enrolled somewhere else
+    // doesn't mean this particular tablet will recognize them yet.
+    const clockAction = s.status === "IN" ? "clockOut" : "clockIn";
+    const clockLabel = s.status === "IN" ? "Clock Out" : "Clock In";
+    const clockIcon = s.status === "IN" ? "log-out" : "log-in";
+
+    const actionCell = `
+      ${s.enrolled ? `<button class="kiosk-clockinout-btn" data-staff-id="${s.staff_id}" data-creds='${JSON.stringify(s.credential_ids || [])}' data-action="${clockAction}">${icon(clockIcon, { size: 14 })} ${clockLabel}</button>` : ""}
+      <button class="kiosk-enroll-btn" data-staff-id="${s.staff_id}" data-name="${(s.name || "").replace(/"/g, "&quot;")}">${icon("fingerprint", { size: 14 })} ${s.enrolled ? "Enroll this device" : "Enroll"}</button>
+    `;
 
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
@@ -96,6 +101,16 @@ function renderKioskClockInTable(data) {
         <td>${actionCell}</td>
       </tr>
     `);
+  });
+
+  tbody.querySelectorAll(".kiosk-clockinout-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const credentialIds = JSON.parse(btn.dataset.creds || "[]");
+      kioskClockInOut(btn.dataset.staffId, credentialIds, btn.dataset.action);
+    });
+  });
+  tbody.querySelectorAll(".kiosk-enroll-btn").forEach(btn => {
+    btn.addEventListener("click", () => kioskEnrollStaff(btn.dataset.staffId, btn.dataset.name));
   });
 }
 
@@ -139,9 +154,15 @@ async function kioskEnrollStaff(staffId, name) {
     alert("Enrollment failed: " + (err.message || "unknown error"));
   }
 }
-window.kioskEnrollStaff = kioskEnrollStaff;
 
-async function kioskClockInOut(staffId, credentialId, action) {
+/**
+ * @param {string} staffId
+ * @param {string[]} credentialIds every device this staff member has
+ *   ever enrolled — the browser matches whichever one actually exists
+ *   on THIS device's authenticator and ignores the rest.
+ * @param {string} action
+ */
+async function kioskClockInOut(staffId, credentialIds, action) {
   if (!window.PublicKeyCredential) {
     alert("This device/browser doesn't support biometric verification.");
     return;
@@ -151,11 +172,11 @@ async function kioskClockInOut(staffId, credentialId, action) {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
-        allowCredentials: [{
+        allowCredentials: credentialIds.map(id => ({
           type: "public-key",
-          id: base64urlToBuffer(credentialId),
+          id: base64urlToBuffer(id),
           transports: ["internal"]
-        }],
+        })),
         userVerification: "required",
         timeout: 60000
       }
@@ -169,7 +190,6 @@ async function kioskClockInOut(staffId, credentialId, action) {
     await loadKioskClockInData();
   } catch (err) {
     console.error(err);
-    alert("Verification failed — try again");
+    alert("Verification failed — this device may not be enrolled yet for this person. Try \"Enroll this device\" instead.");
   }
 }
-window.kioskClockInOut = kioskClockInOut;

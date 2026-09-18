@@ -24,7 +24,7 @@ function formatPHTime(isoTimestamp) {
  * Matches `type=clockInKioskData`'s shape. Works for both the
  * no-login kiosk screen (anonymous Firebase session) and a signed-in
  * cashier's own Clock In/Out modal — same RPC either way.
- * @returns {Promise<{success: boolean, staff: Array<{staff_id: string, name: string, location_name: string|null, enrolled: boolean, credential_id: string|null, status: string, clock_in_time: string|null, clock_out_time: string|null}>}>}
+ * @returns {Promise<{success: boolean, staff: Array<{staff_id: string, name: string, location_name: string|null, enrolled: boolean, credential_ids: string[], status: string, clock_in_time: string|null, clock_out_time: string|null}>}>}
  */
 export async function getStaffStatus() {
   const { data, error } = await supabase.rpc("get_staff_status");

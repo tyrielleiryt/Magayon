@@ -1807,18 +1807,24 @@ function renderClockInTable(data) {
 
   tbody.innerHTML = "";
   staff.forEach(s => {
-    let statusCell, actionCell;
+    const statusCell = !s.enrolled
+      ? "Not enrolled"
+      : s.status === "IN"
+        ? `In since ${s.clock_in_time || "—"}`
+        : (s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today");
 
-    if (!s.enrolled) {
-      statusCell = "Not enrolled";
-      actionCell = `<button onclick="enrollStaff('${s.staff_id}', '${(s.name || "").replace(/'/g, "\\'")}')">${icon("fingerprint", { size: 14 })} Enroll</button>`;
-    } else if (s.status === "IN") {
-      statusCell = `In since ${s.clock_in_time || "—"}`;
-      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockOut')">${icon("log-out", { size: 14 })} Clock Out</button>`;
-    } else {
-      statusCell = s.clock_out_time ? `Out (last: ${s.clock_out_time})` : "Not clocked in today";
-      actionCell = `<button onclick="clockInOut('${s.staff_id}', '${s.credential_id}', 'clockIn')">${icon("log-in", { size: 14 })} Clock In</button>`;
-    }
+    // Enrolled staff always get BOTH a clock in/out action and an
+    // "Enroll this device" fallback — WebAuthn credentials are bound to
+    // one specific device each, so being enrolled somewhere else
+    // doesn't mean this particular tablet will recognize them yet.
+    const clockAction = s.status === "IN" ? "clockOut" : "clockIn";
+    const clockLabel = s.status === "IN" ? "Clock Out" : "Clock In";
+    const clockIcon = s.status === "IN" ? "log-out" : "log-in";
+
+    const actionCell = `
+      ${s.enrolled ? `<button class="clockinout-btn" data-staff-id="${s.staff_id}" data-creds='${JSON.stringify(s.credential_ids || [])}' data-action="${clockAction}">${icon(clockIcon, { size: 14 })} ${clockLabel}</button>` : ""}
+      <button class="enroll-staff-btn" data-staff-id="${s.staff_id}" data-name="${(s.name || "").replace(/"/g, "&quot;")}">${icon("fingerprint", { size: 14 })} ${s.enrolled ? "Enroll this device" : "Enroll"}</button>
+    `;
 
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
@@ -1827,6 +1833,16 @@ function renderClockInTable(data) {
         <td>${actionCell}</td>
       </tr>
     `);
+  });
+
+  tbody.querySelectorAll(".clockinout-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const credentialIds = JSON.parse(btn.dataset.creds || "[]");
+      clockInOut(btn.dataset.staffId, credentialIds, btn.dataset.action);
+    });
+  });
+  tbody.querySelectorAll(".enroll-staff-btn").forEach(btn => {
+    btn.addEventListener("click", () => enrollStaff(btn.dataset.staffId, btn.dataset.name));
   });
 }
 
@@ -1877,9 +1893,15 @@ async function enrollStaff(staffId, name) {
     alert("❌ " + (err.message || "Enrollment failed"));
   }
 }
-window.enrollStaff = enrollStaff;
 
-async function clockInOut(staffId, credentialId, action) {
+/**
+ * @param {string} staffId
+ * @param {string[]} credentialIds every device this staff member has
+ *   ever enrolled — the browser matches whichever one actually exists
+ *   on THIS device's authenticator and ignores the rest.
+ * @param {string} action
+ */
+async function clockInOut(staffId, credentialIds, action) {
   if (!window.PublicKeyCredential) {
     alert("This device/browser doesn't support biometric verification.");
     return;
@@ -1889,11 +1911,11 @@ async function clockInOut(staffId, credentialId, action) {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
-        allowCredentials: [{
+        allowCredentials: credentialIds.map(id => ({
           type: "public-key",
-          id: base64urlToBuffer(credentialId),
+          id: base64urlToBuffer(id),
           transports: ["internal"]
-        }],
+        })),
         userVerification: "required",
         timeout: 60000
       }
@@ -1906,10 +1928,9 @@ async function clockInOut(staffId, credentialId, action) {
     await loadClockInData();
   } catch (err) {
     console.error(err);
-    alert("❌ Verification failed — try again");
+    alert("❌ Verification failed — this device may not be enrolled yet for this person. Try \"Enroll this device\" instead.");
   }
 }
-window.clockInOut = clockInOut;
 
 
 function closeSales() {
