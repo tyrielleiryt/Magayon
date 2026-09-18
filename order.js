@@ -2274,3 +2274,63 @@ setInterval(() => {
 setInterval(() => {
   refreshInventoryOnly({ silent: true });
 }, 30000); // every 30s
+
+/* =========================================================
+   AUTO-UPDATE DETECTION
+   A POS tablet's tab routinely stays open for days — no HTTP cache
+   header changes anything for a tab that never makes a new request in
+   the first place, which is the actual reason every deploy this
+   session needed someone to physically close and reopen the tab.
+   GitHub Pages already sends a real Last-Modified/ETag with a 10-minute
+   max-age (confirmed directly), so a genuine reload already fetches
+   fresh code correctly — the only missing piece is noticing a reload
+   is warranted at all. This polls order.js's own Last-Modified header
+   and either reloads automatically (only when nothing would be lost —
+   empty cart, no payment in flight) or shows a dismissable-by-tapping
+   banner otherwise, rather than yanking the page out from under an
+   active sale.
+========================================================= */
+let deployedOrderJsLastModified = null;
+
+async function checkForNewDeploy() {
+  if (!navigator.onLine) return;
+
+  try {
+    const res = await fetch("order.js", { method: "HEAD", cache: "no-store" });
+    const lastModified = res.headers.get("last-modified");
+    if (!lastModified) return;
+
+    if (deployedOrderJsLastModified === null) {
+      deployedOrderJsLastModified = lastModified;
+      return;
+    }
+
+    if (lastModified === deployedOrderJsLastModified) return;
+
+    const paymentOpen = !document.getElementById("paymentModal")?.classList.contains("hidden");
+    if (!cart.length && !paymentOpen) {
+      location.reload();
+    } else {
+      showUpdateAvailableBanner();
+    }
+  } catch (err) {
+    // Offline or a transient fetch failure — nothing to surface, the
+    // next scheduled check just tries again.
+  }
+}
+
+function showUpdateAvailableBanner() {
+  if (document.getElementById("updateAvailableBanner")) return;
+
+  const banner = document.createElement("div");
+  banner.id = "updateAvailableBanner";
+  banner.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:99999;background:#2563eb;color:#fff;" +
+    "text-align:center;padding:10px 16px;font-size:14px;cursor:pointer;font-family:inherit";
+  banner.innerHTML = `${icon("refresh-cw", { size: 14 })} A new version is available — tap to refresh`;
+  banner.onclick = () => location.reload();
+  document.body.prepend(banner);
+}
+
+checkForNewDeploy();
+setInterval(checkForNewDeploy, 5 * 60 * 1000); // every 5 minutes
