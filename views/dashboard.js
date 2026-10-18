@@ -1,7 +1,7 @@
 import { bindDataBoxScroll } from "../admin.js";
 
 import { icon } from "../icons.js";
-import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales, listUnresolvedFailedCheckouts, resolveFailedCheckout } from "../data/orders.js";
+import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales, listUnresolvedFailedCheckouts, resolveFailedCheckout, getCustomerTraffic } from "../data/orders.js";
 import { listStaff } from "../data/staff.js";
 import { getAttendanceOverview } from "../data/attendance.js";
 import { listLocations } from "../data/locations.js";
@@ -41,6 +41,7 @@ const WIDGET_LOADERS = {
   lowStock: (date, signal) => loadLowStockAlerts(date, signal),
   laborCost: (date, signal) => loadLaborCost(date, signal),
   stockDays: (date, signal) => loadStockDaysRemaining(date, signal),
+  customerTraffic: (date, signal) => loadCustomerTraffic(signal),
   failedCheckouts: (date, signal) => loadFailedCheckouts(signal)
   // liveSales is handled separately below — it's a poller, not a one-shot fetch
 };
@@ -145,6 +146,7 @@ function applyTrend(el, today, yesterday) {
    what it's looking for without modification. */
 const WIDGET_META = {
   topSellers: { icon: "trophy", label: "Best Seller Tracker", color: "amber" },
+  customerTraffic: { icon: "users", label: "Customer Quantity Tracker", color: "blue" },
   liveSales: { label: "Live Sales Feed", color: "green", live: true },
   dailyPerformance: { icon: "trending-up", label: "Daily Performance", color: "blue" },
   lowStock: { icon: "alert-triangle", label: "Low Stock Warnings", color: "red" },
@@ -172,16 +174,7 @@ function panelBodyHTML(widget) {
   switch (widget) {
     case "topSellers":
       return `
-        <div class="top-sellers-controls" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">
-          <div style="display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden">
-            <button type="button" id="topSellersModeDay" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Day</button>
-            <button type="button" id="topSellersModeWeek" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Week</button>
-            <button type="button" id="topSellersModeMonth" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Month</button>
-          </div>
-          <input type="date" id="topSellersDate" style="padding:6px 8px">
-          <input type="month" id="topSellersMonth" style="padding:6px 8px" hidden>
-          <span id="topSellersPeriod" style="color:#6b7280;font-size:13px"></span>
-        </div>
+        ${periodControlsHTML("topSellers")}
         <div class="dashboard-table-wrap">
           <table class="category-table">
             <thead>
@@ -193,6 +186,32 @@ function panelBodyHTML(widget) {
               </tr>
             </thead>
             <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      `;
+
+    case "customerTraffic":
+      return `
+        ${periodControlsHTML("customerTraffic", `
+          <select id="customerTrafficBucket" aria-label="Time slot size" style="padding:6px 8px">
+            <option value="15">15-min slots</option>
+            <option value="30" selected>30-min slots</option>
+            <option value="60">1-hour slots</option>
+          </select>`)}
+        <div id="customerTrafficSummary" style="margin-bottom:8px;font-size:13px;color:#374151"></div>
+        <div style="overflow-x:auto">
+          <div id="customerTrafficChart" style="min-width:560px"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 6px">
+          <strong id="customerTrafficProductsTitle" style="font-size:14px">Usual products</strong>
+          <button type="button" id="customerTrafficAllHours" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:2px 4px" hidden>Show all hours</button>
+        </div>
+        <div class="dashboard-table-wrap" style="overflow:visible">
+          <table class="category-table">
+            <thead>
+              <tr><th>#</th><th>Product</th><th>Qty</th><th title="Share of customers in this time slot who bought it">% Cust.</th></tr>
+            </thead>
+            <tbody id="customerTrafficProducts"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
           </table>
         </div>
       `;
@@ -301,12 +320,12 @@ function renderLayout() {
   `;
 }
 
-/* ================= BEST SELLER TRACKER =================
-   Day (default: today), Week (Monday–Sunday containing the picked date),
-   or Month (whole calendar month). Ranked by quantity sold; shows 5 at a
-   time with a View More row that reveals the next 5. Every toggle/picker
-   change goes through refresh() — only the date range differs. */
-const TOP_SELLERS_PAGE = 5;
+/* ================= SHARED PERIOD PICKER =================
+   Day (default: today) / Week (Monday–Sunday containing the picked date)
+   / Month — used by both the Best Seller Tracker and the Customer
+   Quantity Tracker so the two can't drift apart. Element ids are all
+   `${prefix}…` (ModeDay, ModeWeek, ModeMonth, Date, Month, Period). */
+const PERIOD_BTN_STYLE = "padding:6px 14px;border:0;cursor:pointer";
 
 function phToday() {
   // Philippine date, not UTC — before 8 AM PH, toISOString() is still "yesterday".
@@ -319,8 +338,8 @@ function monthRange(ym) {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
-// Monday–Sunday week containing `dateStr` (type="week" inputs aren't
-// supported in Safari, so the picker is a normal date and this derives the week).
+// type="week" inputs aren't supported in Safari, so the picker is a normal
+// date and the week is derived from it.
 function weekRange(dateStr) {
   const d = new Date(dateStr + "T00:00:00Z");
   const sinceMonday = (d.getUTCDay() + 6) % 7;
@@ -333,25 +352,85 @@ function fmtDay(ymd, opts) {
   return new Date(ymd + "T00:00:00").toLocaleDateString("en-US", opts);
 }
 
-async function loadTopSellers(date, signal) {
-  const dateInput = document.getElementById("topSellersDate");
-  const monthInput = document.getElementById("topSellersMonth");
-  const btns = {
-    day: document.getElementById("topSellersModeDay"),
-    week: document.getElementById("topSellersModeWeek"),
-    month: document.getElementById("topSellersModeMonth")
-  };
-  if (!dateInput || !monthInput || !btns.day || !btns.week || !btns.month) return;
+function periodControlsHTML(prefix, extraHTML = "") {
+  return `
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden">
+        <button type="button" id="${prefix}ModeDay" style="${PERIOD_BTN_STYLE}">Day</button>
+        <button type="button" id="${prefix}ModeWeek" style="${PERIOD_BTN_STYLE}">Week</button>
+        <button type="button" id="${prefix}ModeMonth" style="${PERIOD_BTN_STYLE}">Month</button>
+      </div>
+      <input type="date" id="${prefix}Date" style="padding:6px 8px">
+      <input type="month" id="${prefix}Month" style="padding:6px 8px" hidden>
+      ${extraHTML}
+      <span id="${prefix}Period" style="color:#6b7280;font-size:13px"></span>
+    </div>
+  `;
+}
 
-  // The shared 340px panel cap suits the other widgets' short tables; this
-  // one can list every product, so give it room (the table still scrolls).
-  const panelEl = dateInput.closest(".dashboard-expanded-panel");
-  if (panelEl) panelEl.style.maxHeight = "520px";
+/** Wires the controls; onChange() fires on any change. Returns { current() }
+    where current() → { mode: "day"|"week"|"month", start, end } (and updates
+    the period label), or null if the picker is empty / not in the DOM. */
+function setupPeriodPicker(prefix, onChange) {
+  const el = id => document.getElementById(prefix + id);
+  const dateInput = el("Date"), monthInput = el("Month"), periodEl = el("Period");
+  const btns = { day: el("ModeDay"), week: el("ModeWeek"), month: el("ModeMonth") };
+  if (!dateInput || !monthInput || !periodEl || !btns.day || !btns.week || !btns.month) return null;
 
   const today = phToday();
   let mode = "day";
   dateInput.value = today;
   monthInput.value = today.slice(0, 7);
+
+  const syncUI = () => {
+    for (const [m, btn] of Object.entries(btns)) {
+      const on = m === mode;
+      btn.style.background = on ? "#2563eb" : "#fff";
+      btn.style.color = on ? "#fff" : "#111";
+    }
+    dateInput.hidden = mode === "month";
+    monthInput.hidden = mode !== "month";
+  };
+  const choose = m => () => { mode = m; syncUI(); onChange(); };
+  btns.day.onclick = choose("day");
+  btns.week.onclick = choose("week");
+  btns.month.onclick = choose("month");
+  dateInput.onchange = () => onChange();
+  monthInput.onchange = () => onChange();
+  syncUI();
+
+  return {
+    current() {
+      const picked = mode === "month" ? monthInput.value : dateInput.value;
+      if (!picked) return null;
+
+      let range;
+      if (mode === "day") {
+        range = { start: picked, end: picked };
+        periodEl.textContent = fmtDay(picked, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+      } else if (mode === "week") {
+        range = weekRange(picked);
+        periodEl.textContent =
+          `${fmtDay(range.start, { month: "short", day: "numeric" })} – ${fmtDay(range.end, { month: "short", day: "numeric", year: "numeric" })}`;
+      } else {
+        range = monthRange(picked);
+        periodEl.textContent = fmtDay(`${picked}-01`, { year: "numeric", month: "long" });
+      }
+      return { mode, ...range };
+    }
+  };
+}
+
+/* ================= BEST SELLER TRACKER =================
+   Ranked by quantity sold; shows 5 at a time with a View More row that
+   reveals the next 5. Switching period resets to 5. */
+const TOP_SELLERS_PAGE = 5;
+
+async function loadTopSellers(date, signal) {
+  // The shared 340px panel cap suits the other widgets' short tables; this
+  // one can list every product, so give it room (the table still scrolls).
+  const panelEl = document.getElementById("topSellersDate")?.closest(".dashboard-expanded-panel");
+  if (panelEl) panelEl.style.maxHeight = "520px";
 
   // Ignore a slow earlier response if the selection has changed again.
   let requestId = 0;
@@ -394,42 +473,20 @@ async function loadTopSellers(date, signal) {
 
   const refresh = async () => {
     const id = ++requestId;
-
-    for (const [m, btn] of Object.entries(btns)) {
-      const on = m === mode;
-      btn.style.background = on ? "#2563eb" : "#fff";
-      btn.style.color = on ? "#fff" : "#111";
-    }
-    dateInput.hidden = mode === "month";
-    monthInput.hidden = mode !== "month";
+    const per = picker?.current();
+    if (!per) return;
 
     const tbody = document.getElementById("topSellersBody");
-    const periodEl = document.getElementById("topSellersPeriod");
-    const picked = mode === "month" ? monthInput.value : dateInput.value;
-    if (!picked) return;
-
-    let range;
-    if (mode === "day") {
-      range = { start: picked, end: picked };
-      periodEl.textContent = fmtDay(picked, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
-    } else if (mode === "week") {
-      range = weekRange(picked);
-      periodEl.textContent =
-        `${fmtDay(range.start, { month: "short", day: "numeric" })} – ${fmtDay(range.end, { month: "short", day: "numeric", year: "numeric" })}`;
-    } else {
-      range = monthRange(picked);
-      periodEl.textContent = fmtDay(`${picked}-01`, { year: "numeric", month: "long" });
-    }
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
 
     try {
-      const data = await getTopSellers(range.start, range.end);
+      const data = await getTopSellers(per.start, per.end);
       if (id !== requestId) return;
 
       sellers = Array.isArray(data) ? data : [];
       shown = TOP_SELLERS_PAGE;
       if (!sellers.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${mode === "day" ? "date" : mode}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${per.mode === "day" ? "date" : per.mode}</td></tr>`;
         return;
       }
       renderRows();
@@ -440,13 +497,258 @@ async function loadTopSellers(date, signal) {
     }
   };
 
-  btns.day.onclick = () => { mode = "day"; refresh(); };
-  btns.week.onclick = () => { mode = "week"; refresh(); };
-  btns.month.onclick = () => { mode = "month"; refresh(); };
-  dateInput.onchange = refresh;
-  monthInput.onchange = refresh;
-
+  const picker = setupPeriodPicker("topSellers", refresh);
   await refresh();
+}
+
+/* ================= CUSTOMER QUANTITY TRACKER =================
+   One customer = one order. Plots how many customers checked out in each
+   time-of-day slot (x: time, y: customers) to show the peak hours, and
+   lists what customers usually bought in the selected slot (the busiest
+   slot by default; click any bar to look at another, click it again or
+   "Show all hours" for the whole period). For a week or month the bars
+   are totals across the period; the tooltip also gives the per-day average. */
+const TRAFFIC_PRODUCTS_PAGE = 5;
+
+function fmtClock(minutes) {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
+
+function trafficChartSVG({ counts, first, last, size, selected, peak, days }) {
+  const W = 640, H = 270, L = 44, R = 10, T = 16, B = 46;
+  const nb = last - first + 1;
+  const iw = W - L - R, ih = H - T - B, bw = iw / nb;
+
+  const max = Math.max(1, ...counts.slice(first, last + 1));
+  let step = 1;
+  for (const s of [1, 2, 5, 10, 20, 25, 50, 100, 200, 500]) {
+    step = s;
+    if (max / s <= 5) break;
+  }
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const y = v => T + ih - (v / top) * ih;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Customers per time slot">`;
+
+  for (let v = 0; v <= top; v += step) {
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? "#9ca3af" : "#e5e7eb"}"/>`;
+    svg += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#6b7280">${v}</text>`;
+  }
+
+  for (let i = first; i <= last; i++) {
+    const c = counts[i];
+    const x = L + (i - first) * bw;
+    const slot = `${fmtClock(i * size)} – ${fmtClock((i + 1) * size)}`;
+    const tip = `${slot}: ${c} customer${c === 1 ? "" : "s"}` + (days > 1 ? ` (avg ${(c / days).toFixed(1)} per day)` : "");
+
+    if (c > 0) {
+      const fill = i === selected ? "#f59e0b" : i === peak ? "#2563eb" : "#60a5fa";
+      svg += `<rect x="${x + bw * 0.12}" y="${y(c)}" width="${bw * 0.76}" height="${(c / top) * ih}" rx="2" fill="${fill}" pointer-events="none"/>`;
+      if (bw >= 17) svg += `<text x="${x + bw / 2}" y="${y(c) - 4}" text-anchor="middle" font-size="10" fill="#374151" pointer-events="none">${c}</text>`;
+    }
+    // Full-height invisible hit area so thin or empty slots are still clickable.
+    svg += `<rect data-slot="${i}" x="${x}" y="${T}" width="${bw}" height="${ih}" fill="transparent" style="cursor:pointer" role="button" tabindex="0" aria-label="${tip}"><title>${tip}</title></rect>`;
+  }
+
+  // Label on whole hours (never odd times like 11:30), every 1/2/3/… hours
+  // depending on how wide the window is, so each tick marks the START of
+  // the slot whose bar sits just to its right.
+  let stepMin = 60;
+  for (const s of [60, 120, 180, 240, 360, 720]) {
+    stepMin = s;
+    if ((nb * size) / s <= 9) break;
+  }
+  for (let k = 0; k < nb; k++) {
+    const startMin = (first + k) * size;
+    if (startMin % stepMin !== 0) continue;
+    const x = L + k * bw;
+    svg += `<line x1="${x}" x2="${x}" y1="${T + ih}" y2="${T + ih + 4}" stroke="#9ca3af"/>`;
+    svg += `<text x="${x}" y="${T + ih + 17}" text-anchor="middle" font-size="11" fill="#6b7280">${fmtClock(startMin)}</text>`;
+  }
+
+  svg += `<text x="${L + iw / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#374151">Time of day</text>`;
+  svg += `<text transform="translate(12 ${T + ih / 2}) rotate(-90)" text-anchor="middle" font-size="12" fill="#374151">Customers</text>`;
+  return svg + `</svg>`;
+}
+
+async function loadCustomerTraffic(signal) {
+  const el = id => document.getElementById(id);
+  const bucketSel = el("customerTrafficBucket");
+  const chartEl = el("customerTrafficChart");
+  if (!bucketSel || !chartEl) return;
+
+  // Needs more room than the shared 340px panel cap: controls + chart + list.
+  const panelEl = bucketSel.closest(".dashboard-expanded-panel");
+  if (panelEl) { panelEl.style.maxHeight = "none"; panelEl.style.overflow = "visible"; }
+
+  let requestId = 0;
+  let orders = [];
+  let selected; // slot index; null = all hours; undefined = pick the peak
+  let shown = TRAFFIC_PRODUCTS_PAGE;
+  let periodMode = "day";
+  let recenter = true; // scroll the chart to the selected slot (matters on phones, where it scrolls sideways)
+
+  const summaryEl = el("customerTrafficSummary");
+  const productsBody = el("customerTrafficProducts");
+  const productsTitle = el("customerTrafficProductsTitle");
+  const allHoursBtn = el("customerTrafficAllHours");
+
+  const render = () => {
+    const size = Number(bucketSel.value) || 30;
+    const n = Math.ceil(1440 / size);
+
+    if (!orders.length) {
+      summaryEl.textContent = `No customers for this ${periodMode === "day" ? "date" : periodMode}.`;
+      chartEl.innerHTML = "";
+      productsTitle.textContent = "Usual products";
+      allHoursBtn.hidden = true;
+      productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales</td></tr>`;
+      return;
+    }
+
+    const counts = new Array(n).fill(0);
+    let untimed = 0;
+    for (const o of orders) {
+      if (o.minute == null) { untimed++; continue; }
+      counts[Math.floor(o.minute / size)]++;
+    }
+    const days = new Set(orders.map(o => o.date)).size;
+    const timed = orders.length - untimed;
+
+    // Visible window: first..last slot with customers, padded one slot each
+    // side and never narrower than 6 slots.
+    let first = counts.findIndex(c => c > 0);
+    if (first === -1) {
+      summaryEl.textContent = `${orders.length} customers, but none have a recorded time of day.`;
+      chartEl.innerHTML = "";
+      return;
+    }
+    let last = n - 1 - [...counts].reverse().findIndex(c => c > 0);
+    first = Math.max(0, first - 1);
+    last = Math.min(n - 1, last + 1);
+    while (last - first + 1 < 6 && (first > 0 || last < n - 1)) {
+      if (first > 0) first--;
+      if (last - first + 1 < 6 && last < n - 1) last++;
+    }
+
+    const peak = counts.indexOf(Math.max(...counts));
+    if (selected === undefined) selected = peak;
+
+    const slotLabel = i => `${fmtClock(i * size)} – ${fmtClock((i + 1) * size)}`;
+    const topSlots = counts
+      .map((c, i) => ({ c, i }))
+      .filter(x => x.c > 0)
+      .sort((a, b) => b.c - a.c || a.i - b.i)
+      .slice(0, 3)
+      .map(x => `${slotLabel(x.i)} (${x.c})`)
+      .join(" · ");
+    summaryEl.innerHTML =
+      `<strong>${timed}</strong> customer${timed === 1 ? "" : "s"} over ${days} day${days === 1 ? "" : "s"}` +
+      (days > 1 ? ` (avg ${(timed / days).toFixed(1)}/day)` : "") +
+      `<br>Busiest: ${topSlots}` +
+      (untimed ? `<br><span style="color:#9ca3af">${untimed} order${untimed === 1 ? "" : "s"} without a reliable time not plotted</span>` : "");
+
+    chartEl.innerHTML = trafficChartSVG({ counts, first, last, size, selected, peak, days });
+    if (recenter && selected != null) {
+      // Same geometry as trafficChartSVG (viewBox width 640, left margin 44, right 10).
+      const frac = (44 + (selected - first + 0.5) * ((640 - 44 - 10) / (last - first + 1))) / 640;
+      const scroller = chartEl.parentElement;
+      scroller.scrollLeft = Math.max(0, frac * chartEl.scrollWidth - scroller.clientWidth / 2);
+    }
+    recenter = false;
+    chartEl.querySelectorAll("[data-slot]").forEach(rect => {
+      const pick = () => {
+        const i = Number(rect.dataset.slot);
+        selected = selected === i ? null : i;
+        shown = TRAFFIC_PRODUCTS_PAGE;
+        render();
+      };
+      rect.onclick = pick;
+      rect.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+    });
+
+    // What customers usually buy in the selected slot (or all hours).
+    const inSlot = selected == null
+      ? orders
+      : orders.filter(o => o.minute != null && Math.floor(o.minute / size) === selected);
+
+    productsTitle.textContent = selected == null
+      ? `Usual products — all hours (${inSlot.length} customers)`
+      : `Usual products — ${slotLabel(selected)}${selected === peak ? " · busiest slot" : ""} (${inSlot.length} customer${inSlot.length === 1 ? "" : "s"})`;
+    allHoursBtn.hidden = selected == null;
+    allHoursBtn.onclick = () => { selected = null; shown = TRAFFIC_PRODUCTS_PAGE; render(); };
+
+    const byProduct = {};
+    for (const o of inSlot) {
+      const seen = new Set();
+      for (const it of o.items) {
+        const rec = (byProduct[it.product_id] ??= { name: it.product_name, qty: 0, customers: 0 });
+        rec.qty += it.qty;
+        if (!seen.has(it.product_id)) { rec.customers++; seen.add(it.product_id); }
+      }
+    }
+    const ranked = Object.values(byProduct).sort((a, b) => b.qty - a.qty || b.customers - a.customers);
+
+    productsBody.innerHTML = "";
+    if (!ranked.length) {
+      productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No customers in this time slot</td></tr>`;
+      return;
+    }
+    ranked.slice(0, shown).forEach((p, i) => {
+      productsBody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.qty}</td>
+          <td>${Math.round((100 * p.customers) / inSlot.length)}%</td>
+        </tr>
+      `);
+    });
+    const remaining = ranked.length - shown;
+    if (remaining > 0) {
+      productsBody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td colspan="4" style="text-align:center">
+            <button type="button" id="customerTrafficViewMore" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:6px">
+              View More (${remaining} more)
+            </button>
+          </td>
+        </tr>
+      `);
+      el("customerTrafficViewMore").onclick = () => { shown += TRAFFIC_PRODUCTS_PAGE; render(); };
+    }
+  };
+
+  const reload = async () => {
+    const id = ++requestId;
+    const per = picker?.current();
+    if (!per) return;
+    periodMode = per.mode;
+
+    summaryEl.textContent = "Loading…";
+    chartEl.innerHTML = "";
+    productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
+
+    try {
+      const data = await getCustomerTraffic(per.start, per.end);
+      if (id !== requestId) return;
+      orders = data.orders;
+      selected = undefined; // back to the busiest slot for the new period
+      recenter = true;
+      shown = TRAFFIC_PRODUCTS_PAGE;
+      render();
+    } catch (err) {
+      if (err.name === "AbortError" || id !== requestId) return;
+      console.error("Customer quantity tracker failed", err);
+      summaryEl.textContent = "Failed to load";
+    }
+  };
+
+  bucketSel.onchange = () => { selected = undefined; recenter = true; shown = TRAFFIC_PRODUCTS_PAGE; render(); };
+  const picker = setupPeriodPicker("customerTraffic", reload);
+  await reload();
 }
 
 /* ================= DAILY ANALYTICS ================= */

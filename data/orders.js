@@ -173,6 +173,94 @@ export async function getTopSellers(startDate, endDate = startDate) {
 }
 
 /**
+ * Minutes since midnight (Philippine time) when an order was actually
+ * rung up, or null if it can't be trusted. Every order ID ("ORD-<ms>",
+ * older ones "POS-<ms>") embeds the checkout timestamp, which is the real
+ * sale time — created_at is the same for live orders (within ~1s) but is
+ * just the import time for backfilled history. Anything whose derived day
+ * disagrees with order_date is rejected rather than plotted at a wrong time.
+ * @param {string} refId
+ * @param {string} createdAt
+ * @param {string} orderDate - "YYYY-MM-DD"
+ * @returns {number | null}
+ */
+function orderMinuteOfDay(refId, createdAt, orderDate) {
+  const m = /^[A-Za-z]+-(\d{12,13})$/.exec(refId);
+  const ms = m ? Number(m[1]) : Date.parse(createdAt);
+  if (!Number.isFinite(ms)) return null;
+  const ph = new Date(ms + 8 * 3600 * 1000);
+  if (ph.toISOString().slice(0, 10) !== orderDate) return null;
+  return ph.getUTCHours() * 60 + ph.getUTCMinutes();
+}
+
+/**
+ * Every order in a date range (one customer = one order), with the time
+ * of day it was rung up and the products on it — the raw material for
+ * the Customer Quantity Tracker's busiest-hours chart and "what do they
+ * usually buy" list. Pages through results (a month exceeds Supabase's
+ * 1,000-row cap).
+ * @param {string} startDate - "YYYY-MM-DD"
+ * @param {string} [endDate] - inclusive; defaults to startDate
+ * @returns {Promise<{orders: {ref_id: string, date: string, minute: number | null, items: {product_id: string, product_name: string, qty: number}[]}[]}>}
+ */
+export async function getCustomerTraffic(startDate, endDate = startDate) {
+  const PAGE = 1000;
+
+  /** @param {(from: number, to: number) => PromiseLike<{data: any[] | null, error: any}>} fetchPage */
+  async function collect(fetchPage) {
+    /** @type {any[]} */
+    const all = [];
+    for (let from = 0; ; from += PAGE) {
+      const page = await withRetry(() => fetchPage(from, from + PAGE - 1));
+      all.push(...(page ?? []));
+      if ((page ?? []).length < PAGE) break;
+    }
+    return all;
+  }
+
+  const orderRows = await collect((from, to) =>
+    supabase
+      .from("orders")
+      .select("ref_id, order_date, created_at")
+      .gte("order_date", startDate)
+      .lte("order_date", endDate)
+      .order("ref_id", { ascending: true })
+      .range(from, to)
+  );
+
+  const itemRows = await collect((from, to) =>
+    supabase
+      .from("order_items")
+      .select("ref_id, qty, product_id, products(product_name), orders!inner(order_date)")
+      .gte("orders.order_date", startDate)
+      .lte("orders.order_date", endDate)
+      .eq("voided", false)
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+
+  /** @type {Record<string, {product_id: string, product_name: string, qty: number}[]>} */
+  const itemsByOrder = {};
+  for (const row of itemRows) {
+    (itemsByOrder[row.ref_id] ??= []).push({
+      product_id: row.product_id,
+      // @ts-ignore
+      product_name: row.products?.product_name ?? row.product_id,
+      qty: Number(row.qty) || 0
+    });
+  }
+
+  return {
+    orders: orderRows.map(o => ({
+      ref_id: o.ref_id,
+      date: o.order_date,
+      minute: orderMinuteOfDay(o.ref_id, o.created_at, o.order_date),
+      items: itemsByOrder[o.ref_id] ?? []
+    }))
+  };
+}
+
+/**
  * Items at or below their reorder level, across every location's
  * currently-open day for the given date — matches `type=lowStockAlerts`,
  * which took no location param.
