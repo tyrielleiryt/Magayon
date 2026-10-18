@@ -144,7 +144,7 @@ function applyTrend(el, today, yesterday) {
    unchanged from before, so every loader function below still finds
    what it's looking for without modification. */
 const WIDGET_META = {
-  topSellers: { icon: "trophy", label: "Top 5 Best Sellers", color: "amber" },
+  topSellers: { icon: "trophy", label: "Best Seller Tracker", color: "amber" },
   liveSales: { label: "Live Sales Feed", color: "green", live: true },
   dailyPerformance: { icon: "trending-up", label: "Daily Performance", color: "blue" },
   lowStock: { icon: "alert-triangle", label: "Low Stock Warnings", color: "red" },
@@ -175,6 +175,7 @@ function panelBodyHTML(widget) {
         <div class="top-sellers-controls" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">
           <div style="display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden">
             <button type="button" id="topSellersModeDay" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Day</button>
+            <button type="button" id="topSellersModeWeek" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Week</button>
             <button type="button" id="topSellersModeMonth" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Month</button>
           </div>
           <input type="date" id="topSellersDate" style="padding:6px 8px">
@@ -300,10 +301,13 @@ function renderLayout() {
   `;
 }
 
-/* ================= TOP SELLERS =================
-   Day mode (default: today) or Month mode (whole calendar month). The
-   widget's initial load, and each toggle/picker change, all go through
-   renderTopSellers() — only the date range differs. */
+/* ================= BEST SELLER TRACKER =================
+   Day (default: today), Week (Monday–Sunday containing the picked date),
+   or Month (whole calendar month). Ranked by quantity sold; shows 5 at a
+   time with a View More row that reveals the next 5. Every toggle/picker
+   change goes through refresh() — only the date range differs. */
+const TOP_SELLERS_PAGE = 5;
+
 function phToday() {
   // Philippine date, not UTC — before 8 AM PH, toISOString() is still "yesterday".
   return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
@@ -315,70 +319,130 @@ function monthRange(ym) {
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
 
+// Monday–Sunday week containing `dateStr` (type="week" inputs aren't
+// supported in Safari, so the picker is a normal date and this derives the week).
+function weekRange(dateStr) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const sinceMonday = (d.getUTCDay() + 6) % 7;
+  const start = new Date(d.getTime() - sinceMonday * 86400000);
+  const end = new Date(start.getTime() + 6 * 86400000);
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+}
+
+function fmtDay(ymd, opts) {
+  return new Date(ymd + "T00:00:00").toLocaleDateString("en-US", opts);
+}
+
 async function loadTopSellers(date, signal) {
   const dateInput = document.getElementById("topSellersDate");
   const monthInput = document.getElementById("topSellersMonth");
-  const dayBtn = document.getElementById("topSellersModeDay");
-  const monthBtn = document.getElementById("topSellersModeMonth");
-  if (!dateInput || !monthInput || !dayBtn || !monthBtn) return;
+  const btns = {
+    day: document.getElementById("topSellersModeDay"),
+    week: document.getElementById("topSellersModeWeek"),
+    month: document.getElementById("topSellersModeMonth")
+  };
+  if (!dateInput || !monthInput || !btns.day || !btns.week || !btns.month) return;
+
+  // The shared 340px panel cap suits the other widgets' short tables; this
+  // one can list every product, so give it room (the table still scrolls).
+  const panelEl = dateInput.closest(".dashboard-expanded-panel");
+  if (panelEl) panelEl.style.maxHeight = "520px";
 
   const today = phToday();
   let mode = "day";
   dateInput.value = today;
   monthInput.value = today.slice(0, 7);
 
-  // Ignore a slow earlier response if the user has already changed the
-  // selection again.
+  // Ignore a slow earlier response if the selection has changed again.
   let requestId = 0;
+  let sellers = [];
+  let shown = TOP_SELLERS_PAGE;
+
+  const renderRows = () => {
+    const tbody = document.getElementById("topSellersBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    sellers.slice(0, shown).forEach((p, i) => {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.product_name}</td>
+          <td>${p.qty_sold}</td>
+          <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
+        </tr>
+      `);
+    });
+
+    const remaining = sellers.length - shown;
+    if (remaining > 0) {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td colspan="4" style="text-align:center">
+            <button type="button" id="topSellersViewMore" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:6px">
+              View More (${remaining} more)
+            </button>
+          </td>
+        </tr>
+      `);
+      document.getElementById("topSellersViewMore").onclick = () => {
+        shown += TOP_SELLERS_PAGE;
+        renderRows();
+      };
+    }
+  };
 
   const refresh = async () => {
     const id = ++requestId;
-    const isDay = mode === "day";
-    dateInput.hidden = !isDay;
-    monthInput.hidden = isDay;
-    dayBtn.style.cssText += isDay ? ";background:#2563eb;color:#fff" : ";background:#fff;color:#111";
-    monthBtn.style.cssText += !isDay ? ";background:#2563eb;color:#fff" : ";background:#fff;color:#111";
+
+    for (const [m, btn] of Object.entries(btns)) {
+      const on = m === mode;
+      btn.style.background = on ? "#2563eb" : "#fff";
+      btn.style.color = on ? "#fff" : "#111";
+    }
+    dateInput.hidden = mode === "month";
+    monthInput.hidden = mode !== "month";
 
     const tbody = document.getElementById("topSellersBody");
     const periodEl = document.getElementById("topSellersPeriod");
-    const picked = isDay ? dateInput.value : monthInput.value;
+    const picked = mode === "month" ? monthInput.value : dateInput.value;
     if (!picked) return;
 
-    const range = isDay ? { start: picked, end: picked } : monthRange(picked);
-    periodEl.textContent = isDay
-      ? new Date(picked + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })
-      : new Date(picked + "-01T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    let range;
+    if (mode === "day") {
+      range = { start: picked, end: picked };
+      periodEl.textContent = fmtDay(picked, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+    } else if (mode === "week") {
+      range = weekRange(picked);
+      periodEl.textContent =
+        `${fmtDay(range.start, { month: "short", day: "numeric" })} – ${fmtDay(range.end, { month: "short", day: "numeric", year: "numeric" })}`;
+    } else {
+      range = monthRange(picked);
+      periodEl.textContent = fmtDay(`${picked}-01`, { year: "numeric", month: "long" });
+    }
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
 
     try {
       const data = await getTopSellers(range.start, range.end);
       if (id !== requestId) return;
 
-      tbody.innerHTML = "";
-      if (!Array.isArray(data) || !data.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${isDay ? "date" : "month"}</td></tr>`;
+      sellers = Array.isArray(data) ? data : [];
+      shown = TOP_SELLERS_PAGE;
+      if (!sellers.length) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${mode === "day" ? "date" : mode}</td></tr>`;
         return;
       }
-
-      data.slice(0, 5).forEach((p, i) => {
-        tbody.insertAdjacentHTML("beforeend", `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${p.product_name}</td>
-            <td>${p.qty_sold}</td>
-            <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
-          </tr>
-        `);
-      });
+      renderRows();
     } catch (err) {
       if (err.name === "AbortError" || id !== requestId) return;
-      console.error("Top sellers failed", err);
+      console.error("Best seller tracker failed", err);
       tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Failed to load</td></tr>`;
     }
   };
 
-  dayBtn.onclick = () => { mode = "day"; refresh(); };
-  monthBtn.onclick = () => { mode = "month"; refresh(); };
+  btns.day.onclick = () => { mode = "day"; refresh(); };
+  btns.week.onclick = () => { mode = "week"; refresh(); };
+  btns.month.onclick = () => { mode = "month"; refresh(); };
   dateInput.onchange = refresh;
   monthInput.onchange = refresh;
 
