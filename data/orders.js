@@ -131,19 +131,36 @@ export async function getDailySalesAnalytics(date) {
   };
 }
 
-/** @param {string} date */
-export async function getTopSellers(date) {
-  const rows = await withRetry(() =>
-    supabase
-      .from("order_items")
-      .select("qty, total, product_id, voided, products(product_name), orders!inner(order_date)")
-      .eq("orders.order_date", date)
-      .eq("voided", false)
-  );
+/**
+ * Best sellers for one day, or an inclusive date range (e.g. a whole
+ * month). Pages through the results — a month of order lines exceeds
+ * Supabase's default 1,000-row response cap, which would silently drop
+ * sales from the totals.
+ * @param {string} startDate - "YYYY-MM-DD"
+ * @param {string} [endDate] - inclusive; defaults to startDate (single day)
+ */
+export async function getTopSellers(startDate, endDate = startDate) {
+  const PAGE = 1000;
+  /** @type {any[]} */
+  const rows = [];
+  for (let from = 0; ; from += PAGE) {
+    const page = await withRetry(() =>
+      supabase
+        .from("order_items")
+        .select("qty, total, product_id, voided, products(product_name), orders!inner(order_date)")
+        .gte("orders.order_date", startDate)
+        .lte("orders.order_date", endDate)
+        .eq("voided", false)
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1)
+    );
+    rows.push(...(page ?? []));
+    if ((page ?? []).length < PAGE) break;
+  }
 
   /** @type {Record<string, {product_name: string, qty_sold: number, total_sales: number}>} */
   const byProduct = {};
-  for (const row of rows ?? []) {
+  for (const row of rows) {
     const key = row.product_id;
     // @ts-ignore
     const name = row.products?.product_name ?? row.product_id;

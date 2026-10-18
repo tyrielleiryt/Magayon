@@ -172,6 +172,15 @@ function panelBodyHTML(widget) {
   switch (widget) {
     case "topSellers":
       return `
+        <div class="top-sellers-controls" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden">
+            <button type="button" id="topSellersModeDay" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Day</button>
+            <button type="button" id="topSellersModeMonth" class="top-sellers-mode-btn" style="padding:6px 14px;border:0;cursor:pointer">Month</button>
+          </div>
+          <input type="date" id="topSellersDate" style="padding:6px 8px">
+          <input type="month" id="topSellersMonth" style="padding:6px 8px" hidden>
+          <span id="topSellersPeriod" style="color:#6b7280;font-size:13px"></span>
+        </div>
         <div class="dashboard-table-wrap">
           <table class="category-table">
             <thead>
@@ -291,33 +300,89 @@ function renderLayout() {
   `;
 }
 
-/* ================= TOP SELLERS ================= */
+/* ================= TOP SELLERS =================
+   Day mode (default: today) or Month mode (whole calendar month). The
+   widget's initial load, and each toggle/picker change, all go through
+   renderTopSellers() — only the date range differs. */
+function phToday() {
+  // Philippine date, not UTC — before 8 AM PH, toISOString() is still "yesterday".
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+function monthRange(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
+}
+
 async function loadTopSellers(date, signal) {
-  try {
-    const data = await getTopSellers(date);
+  const dateInput = document.getElementById("topSellersDate");
+  const monthInput = document.getElementById("topSellersMonth");
+  const dayBtn = document.getElementById("topSellersModeDay");
+  const monthBtn = document.getElementById("topSellersModeMonth");
+  if (!dateInput || !monthInput || !dayBtn || !monthBtn) return;
+
+  const today = phToday();
+  let mode = "day";
+  dateInput.value = today;
+  monthInput.value = today.slice(0, 7);
+
+  // Ignore a slow earlier response if the user has already changed the
+  // selection again.
+  let requestId = 0;
+
+  const refresh = async () => {
+    const id = ++requestId;
+    const isDay = mode === "day";
+    dateInput.hidden = !isDay;
+    monthInput.hidden = isDay;
+    dayBtn.style.cssText += isDay ? ";background:#2563eb;color:#fff" : ";background:#fff;color:#111";
+    monthBtn.style.cssText += !isDay ? ";background:#2563eb;color:#fff" : ";background:#fff;color:#111";
 
     const tbody = document.getElementById("topSellersBody");
-    tbody.innerHTML = "";
+    const periodEl = document.getElementById("topSellersPeriod");
+    const picked = isDay ? dateInput.value : monthInput.value;
+    if (!picked) return;
 
-    if (!Array.isArray(data) || !data.length) {
-      tbody.innerHTML = `<tr><td colspan="4">No sales</td></tr>`;
-      return;
+    const range = isDay ? { start: picked, end: picked } : monthRange(picked);
+    periodEl.textContent = isDay
+      ? new Date(picked + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })
+      : new Date(picked + "-01T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
+
+    try {
+      const data = await getTopSellers(range.start, range.end);
+      if (id !== requestId) return;
+
+      tbody.innerHTML = "";
+      if (!Array.isArray(data) || !data.length) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${isDay ? "date" : "month"}</td></tr>`;
+        return;
+      }
+
+      data.slice(0, 5).forEach((p, i) => {
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${p.product_name}</td>
+            <td>${p.qty_sold}</td>
+            <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
+          </tr>
+        `);
+      });
+    } catch (err) {
+      if (err.name === "AbortError" || id !== requestId) return;
+      console.error("Top sellers failed", err);
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Failed to load</td></tr>`;
     }
+  };
 
-    data.slice(0, 5).forEach((p, i) => {
-      tbody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${p.product_name}</td>
-          <td>${p.qty_sold}</td>
-          <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
-        </tr>
-      `);
-    });
-  } catch (err) {
-    if (err.name === "AbortError") return;
-    console.error("Top sellers failed", err);
-  }
+  dayBtn.onclick = () => { mode = "day"; refresh(); };
+  monthBtn.onclick = () => { mode = "month"; refresh(); };
+  dateInput.onchange = refresh;
+  monthInput.onchange = refresh;
+
+  await refresh();
 }
 
 /* ================= DAILY ANALYTICS ================= */
