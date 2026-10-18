@@ -261,6 +261,7 @@ function sortByInventoryOrder(arr, getItemId) {
     .map(x => x.item);
 }
 let activeCategoryId = null;
+let searchTerm = ""; // current text in the product search box (lowercased)
 
 window.showRecipeInfo = function (productId, event) {
   event.stopPropagation();
@@ -517,7 +518,8 @@ if ("serviceWorker" in navigator) {
   });
 
   document.getElementById("searchInput")?.addEventListener("input", e => {
-    renderProducts(e.target.value.toLowerCase());
+    searchTerm = e.target.value.trim().toLowerCase();
+    renderProducts();
   });
 
     updateSyncCounter(); // 👈 ADD THIS
@@ -762,6 +764,11 @@ function createCategoryBtn(name, id, active = false) {
   btn.onclick = () => {
     activeCategoryId = id;
 
+    // Picking a category leaves search mode (search covers every category).
+    searchTerm = "";
+    const searchBox = document.getElementById("searchInput");
+    if (searchBox) searchBox.value = "";
+
     // remove active state from all category buttons
     document
       .querySelectorAll("#categoryList .category-btn")
@@ -798,16 +805,23 @@ function renderCategories() {
 /* =========================================================
    PRODUCTS
 ========================================================= */
-function renderProducts(search = "") {
+function renderProducts() {
   const grid = document.getElementById("productGrid");
   if (!grid) return;
   grid.innerHTML = "";
 
+  // While there's search text, look across EVERY category (otherwise
+  // you'd have to know which category an item lives in to find it).
+  // Clearing the box returns to the selected category. The term lives
+  // in module state so the many re-renders (inventory refresh, after a
+  // sale, ...) don't silently drop what's been typed.
+  const searching = searchTerm.length > 0;
+
   products
     .filter(p => p.active === true || p.active === "TRUE")
-    .filter(p => !activeCategoryId || p.category_id === activeCategoryId)
+    .filter(p => searching || !activeCategoryId || p.category_id === activeCategoryId)
     .filter(p =>
-      `${p.product_name} ${p.product_code}`.toLowerCase().includes(search)
+      !searching || `${p.product_name} ${p.product_code}`.toLowerCase().includes(searchTerm)
     )
     .forEach(p => {
       const disabled = !canSell(p);
