@@ -179,6 +179,15 @@ function panelBodyHTML(widget) {
             <option value="60">1-hour slots</option>
           </select>`)}
         <div id="salesTrackerSummary" style="margin-bottom:8px;font-size:13px;color:#374151"></div>
+        <div id="salesTrackerDailyWrap" hidden>
+          <strong style="font-size:14px">Customers per day</strong>
+          <div id="salesTrackerDailySummary" style="margin:2px 0 4px;font-size:13px;color:#374151"></div>
+          <div style="overflow-x:auto">
+            <div id="salesTrackerDaily" style="min-width:560px"></div>
+          </div>
+          <div style="font-size:12px;color:#9ca3af;margin-bottom:10px">Green = best day, red = slowest trading day. Tap a day to see just that day.</div>
+        </div>
+        <strong style="font-size:14px">Customers by time of day</strong>
         <div style="overflow-x:auto">
           <div id="salesTrackerChart" style="min-width:560px"></div>
         </div>
@@ -379,6 +388,14 @@ function setupPeriodPicker(prefix, onChange) {
   syncUI();
 
   return {
+    // Jump to a single day (used when a day's bar is tapped in the
+    // per-day totals chart).
+    goToDay(ymd) {
+      mode = "day";
+      dateInput.value = ymd;
+      syncUI();
+      onChange();
+    },
     current() {
       const picked = mode === "month" ? monthInput.value : dateInput.value;
       if (!picked) return null;
@@ -473,6 +490,49 @@ function trafficChartSVG({ counts, first, last, size, selected, peak, days }) {
   return svg + `</svg>`;
 }
 
+function eachDay(startYmd, endYmd) {
+  const out = [];
+  for (let t = Date.parse(startYmd + "T00:00:00Z"), end = Date.parse(endYmd + "T00:00:00Z"); t <= end; t += 86400000) {
+    out.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+function dailyChartSVG(days, bestDate, slowDate) {
+  const W = 640, H = 190, L = 44, R = 10, T = 16, B = 30;
+  const n = days.length, iw = W - L - R, ih = H - T - B, bw = iw / n;
+
+  const max = Math.max(1, ...days.map(d => d.count));
+  let step = 1;
+  for (const s of [1, 2, 5, 10, 20, 25, 50, 100, 200, 500]) {
+    step = s;
+    if (max / s <= 4) break;
+  }
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const y = v => T + ih - (v / top) * ih;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Customers per day">`;
+  for (let v = 0; v <= top; v += step) {
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? "#9ca3af" : "#e5e7eb"}"/>`;
+    svg += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#6b7280">${v}</text>`;
+  }
+
+  days.forEach((d, i) => {
+    const x = L + i * bw;
+    const label = fmtDay(d.date, { weekday: "short", month: "short", day: "numeric" });
+    const tip = `${label}: ${d.count} customer${d.count === 1 ? "" : "s"}`;
+    if (d.count > 0) {
+      const fill = d.date === bestDate ? "#16a34a" : d.date === slowDate ? "#ef4444" : "#60a5fa";
+      svg += `<rect x="${x + bw * 0.12}" y="${y(d.count)}" width="${bw * 0.76}" height="${(d.count / top) * ih}" rx="2" fill="${fill}" pointer-events="none"/>`;
+      if (bw >= 22) svg += `<text x="${x + bw / 2}" y="${y(d.count) - 4}" text-anchor="middle" font-size="10" fill="#374151" pointer-events="none">${d.count}</text>`;
+    }
+    const wk = n <= 8 ? new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short" }) + " " : "";
+    svg += `<text x="${x + bw / 2}" y="${T + ih + 16}" text-anchor="middle" font-size="${n <= 8 ? 11 : 10}" fill="${d.count ? "#6b7280" : "#d1d5db"}">${wk}${Number(d.date.slice(8))}</text>`;
+    svg += `<rect data-day="${d.date}" x="${x}" y="${T}" width="${bw}" height="${ih}" fill="transparent" style="cursor:pointer" role="button" tabindex="0" aria-label="${tip}"><title>${tip}</title></rect>`;
+  });
+  return svg + `</svg>`;
+}
+
 async function loadSalesTracker(signal) {
   const el = id => document.getElementById(id);
   const bucketSel = el("salesTrackerBucket");
@@ -488,6 +548,7 @@ async function loadSalesTracker(signal) {
   let selected = null; // slot index, or null = all hours (the overall best sellers)
   let shown = TRAFFIC_PRODUCTS_PAGE;
   let periodMode = "day";
+  let rangeStart = "", rangeEnd = "";
   let recenter = true; // scroll the chart to the selected slot (matters on phones, where it scrolls sideways)
 
   const summaryEl = el("salesTrackerSummary");
@@ -498,6 +559,9 @@ async function loadSalesTracker(signal) {
   const render = () => {
     const size = Number(bucketSel.value) || 30;
     const n = Math.ceil(1440 / size);
+
+    const dailyWrap = el("salesTrackerDailyWrap");
+    dailyWrap.hidden = true;
 
     if (!orders.length) {
       summaryEl.textContent = `No customers for this ${periodMode === "day" ? "date" : periodMode}.`;
@@ -534,6 +598,29 @@ async function loadSalesTracker(signal) {
     }
 
     const peak = counts.indexOf(Math.max(...counts));
+
+    // Per-day customer totals (week / month only) — every calendar day in
+    // the range, so closed days show as empty bars rather than vanishing.
+    if (periodMode !== "day") {
+      const byDate = {};
+      for (const o of orders) byDate[o.date] = (byDate[o.date] || 0) + 1;
+      const dayList = eachDay(rangeStart, rangeEnd).map(date => ({ date, count: byDate[date] || 0 }));
+      const trading = dayList.filter(d => d.count > 0);
+      const best = trading.reduce((a, b) => (b.count > a.count ? b : a), trading[0]);
+      const slow = trading.reduce((a, b) => (b.count < a.count ? b : a), trading[0]);
+      const short = d => fmtDay(d.date, { weekday: "short", month: "short", day: "numeric" });
+
+      el("salesTrackerDailySummary").innerHTML = trading.length > 1
+        ? `Best: <strong>${short(best)}</strong> (${best.count}) · Slowest: <strong>${short(slow)}</strong> (${slow.count}) · ${trading.length} trading day${trading.length === 1 ? "" : "s"}, avg ${(orders.length / trading.length).toFixed(1)}/day`
+        : `${trading.length} trading day`;
+      el("salesTrackerDaily").innerHTML = dailyChartSVG(dayList, trading.length > 1 ? best.date : null, trading.length > 1 ? slow.date : null);
+      el("salesTrackerDaily").querySelectorAll("[data-day]").forEach(rect => {
+        const go = () => picker.goToDay(rect.dataset.day);
+        rect.onclick = go;
+        rect.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+      });
+      dailyWrap.hidden = false;
+    }
 
     const slotLabel = i => `${fmtClock(i * size)} – ${fmtClock((i + 1) * size)}`;
     const topSlots = counts
@@ -628,6 +715,8 @@ async function loadSalesTracker(signal) {
     const per = picker?.current();
     if (!per) return;
     periodMode = per.mode;
+    rangeStart = per.start;
+    rangeEnd = per.end;
 
     summaryEl.textContent = "Loading…";
     chartEl.innerHTML = "";
