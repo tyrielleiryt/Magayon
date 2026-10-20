@@ -132,47 +132,6 @@ export async function getDailySalesAnalytics(date) {
 }
 
 /**
- * Best sellers for one day, or an inclusive date range (e.g. a whole
- * month). Pages through the results — a month of order lines exceeds
- * Supabase's default 1,000-row response cap, which would silently drop
- * sales from the totals.
- * @param {string} startDate - "YYYY-MM-DD"
- * @param {string} [endDate] - inclusive; defaults to startDate (single day)
- */
-export async function getTopSellers(startDate, endDate = startDate) {
-  const PAGE = 1000;
-  /** @type {any[]} */
-  const rows = [];
-  for (let from = 0; ; from += PAGE) {
-    const page = await withRetry(() =>
-      supabase
-        .from("order_items")
-        .select("qty, total, product_id, voided, products(product_name), orders!inner(order_date)")
-        .gte("orders.order_date", startDate)
-        .lte("orders.order_date", endDate)
-        .eq("voided", false)
-        .order("id", { ascending: true })
-        .range(from, from + PAGE - 1)
-    );
-    rows.push(...(page ?? []));
-    if ((page ?? []).length < PAGE) break;
-  }
-
-  /** @type {Record<string, {product_name: string, qty_sold: number, total_sales: number}>} */
-  const byProduct = {};
-  for (const row of rows) {
-    const key = row.product_id;
-    // @ts-ignore
-    const name = row.products?.product_name ?? row.product_id;
-    byProduct[key] ??= { product_name: name, qty_sold: 0, total_sales: 0 };
-    byProduct[key].qty_sold += Number(row.qty) || 0;
-    byProduct[key].total_sales += Number(row.total) || 0;
-  }
-
-  return Object.values(byProduct).sort((a, b) => b.qty_sold - a.qty_sold);
-}
-
-/**
  * Minutes since midnight (Philippine time) when an order was actually
  * rung up, or null if it can't be trusted. Every order ID ("ORD-<ms>",
  * older ones "POS-<ms>") embeds the checkout timestamp, which is the real
@@ -201,7 +160,7 @@ function orderMinuteOfDay(refId, createdAt, orderDate) {
  * 1,000-row cap).
  * @param {string} startDate - "YYYY-MM-DD"
  * @param {string} [endDate] - inclusive; defaults to startDate
- * @returns {Promise<{orders: {ref_id: string, date: string, minute: number | null, items: {product_id: string, product_name: string, qty: number}[]}[]}>}
+ * @returns {Promise<{orders: {ref_id: string, date: string, minute: number | null, items: {product_id: string, product_name: string, qty: number, total: number}[]}[]}>}
  */
 export async function getCustomerTraffic(startDate, endDate = startDate) {
   const PAGE = 1000;
@@ -231,7 +190,7 @@ export async function getCustomerTraffic(startDate, endDate = startDate) {
   const itemRows = await collect((from, to) =>
     supabase
       .from("order_items")
-      .select("ref_id, qty, product_id, products(product_name), orders!inner(order_date)")
+      .select("ref_id, qty, total, product_id, products(product_name), orders!inner(order_date)")
       .gte("orders.order_date", startDate)
       .lte("orders.order_date", endDate)
       .eq("voided", false)
@@ -239,14 +198,15 @@ export async function getCustomerTraffic(startDate, endDate = startDate) {
       .range(from, to)
   );
 
-  /** @type {Record<string, {product_id: string, product_name: string, qty: number}[]>} */
+  /** @type {Record<string, {product_id: string, product_name: string, qty: number, total: number}[]>} */
   const itemsByOrder = {};
   for (const row of itemRows) {
     (itemsByOrder[row.ref_id] ??= []).push({
       product_id: row.product_id,
       // @ts-ignore
       product_name: row.products?.product_name ?? row.product_id,
-      qty: Number(row.qty) || 0
+      qty: Number(row.qty) || 0,
+      total: Number(row.total) || 0
     });
   }
 

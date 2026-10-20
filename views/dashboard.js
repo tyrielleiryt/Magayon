@@ -1,7 +1,7 @@
 import { bindDataBoxScroll } from "../admin.js";
 
 import { icon } from "../icons.js";
-import { getDailySalesAnalytics, getTopSellers, getLowStockAlerts, getStockDaysRemaining, listTodaySales, listUnresolvedFailedCheckouts, resolveFailedCheckout, getCustomerTraffic } from "../data/orders.js";
+import { getDailySalesAnalytics, getLowStockAlerts, getStockDaysRemaining, listTodaySales, listUnresolvedFailedCheckouts, resolveFailedCheckout, getCustomerTraffic } from "../data/orders.js";
 import { listStaff } from "../data/staff.js";
 import { getAttendanceOverview } from "../data/attendance.js";
 import { listLocations } from "../data/locations.js";
@@ -36,12 +36,11 @@ export default async function loadDashboardView() {
 
 /* ================= WIDGET TOGGLE (click to load / click again to hide) ================= */
 const WIDGET_LOADERS = {
-  topSellers: (date, signal) => loadTopSellers(date, signal),
   dailyPerformance: (date, signal) => loadDailyAnalytics(date, signal),
   lowStock: (date, signal) => loadLowStockAlerts(date, signal),
   laborCost: (date, signal) => loadLaborCost(date, signal),
   stockDays: (date, signal) => loadStockDaysRemaining(date, signal),
-  customerTraffic: (date, signal) => loadCustomerTraffic(signal),
+  salesTracker: (date, signal) => loadSalesTracker(signal),
   failedCheckouts: (date, signal) => loadFailedCheckouts(signal)
   // liveSales is handled separately below — it's a poller, not a one-shot fetch
 };
@@ -145,8 +144,7 @@ function applyTrend(el, today, yesterday) {
    unchanged from before, so every loader function below still finds
    what it's looking for without modification. */
 const WIDGET_META = {
-  topSellers: { icon: "trophy", label: "Best Seller Tracker", color: "amber" },
-  customerTraffic: { icon: "users", label: "Customer Quantity Tracker", color: "blue" },
+  salesTracker: { icon: "trophy", label: "Sales Tracker", color: "amber" },
   liveSales: { label: "Live Sales Feed", color: "green", live: true },
   dailyPerformance: { icon: "trending-up", label: "Daily Performance", color: "blue" },
   lowStock: { icon: "alert-triangle", label: "Low Stock Warnings", color: "red" },
@@ -172,46 +170,28 @@ function dashboardChipHTML(key) {
 
 function panelBodyHTML(widget) {
   switch (widget) {
-    case "topSellers":
+    case "salesTracker":
       return `
-        ${periodControlsHTML("topSellers")}
-        <div class="dashboard-table-wrap">
-          <table class="category-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Sales</th>
-              </tr>
-            </thead>
-            <tbody id="topSellersBody"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
-          </table>
-        </div>
-      `;
-
-    case "customerTraffic":
-      return `
-        ${periodControlsHTML("customerTraffic", `
-          <select id="customerTrafficBucket" aria-label="Time slot size" style="padding:6px 8px">
+        ${periodControlsHTML("salesTracker", `
+          <select id="salesTrackerBucket" aria-label="Time slot size" style="padding:6px 8px">
             <option value="15">15-min slots</option>
             <option value="30" selected>30-min slots</option>
             <option value="60">1-hour slots</option>
           </select>`)}
-        <div id="customerTrafficSummary" style="margin-bottom:8px;font-size:13px;color:#374151"></div>
+        <div id="salesTrackerSummary" style="margin-bottom:8px;font-size:13px;color:#374151"></div>
         <div style="overflow-x:auto">
-          <div id="customerTrafficChart" style="min-width:560px"></div>
+          <div id="salesTrackerChart" style="min-width:560px"></div>
         </div>
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 6px">
-          <strong id="customerTrafficProductsTitle" style="font-size:14px">Usual products</strong>
-          <button type="button" id="customerTrafficAllHours" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:2px 4px" hidden>Show all hours</button>
+          <strong id="salesTrackerProductsTitle" style="font-size:14px">Best sellers</strong>
+          <button type="button" id="salesTrackerAllHours" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:2px 4px" hidden>Show all hours</button>
         </div>
         <div class="dashboard-table-wrap" style="overflow:visible">
           <table class="category-table">
             <thead>
-              <tr><th>#</th><th>Product</th><th>Qty</th><th title="Share of customers in this time slot who bought it">% Cust.</th></tr>
+              <tr><th>#</th><th>Product</th><th>Qty</th><th>Sales</th><th title="Share of customers who bought it">% Cust.</th></tr>
             </thead>
-            <tbody id="customerTrafficProducts"><tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr></tbody>
+            <tbody id="salesTrackerProducts"><tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr></tbody>
           </table>
         </div>
       `;
@@ -322,9 +302,8 @@ function renderLayout() {
 
 /* ================= SHARED PERIOD PICKER =================
    Day (default: today) / Week (Monday–Sunday containing the picked date)
-   / Month — used by both the Best Seller Tracker and the Customer
-   Quantity Tracker so the two can't drift apart. Element ids are all
-   `${prefix}…` (ModeDay, ModeWeek, ModeMonth, Date, Month, Period). */
+   / Month, for the Sales Tracker. Element ids are all `${prefix}…`
+   (ModeDay, ModeWeek, ModeMonth, Date, Month, Period). */
 const PERIOD_BTN_STYLE = "padding:6px 14px;border:0;cursor:pointer";
 
 function phToday() {
@@ -421,93 +400,14 @@ function setupPeriodPicker(prefix, onChange) {
   };
 }
 
-/* ================= BEST SELLER TRACKER =================
-   Ranked by quantity sold; shows 5 at a time with a View More row that
-   reveals the next 5. Switching period resets to 5. */
-const TOP_SELLERS_PAGE = 5;
-
-async function loadTopSellers(date, signal) {
-  // The shared 340px panel cap suits the other widgets' short tables; this
-  // one can list every product, so give it room (the table still scrolls).
-  const panelEl = document.getElementById("topSellersDate")?.closest(".dashboard-expanded-panel");
-  if (panelEl) panelEl.style.maxHeight = "520px";
-
-  // Ignore a slow earlier response if the selection has changed again.
-  let requestId = 0;
-  let sellers = [];
-  let shown = TOP_SELLERS_PAGE;
-
-  const renderRows = () => {
-    const tbody = document.getElementById("topSellersBody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    sellers.slice(0, shown).forEach((p, i) => {
-      tbody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${p.product_name}</td>
-          <td>${p.qty_sold}</td>
-          <td>₱${Number(p.total_sales || 0).toFixed(2)}</td>
-        </tr>
-      `);
-    });
-
-    const remaining = sellers.length - shown;
-    if (remaining > 0) {
-      tbody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td colspan="4" style="text-align:center">
-            <button type="button" id="topSellersViewMore" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:6px">
-              View More (${remaining} more)
-            </button>
-          </td>
-        </tr>
-      `);
-      document.getElementById("topSellersViewMore").onclick = () => {
-        shown += TOP_SELLERS_PAGE;
-        renderRows();
-      };
-    }
-  };
-
-  const refresh = async () => {
-    const id = ++requestId;
-    const per = picker?.current();
-    if (!per) return;
-
-    const tbody = document.getElementById("topSellersBody");
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
-
-    try {
-      const data = await getTopSellers(per.start, per.end);
-      if (id !== requestId) return;
-
-      sellers = Array.isArray(data) ? data : [];
-      shown = TOP_SELLERS_PAGE;
-      if (!sellers.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales for this ${per.mode === "day" ? "date" : per.mode}</td></tr>`;
-        return;
-      }
-      renderRows();
-    } catch (err) {
-      if (err.name === "AbortError" || id !== requestId) return;
-      console.error("Best seller tracker failed", err);
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Failed to load</td></tr>`;
-    }
-  };
-
-  const picker = setupPeriodPicker("topSellers", refresh);
-  await refresh();
-}
-
-/* ================= CUSTOMER QUANTITY TRACKER =================
-   One customer = one order. Plots how many customers checked out in each
-   time-of-day slot (x: time, y: customers) to show the peak hours, and
-   lists what customers usually bought in the selected slot (the busiest
-   slot by default; click any bar to look at another, click it again or
-   "Show all hours" for the whole period). For a week or month the bars
-   are totals across the period; the tooltip also gives the per-day average. */
+/* ================= SALES TRACKER =================
+   One widget for both questions: WHEN do customers come (chart: x = time of
+   day, y = customers checking out; one customer = one order) and WHAT do
+   they buy (ranked list below). The list covers the whole period by
+   default — i.e. the overall best sellers — and narrows to one time slot
+   when you click a bar (click it again, or "Show all hours", to go back).
+   For a week or month the bars are totals across the period; the tooltip
+   also gives the per-day average. */
 const TRAFFIC_PRODUCTS_PAGE = 5;
 
 function fmtClock(minutes) {
@@ -573,10 +473,10 @@ function trafficChartSVG({ counts, first, last, size, selected, peak, days }) {
   return svg + `</svg>`;
 }
 
-async function loadCustomerTraffic(signal) {
+async function loadSalesTracker(signal) {
   const el = id => document.getElementById(id);
-  const bucketSel = el("customerTrafficBucket");
-  const chartEl = el("customerTrafficChart");
+  const bucketSel = el("salesTrackerBucket");
+  const chartEl = el("salesTrackerChart");
   if (!bucketSel || !chartEl) return;
 
   // Needs more room than the shared 340px panel cap: controls + chart + list.
@@ -585,15 +485,15 @@ async function loadCustomerTraffic(signal) {
 
   let requestId = 0;
   let orders = [];
-  let selected; // slot index; null = all hours; undefined = pick the peak
+  let selected = null; // slot index, or null = all hours (the overall best sellers)
   let shown = TRAFFIC_PRODUCTS_PAGE;
   let periodMode = "day";
   let recenter = true; // scroll the chart to the selected slot (matters on phones, where it scrolls sideways)
 
-  const summaryEl = el("customerTrafficSummary");
-  const productsBody = el("customerTrafficProducts");
-  const productsTitle = el("customerTrafficProductsTitle");
-  const allHoursBtn = el("customerTrafficAllHours");
+  const summaryEl = el("salesTrackerSummary");
+  const productsBody = el("salesTrackerProducts");
+  const productsTitle = el("salesTrackerProductsTitle");
+  const allHoursBtn = el("salesTrackerAllHours");
 
   const render = () => {
     const size = Number(bucketSel.value) || 30;
@@ -602,9 +502,9 @@ async function loadCustomerTraffic(signal) {
     if (!orders.length) {
       summaryEl.textContent = `No customers for this ${periodMode === "day" ? "date" : periodMode}.`;
       chartEl.innerHTML = "";
-      productsTitle.textContent = "Usual products";
+      productsTitle.textContent = "Best sellers";
       allHoursBtn.hidden = true;
-      productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No sales</td></tr>`;
+      productsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888">No sales</td></tr>`;
       return;
     }
 
@@ -634,7 +534,6 @@ async function loadCustomerTraffic(signal) {
     }
 
     const peak = counts.indexOf(Math.max(...counts));
-    if (selected === undefined) selected = peak;
 
     const slotLabel = i => `${fmtClock(i * size)} – ${fmtClock((i + 1) * size)}`;
     const topSlots = counts
@@ -648,12 +547,13 @@ async function loadCustomerTraffic(signal) {
       `<strong>${timed}</strong> customer${timed === 1 ? "" : "s"} over ${days} day${days === 1 ? "" : "s"}` +
       (days > 1 ? ` (avg ${(timed / days).toFixed(1)}/day)` : "") +
       `<br>Busiest: ${topSlots}` +
+      `<br><span style="color:#9ca3af">Tap a bar to see what sold in that time slot.</span>` +
       (untimed ? `<br><span style="color:#9ca3af">${untimed} order${untimed === 1 ? "" : "s"} without a reliable time not plotted</span>` : "");
 
     chartEl.innerHTML = trafficChartSVG({ counts, first, last, size, selected, peak, days });
-    if (recenter && selected != null) {
+    if (recenter) {
       // Same geometry as trafficChartSVG (viewBox width 640, left margin 44, right 10).
-      const frac = (44 + (selected - first + 0.5) * ((640 - 44 - 10) / (last - first + 1))) / 640;
+      const frac = (44 + ((selected ?? peak) - first + 0.5) * ((640 - 44 - 10) / (last - first + 1))) / 640;
       const scroller = chartEl.parentElement;
       scroller.scrollLeft = Math.max(0, frac * chartEl.scrollWidth - scroller.clientWidth / 2);
     }
@@ -675,8 +575,8 @@ async function loadCustomerTraffic(signal) {
       : orders.filter(o => o.minute != null && Math.floor(o.minute / size) === selected);
 
     productsTitle.textContent = selected == null
-      ? `Usual products — all hours (${inSlot.length} customers)`
-      : `Usual products — ${slotLabel(selected)}${selected === peak ? " · busiest slot" : ""} (${inSlot.length} customer${inSlot.length === 1 ? "" : "s"})`;
+      ? `Best sellers — all hours (${inSlot.length} customer${inSlot.length === 1 ? "" : "s"})`
+      : `Best sellers — ${slotLabel(selected)}${selected === peak ? " · busiest slot" : ""} (${inSlot.length} customer${inSlot.length === 1 ? "" : "s"})`;
     allHoursBtn.hidden = selected == null;
     allHoursBtn.onclick = () => { selected = null; shown = TRAFFIC_PRODUCTS_PAGE; render(); };
 
@@ -684,8 +584,9 @@ async function loadCustomerTraffic(signal) {
     for (const o of inSlot) {
       const seen = new Set();
       for (const it of o.items) {
-        const rec = (byProduct[it.product_id] ??= { name: it.product_name, qty: 0, customers: 0 });
+        const rec = (byProduct[it.product_id] ??= { name: it.product_name, qty: 0, sales: 0, customers: 0 });
         rec.qty += it.qty;
+        rec.sales += it.total;
         if (!seen.has(it.product_id)) { rec.customers++; seen.add(it.product_id); }
       }
     }
@@ -693,7 +594,7 @@ async function loadCustomerTraffic(signal) {
 
     productsBody.innerHTML = "";
     if (!ranked.length) {
-      productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">No customers in this time slot</td></tr>`;
+      productsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888">No customers in this time slot</td></tr>`;
       return;
     }
     ranked.slice(0, shown).forEach((p, i) => {
@@ -702,6 +603,7 @@ async function loadCustomerTraffic(signal) {
           <td>${i + 1}</td>
           <td>${p.name}</td>
           <td>${p.qty}</td>
+          <td>₱${p.sales.toFixed(2)}</td>
           <td>${Math.round((100 * p.customers) / inSlot.length)}%</td>
         </tr>
       `);
@@ -710,14 +612,14 @@ async function loadCustomerTraffic(signal) {
     if (remaining > 0) {
       productsBody.insertAdjacentHTML("beforeend", `
         <tr>
-          <td colspan="4" style="text-align:center">
-            <button type="button" id="customerTrafficViewMore" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:6px">
+          <td colspan="5" style="text-align:center">
+            <button type="button" id="salesTrackerViewMore" style="background:none;border:0;color:#2563eb;cursor:pointer;font-weight:600;padding:6px">
               View More (${remaining} more)
             </button>
           </td>
         </tr>
       `);
-      el("customerTrafficViewMore").onclick = () => { shown += TRAFFIC_PRODUCTS_PAGE; render(); };
+      el("salesTrackerViewMore").onclick = () => { shown += TRAFFIC_PRODUCTS_PAGE; render(); };
     }
   };
 
@@ -729,13 +631,13 @@ async function loadCustomerTraffic(signal) {
 
     summaryEl.textContent = "Loading…";
     chartEl.innerHTML = "";
-    productsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Loading…</td></tr>`;
+    productsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr>`;
 
     try {
       const data = await getCustomerTraffic(per.start, per.end);
       if (id !== requestId) return;
       orders = data.orders;
-      selected = undefined; // back to the busiest slot for the new period
+      selected = null; // new period: back to the overall best sellers
       recenter = true;
       shown = TRAFFIC_PRODUCTS_PAGE;
       render();
@@ -746,8 +648,8 @@ async function loadCustomerTraffic(signal) {
     }
   };
 
-  bucketSel.onchange = () => { selected = undefined; recenter = true; shown = TRAFFIC_PRODUCTS_PAGE; render(); };
-  const picker = setupPeriodPicker("customerTraffic", reload);
+  bucketSel.onchange = () => { selected = null; recenter = true; shown = TRAFFIC_PRODUCTS_PAGE; render(); };
+  const picker = setupPeriodPicker("salesTracker", reload);
   await reload();
 }
 
